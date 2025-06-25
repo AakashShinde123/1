@@ -39,43 +39,37 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Run database migrations first
   try {
+    // Run database migrations first
     await runMigrations();
-  } catch (error) {
-    console.error("Failed to run migrations:", error);
-    process.exit(1);
-  }
-  
-  const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    // Register routes
+    const server = await registerRoutes(app);
 
-    res.status(status).json({ message });
-    throw err;
-  });
+    // Global error handler
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
+      res.status(status).json({ message });
+      throw err;
+    });
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
- const PORT = process.env.PORT || 5050;
+    // Setup Vite or static serving
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
+
+    // Start server
+    const PORT = process.env.PORT || 5050;
     app.listen(PORT, '0.0.0.0', () => {
-     console.log(`🚀 Server is running on http://0.0.0.0:${PORT}`);
+      console.log(`🚀 Server is running on http://0.0.0.0:${PORT}`);
     });
 
   } catch (error) {
-    console.error(" Failed to start server:", error);
+    console.error("❌ Failed to start server:", error);
     process.exit(1);
-  }
+  }
 })();
