@@ -69,10 +69,13 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  app.listen(5050, 'localhost', () => {
-  console.log('Server is running on http://localhost:5050');
-});
-})().catch((error) => {
-  console.error("Failed to start server:", error);
-  process.exit(1);
-});
+ const PORT = process.env.PORT || 5050;
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(✅ Server is running on http://0.0.0.0:${PORT});
+    });
+
+  } catch (error) {
+    console.error("❌ Failed to start server:", error);
+    process.exit(1);
+  }
+})();
