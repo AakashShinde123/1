@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Users, Edit, UserPlus, Key, Lock, UserX, UserCheck, Eye } from "lucide-react";
+import { Users, Edit, UserPlus, Key, Lock, UserX, UserCheck, Eye, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -248,6 +248,40 @@ export default function UserManagement() {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      await apiRequest("DELETE", `/api/users/${userId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      
+      const errorMessage = error.message || "Failed to delete user";
+      toast({
+        title: "Cannot Delete User",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEditRole = (user: User) => {
     setEditingUser(user);
     form.setValue("role", user.role as UserRole);
@@ -285,6 +319,12 @@ export default function UserManagement() {
       userId: userId.toString(),
       isActive: !currentStatus,
     });
+  };
+
+  const handleDeleteUser = (user: User) => {
+    if (window.confirm(`Are you sure you want to delete user "${user.username}"? This action cannot be undone.`)) {
+      deleteUserMutation.mutate(user.id.toString());
+    }
   };
 
   if (isLoading) {
@@ -566,6 +606,15 @@ export default function UserManagement() {
                             ) : (
                               <UserCheck className="h-4 w-4 text-green-600" />
                             )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteUser(userItem)}
+                            disabled={userItem.id === (user as any)?.id}
+                            title="Delete User"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-600" />
                           </Button>
                         </div>
                       </td>
