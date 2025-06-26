@@ -12,6 +12,29 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { List, Search, RotateCcw, Filter } from "lucide-react";
 import type { StockTransactionWithDetails } from "@shared/schema";
 
+// Utility function to format quantity display
+const formatQuantityDisplay = (transaction: StockTransactionWithDetails) => {
+  // Check if we have original quantity data for grams
+  if ((transaction as any).originalQuantity && (transaction as any).originalUnit === 'g') {
+    const originalQty = parseFloat((transaction as any).originalQuantity);
+    return `${originalQty}`;
+  }
+  
+  // Otherwise show standard quantity
+  return `${parseFloat(transaction.quantity)}`;
+};
+
+// Utility function to format unit display
+const formatUnitDisplay = (transaction: StockTransactionWithDetails) => {
+  // Check if we have original unit data for grams
+  if ((transaction as any).originalQuantity && (transaction as any).originalUnit === 'g') {
+    return 'grams';
+  }
+  
+  // Otherwise show product unit
+  return transaction.product.unit;
+};
+
 export default function TransactionLog() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { toast } = useToast();
@@ -242,8 +265,8 @@ export default function TransactionLog() {
                           {transaction.type === 'stock_in' ? 'Stock In' : 'Stock Out'}
                         </Badge>
                       </td>
-                      <td className="p-4">{transaction.quantity}</td>
-                      <td className="p-4">{transaction.product?.unit}</td>
+                      <td className="p-4">{formatQuantityDisplay(transaction)}</td>
+                      <td className="p-4">{formatUnitDisplay(transaction)}</td>
                       <td className="p-4">
                         <div className="flex flex-col">
                           <span className="font-medium">{transaction.user?.username || 'N/A'}</span>
