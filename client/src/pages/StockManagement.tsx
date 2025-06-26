@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TrendingUp, TrendingDown, RotateCcw, AlertTriangle, X } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -38,6 +39,7 @@ interface ProductItem {
   quantityOut?: string;
   currentStock: string;
   newStock: string;
+  selectedUnit?: string;
 }
 
 type TransactionPreview = TransactionData;
@@ -45,10 +47,42 @@ type TransactionPreview = TransactionData;
 export default function StockManagement() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { toast } = useToast();
-  const [selectedProductsIn, setSelectedProductsIn] = useState<Array<{product: Product, quantity: string}>>([]);
-  const [selectedProductsOut, setSelectedProductsOut] = useState<Array<{product: Product, quantityOut: string}>>([]);
+  const [selectedProductsIn, setSelectedProductsIn] = useState<Array<{product: Product, quantity: string, selectedUnit: string}>>([]);
+  const [selectedProductsOut, setSelectedProductsOut] = useState<Array<{product: Product, quantityOut: string, selectedUnit: string}>>([]);
   const [transactionPreview, setTransactionPreview] = useState<TransactionPreview | null>(null);
   const [stockWarnings, setStockWarnings] = useState<string[]>([]);
+
+  // Unit conversion utilities
+  const getAvailableUnits = (product: Product) => {
+    const baseUnit = product.unit.toLowerCase();
+    const units = [{ value: product.unit, label: product.unit }];
+    
+    // Add gram option for weight-based units
+    if (baseUnit === 'kg' || baseUnit === 'kilogram' || baseUnit === 'kilograms') {
+      units.push({ value: 'g', label: 'Grams' });
+    }
+    
+    return units;
+  };
+
+  const convertToBaseUnit = (quantity: string, selectedUnit: string, product: Product) => {
+    const baseUnit = product.unit.toLowerCase();
+    const qty = parseFloat(quantity);
+    
+    if (selectedUnit === 'g' && (baseUnit === 'kg' || baseUnit === 'kilogram' || baseUnit === 'kilograms')) {
+      return (qty / 1000).toString(); // Convert grams to kg
+    }
+    
+    return quantity; // No conversion needed
+  };
+
+  const formatDisplayQuantity = (quantity: string, unit: string) => {
+    const qty = parseFloat(quantity);
+    if (unit === 'g') {
+      return `${qty} grams`;
+    }
+    return `${qty} ${unit}`;
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -90,14 +124,14 @@ export default function StockManagement() {
   const addProductIn = (product: Product) => {
     const existingIndex = selectedProductsIn.findIndex(item => item.product.id === product.id);
     if (existingIndex === -1) {
-      setSelectedProductsIn([...selectedProductsIn, { product, quantity: "" }]);
+      setSelectedProductsIn([...selectedProductsIn, { product, quantity: "", selectedUnit: product.unit }]);
     }
   };
 
   const addProductOut = (product: Product) => {
     const existingIndex = selectedProductsOut.findIndex(item => item.product.id === product.id);
     if (existingIndex === -1) {
-      setSelectedProductsOut([...selectedProductsOut, { product, quantityOut: "" }]);
+      setSelectedProductsOut([...selectedProductsOut, { product, quantityOut: "", selectedUnit: product.unit }]);
     }
   };
 
@@ -108,6 +142,30 @@ export default function StockManagement() {
   const removeProductOut = (productId: number) => {
     setSelectedProductsOut(selectedProductsOut.filter(item => item.product.id !== productId));
     setStockWarnings(stockWarnings.filter(w => !w.includes(selectedProductsOut.find(p => p.product.id === productId)?.product.name || "")));
+  };
+
+  const updateProductInQuantity = (productId: number, quantity: string) => {
+    setSelectedProductsIn(selectedProductsIn.map(item => 
+      item.product.id === productId ? { ...item, quantity } : item
+    ));
+  };
+
+  const updateProductOutQuantity = (productId: number, quantityOut: string) => {
+    setSelectedProductsOut(selectedProductsOut.map(item => 
+      item.product.id === productId ? { ...item, quantityOut } : item
+    ));
+  };
+
+  const updateProductInUnit = (productId: number, selectedUnit: string) => {
+    setSelectedProductsIn(selectedProductsIn.map(item => 
+      item.product.id === productId ? { ...item, selectedUnit } : item
+    ));
+  };
+
+  const updateProductOutUnit = (productId: number, selectedUnit: string) => {
+    setSelectedProductsOut(selectedProductsOut.map(item => 
+      item.product.id === productId ? { ...item, selectedUnit } : item
+    ));
   };
 
   const updateQuantityIn = (productId: number, quantity: string) => {
@@ -138,7 +196,7 @@ export default function StockManagement() {
 
   // Mutations
   const stockInMutation = useMutation({
-    mutationFn: async (transactions: Array<{productId: number, quantity: string, remarks?: string, poNumber?: string}>) => {
+    mutationFn: async (transactions: Array<{productId: number, quantity: string, originalQuantity?: string, originalUnit?: string, remarks?: string, poNumber?: string}>) => {
       const results = [];
       for (const transaction of transactions) {
         const response = await apiRequest('POST', '/api/transactions/stock-in', transaction);
@@ -164,7 +222,7 @@ export default function StockManagement() {
   });
 
   const stockOutMutation = useMutation({
-    mutationFn: async (transactions: Array<{productId: number, quantityOut: string, remarks?: string, soNumber?: string}>) => {
+    mutationFn: async (transactions: Array<{productId: number, quantityOut: string, originalQuantity?: string, originalUnit?: string, remarks?: string, soNumber?: string}>) => {
       const results = [];
       for (const transaction of transactions) {
         const response = await apiRequest('POST', '/api/transactions/stock-out', transaction);
@@ -204,14 +262,15 @@ export default function StockManagement() {
       .filter(item => item.quantity && parseFloat(item.quantity) > 0)
       .map(item => {
         const currentStock = parseFloat(item.product.currentStock);
-        const quantity = parseFloat(item.quantity);
-        const newStock = currentStock + quantity;
+        const convertedQuantity = parseFloat(convertToBaseUnit(item.quantity, item.selectedUnit, item.product));
+        const newStock = currentStock + convertedQuantity;
 
         return {
           product: item.product,
-          quantity: item.quantity,
+          quantity: convertToBaseUnit(item.quantity, item.selectedUnit, item.product),
           currentStock: item.product.currentStock,
           newStock: newStock.toString(),
+          selectedUnit: item.selectedUnit,
         };
       });
 
@@ -225,12 +284,13 @@ export default function StockManagement() {
     }
 
     setTransactionPreview({
-      products: productItems.map(item => ({
+      products: productItems.map((item, index) => ({
         product: item.product.name,
         unit: item.product.unit,
         currentStock: item.currentStock,
         quantity: item.quantity,
         newStock: item.newStock,
+        displayQuantity: formatDisplayQuantity(selectedProductsIn[index].quantity, selectedProductsIn[index].selectedUnit),
       })),
       remarks: data.remarks,
       date: new Date().toLocaleDateString(),
@@ -256,20 +316,21 @@ export default function StockManagement() {
       if (!item.quantityOut || parseFloat(item.quantityOut) <= 0) continue;
 
       const currentStock = parseFloat(item.product.currentStock);
-      const quantity = parseFloat(item.quantityOut);
+      const convertedQuantity = parseFloat(convertToBaseUnit(item.quantityOut, item.selectedUnit, item.product));
       
-      if (quantity > currentStock) {
-        warnings.push(`${item.product.name}: Requested ${quantity} exceeds available ${currentStock}`);
+      if (convertedQuantity > currentStock) {
+        warnings.push(`${item.product.name}: Requested ${formatDisplayQuantity(item.quantityOut, item.selectedUnit)} exceeds available ${currentStock} ${item.product.unit}`);
         continue;
       }
 
-      const newStock = currentStock - quantity;
+      const newStock = currentStock - convertedQuantity;
       productItems.push({
         product: item.product,
-        quantity: item.quantityOut,
+        quantity: convertToBaseUnit(item.quantityOut, item.selectedUnit, item.product),
         quantityOut: item.quantityOut,
         currentStock: item.product.currentStock,
         newStock: newStock.toString(),
+        selectedUnit: item.selectedUnit,
       });
     }
 
@@ -293,12 +354,13 @@ export default function StockManagement() {
     }
 
     setTransactionPreview({
-      products: productItems.map(item => ({
+      products: productItems.map((item, index) => ({
         product: item.product.name,
         unit: item.product.unit,
         currentStock: item.currentStock,
-        quantity: item.quantityOut || item.quantity,
+        quantity: item.quantity,
         newStock: item.newStock,
+        displayQuantity: formatDisplayQuantity(selectedProductsOut[index].quantityOut, selectedProductsOut[index].selectedUnit),
       })),
       remarks: data.remarks,
       date: new Date().toLocaleDateString(),
@@ -313,7 +375,9 @@ export default function StockManagement() {
     if (transactionPreview.type === 'Stock In') {
       const transactions = selectedProductsIn.map(item => ({
         productId: item.product.id,
-        quantity: item.quantity,
+        quantity: convertToBaseUnit(item.quantity, item.selectedUnit, item.product),
+        originalQuantity: item.selectedUnit !== item.product.unit ? item.quantity : undefined,
+        originalUnit: item.selectedUnit !== item.product.unit ? item.selectedUnit : undefined,
         remarks: transactionPreview.remarks,
         poNumber: transactionPreview.poNumber,
       }));
@@ -321,7 +385,9 @@ export default function StockManagement() {
     } else {
       const transactions = selectedProductsOut.map(item => ({
         productId: item.product.id,
-        quantityOut: item.quantityOut!,
+        quantityOut: convertToBaseUnit(item.quantityOut, item.selectedUnit, item.product),
+        originalQuantity: item.selectedUnit !== item.product.unit ? item.quantityOut : undefined,
+        originalUnit: item.selectedUnit !== item.product.unit ? item.selectedUnit : undefined,
         remarks: transactionPreview.remarks,
         soNumber: transactionPreview.soNumber,
       }));
@@ -470,26 +536,69 @@ export default function StockManagement() {
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Quantity to Add
-                          </label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            placeholder="Enter quantity..."
-                            value={item.quantity}
-                            onChange={(e) => updateQuantityIn(item.product.id, e.target.value)}
-                            className="text-lg"
-                          />
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Quantity to Add
+                            </label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              placeholder="Enter quantity..."
+                              value={item.quantity}
+                              onChange={(e) => updateProductInQuantity(item.product.id, e.target.value)}
+                              className="text-lg"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Unit
+                            </label>
+                            <Select
+                              value={item.selectedUnit}
+                              onValueChange={(value) => updateProductInUnit(item.product.id, value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {getAvailableUnits(item.product).map((unit) => (
+                                  <SelectItem key={unit.value} value={unit.value}>
+                                    {unit.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-                <FormField
+
+              <FormField
+                control={stockInForm.control}
+                name="remarks"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Remarks (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Enter any remarks..."
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+
+
+              <FormField
                 control={stockInForm.control}
                 name="poNumber"
                 render={({ field }) => (
@@ -513,27 +622,6 @@ export default function StockManagement() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={stockInForm.control}
-                name="remarks"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Remarks (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Enter any remarks..."
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-
-
-              
 
               <div className="flex justify-center space-x-4">
                 <Button
@@ -602,24 +690,46 @@ export default function StockManagement() {
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Quantity Out
-                          </label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            placeholder="Enter quantity out..."
-                            value={item.quantityOut}
-                            onChange={(e) => updateQuantityOut(item.product.id, e.target.value)}
-                            className="text-lg"
-                          />
-                          {stockWarnings.some(w => w.includes(item.product.name)) && (
-                            <p className="text-red-600 text-sm mt-1">
-                              {stockWarnings.find(w => w.includes(item.product.name))}
-                            </p>
-                          )}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Quantity Out
+                            </label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              placeholder="Enter quantity out..."
+                              value={item.quantityOut}
+                              onChange={(e) => updateProductOutQuantity(item.product.id, e.target.value)}
+                              className="text-lg"
+                            />
+                            {stockWarnings.some(w => w.includes(item.product.name)) && (
+                              <p className="text-red-600 text-sm mt-1">
+                                {stockWarnings.find(w => w.includes(item.product.name))}
+                              </p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Unit
+                            </label>
+                            <Select
+                              value={item.selectedUnit}
+                              onValueChange={(value) => updateProductOutUnit(item.product.id, value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {getAvailableUnits(item.product).map((unit) => (
+                                  <SelectItem key={unit.value} value={unit.value}>
+                                    {unit.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
                     ))}
