@@ -11,6 +11,7 @@ export interface ProductTransactionData {
   currentStock: string;
   quantity: string;
   newStock: string;
+  displayQuantity?: string;
 }
 
 export interface TransactionData {
@@ -109,7 +110,16 @@ export default function ConfirmationDialog({
                   </div>
                   <div>
                     <span className="text-gray-600">Quantity:</span>
-                    <div className="font-medium text-blue-600">{product.quantity} {product.unit}</div>
+                    <div className="font-medium text-blue-600">
+                      {product.displayQuantity ? (
+                        <div>
+                          <div>{product.displayQuantity}</div>
+                          <div className="text-xs text-gray-500">({product.quantity} {product.unit})</div>
+                        </div>
+                      ) : (
+                        <div>{product.quantity} {product.unit}</div>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <span className="text-gray-600">New Stock:</span>
