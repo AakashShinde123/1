@@ -77,6 +77,15 @@ export const userQueries = {
   // Delete user
   async delete(userId: number): Promise<void> {
     await db.delete(users).where(eq(users.id, userId));
+  },
+
+  // Get transaction count for user
+  async getTransactionCount(userId: number): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(stockTransactions)
+      .where(eq(stockTransactions.userId, userId));
+    return result[0]?.count || 0;
   }
 };
 
@@ -176,7 +185,7 @@ export const productQueries = {
 export const stockTransactionQueries = {
   // Create new stock transaction
   async create(transactionData: InsertStockTransaction): Promise<StockTransaction> {
-    const result = await db.insert(stockTransactions).values(transactionData).returning();
+    const result = await db.insert(stockTransactions).values([transactionData]).returning();
     return result[0];
   },
 
@@ -221,6 +230,8 @@ export const stockTransactionQueries = {
         soNumber: stockTransactions.soNumber,
         poNumber: stockTransactions.poNumber,
         createdAt: stockTransactions.createdAt,
+        originalQuantity: stockTransactions.originalQuantity,
+        originalUnit: stockTransactions.originalUnit,
         product: {
           id: products.id,
           name: products.name,
@@ -541,7 +552,9 @@ export const transactionHelpers = {
     quantity: string,
     transactionDate: Date,
     remarks?: string,
-    poNumber?: string
+    poNumber?: string,
+    originalQuantity?: string,
+    originalUnit?: string
   ): Promise<{ transaction: StockTransaction; product: Product }> {
     return await db.transaction(async (tx) => {
       // Get current product
@@ -573,6 +586,8 @@ export const transactionHelpers = {
           userId,
           type: "stock_in",
           quantity,
+          originalQuantity,
+          originalUnit,
           previousStock,
           newStock,
           remarks,
@@ -596,7 +611,9 @@ export const transactionHelpers = {
     quantity: string,
     transactionDate: Date,
     remarks?: string,
-    soNumber?: string
+    soNumber?: string,
+    originalQuantity?: string,
+    originalUnit?: string
   ): Promise<{ transaction: StockTransaction; product: Product }> {
     return await db.transaction(async (tx) => {
       // Get current product
@@ -635,6 +652,8 @@ export const transactionHelpers = {
           userId,
           type: "stock_out",
           quantity,
+          originalQuantity,
+          originalUnit,
           previousStock,
           newStock,
           remarks,
