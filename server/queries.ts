@@ -1,16 +1,28 @@
 import { db } from "./db";
 import { users, products, stockTransactions } from "@shared/schema";
-import { eq, desc, asc, and, gte, lte, like, ilike, sql, sum, count } from "drizzle-orm";
-import type { 
-  User, 
-  Product, 
-  StockTransaction, 
-  InsertUser, 
-  InsertProduct, 
+import {
+  eq,
+  desc,
+  asc,
+  and,
+  gte,
+  lte,
+  like,
+  ilike,
+  sql,
+  sum,
+  count,
+} from "drizzle-orm";
+import type {
+  User,
+  Product,
+  StockTransaction,
+  InsertUser,
+  InsertProduct,
   InsertStockTransaction,
   UpdateProduct,
   UserRole,
-  StockTransactionWithDetails
+  StockTransactionWithDetails,
 } from "@shared/schema";
 
 // ============= USER QUERIES =============
@@ -18,13 +30,21 @@ import type {
 export const userQueries = {
   // Get user by ID
   async getById(id: number): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
     return result[0];
   },
 
   // Get user by username
   async getByUsername(username: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
     return result[0];
   },
 
@@ -71,7 +91,11 @@ export const userQueries = {
 
   // Get active users only
   async getActive(): Promise<User[]> {
-    return await db.select().from(users).where(eq(users.isActive, 1)).orderBy(asc(users.username));
+    return await db
+      .select()
+      .from(users)
+      .where(eq(users.isActive, 1))
+      .orderBy(asc(users.username));
   },
 
   // Delete user
@@ -86,7 +110,7 @@ export const userQueries = {
       .from(stockTransactions)
       .where(eq(stockTransactions.userId, userId));
     return result[0]?.count || 0;
-  }
+  },
 };
 
 // ============= PRODUCT QUERIES =============
@@ -99,21 +123,32 @@ export const productQueries = {
 
   // Get active products only
   async getActive(): Promise<Product[]> {
-    return await db.select().from(products).where(eq(products.isActive, 1)).orderBy(asc(products.name));
+    return await db
+      .select()
+      .from(products)
+      .where(eq(products.isActive, 1))
+      .orderBy(asc(products.name));
   },
 
   // Get product by ID
   async getById(id: number): Promise<Product | undefined> {
-    const result = await db.select().from(products).where(eq(products.id, id)).limit(1);
+    const result = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, id))
+      .limit(1);
     return result[0];
   },
 
   // Create new product
   async create(productData: InsertProduct): Promise<Product> {
-    const result = await db.insert(products).values({
-      ...productData,
-      currentStock: productData.openingStock || "0"
-    }).returning();
+    const result = await db
+      .insert(products)
+      .values({
+        ...productData,
+        currentStock: productData.openingStock || "0",
+      })
+      .returning();
     return result[0];
   },
 
@@ -142,12 +177,7 @@ export const productQueries = {
     return await db
       .select()
       .from(products)
-      .where(
-        and(
-          ilike(products.name, `%${query}%`),
-          eq(products.isActive, 1)
-        )
-      )
+      .where(and(ilike(products.name, `%${query}%`), eq(products.isActive, 1)))
       .orderBy(asc(products.name))
       .limit(20);
   },
@@ -173,19 +203,24 @@ export const productQueries = {
       .where(
         and(
           sql`CAST(${products.currentStock} AS DECIMAL) < ${threshold}`,
-          eq(products.isActive, 1)
-        )
+          eq(products.isActive, 1),
+        ),
       )
       .orderBy(asc(sql`CAST(${products.currentStock} AS DECIMAL)`));
-  }
+  },
 };
 
 // ============= STOCK TRANSACTION QUERIES =============
 
 export const stockTransactionQueries = {
   // Create new stock transaction
-  async create(transactionData: InsertStockTransaction): Promise<StockTransaction> {
-    const result = await db.insert(stockTransactions).values([transactionData]).returning();
+  async create(
+    transactionData: InsertStockTransaction,
+  ): Promise<StockTransaction> {
+    const result = await db
+      .insert(stockTransactions)
+      .values([transactionData])
+      .returning();
     return result[0];
   },
 
@@ -252,21 +287,22 @@ export const stockTransactionQueries = {
           isActive: users.isActive,
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
-        }
+        },
       })
       .from(stockTransactions)
       .leftJoin(products, eq(stockTransactions.productId, products.id))
       .leftJoin(users, eq(stockTransactions.userId, users.id));
 
-    const finalQuery = conditions.length > 0 
-      ? baseQuery.where(and(...conditions))
-      : baseQuery;
+    const finalQuery =
+      conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
 
     return await finalQuery.orderBy(desc(stockTransactions.transactionDate));
   },
 
   // Get transactions by product ID
-  async getByProductId(productId: number): Promise<StockTransactionWithDetails[]> {
+  async getByProductId(
+    productId: number,
+  ): Promise<StockTransactionWithDetails[]> {
     return await this.getAllWithDetails({ productId });
   },
 
@@ -276,12 +312,17 @@ export const stockTransactionQueries = {
   },
 
   // Get transactions by type
-  async getByType(type: "stock_in" | "stock_out"): Promise<StockTransactionWithDetails[]> {
+  async getByType(
+    type: "stock_in" | "stock_out",
+  ): Promise<StockTransactionWithDetails[]> {
     return await this.getAllWithDetails({ type });
   },
 
   // Get transactions for date range
-  async getByDateRange(fromDate: Date, toDate: Date): Promise<StockTransactionWithDetails[]> {
+  async getByDateRange(
+    fromDate: Date,
+    toDate: Date,
+  ): Promise<StockTransactionWithDetails[]> {
     return await this.getAllWithDetails({ fromDate, toDate });
   },
 
@@ -291,7 +332,7 @@ export const stockTransactionQueries = {
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     return await this.getAllWithDetails({ fromDate: today, toDate: tomorrow });
   },
 
@@ -299,9 +340,9 @@ export const stockTransactionQueries = {
   async getRecent(days: number = 7): Promise<StockTransactionWithDetails[]> {
     const fromDate = new Date();
     fromDate.setDate(fromDate.getDate() - days);
-    
+
     return await this.getAllWithDetails({ fromDate });
-  }
+  },
 };
 
 // ============= DASHBOARD/ANALYTICS QUERIES =============
@@ -334,38 +375,38 @@ export const dashboardQueries = {
 
     // Total stock value (sum of all current stock)
     const totalStockResult = await db
-      .select({ 
-        total: sql`COALESCE(SUM(CAST(${products.currentStock} AS DECIMAL)), 0)` 
+      .select({
+        total: sql`COALESCE(SUM(CAST(${products.currentStock} AS DECIMAL)), 0)`,
       })
       .from(products)
       .where(eq(products.isActive, 1));
 
     // Today's stock in
     const todayStockInResult = await db
-      .select({ 
-        total: sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0)` 
+      .select({
+        total: sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0)`,
       })
       .from(stockTransactions)
       .where(
         and(
           eq(stockTransactions.type, "stock_in"),
           gte(stockTransactions.transactionDate, today),
-          lte(stockTransactions.transactionDate, tomorrow)
-        )
+          lte(stockTransactions.transactionDate, tomorrow),
+        ),
       );
 
     // Today's stock out
     const todayStockOutResult = await db
-      .select({ 
-        total: sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0)` 
+      .select({
+        total: sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0)`,
       })
       .from(stockTransactions)
       .where(
         and(
           eq(stockTransactions.type, "stock_out"),
           gte(stockTransactions.transactionDate, today),
-          lte(stockTransactions.transactionDate, tomorrow)
-        )
+          lte(stockTransactions.transactionDate, tomorrow),
+        ),
       );
 
     // Low stock products (less than 10 units)
@@ -375,8 +416,8 @@ export const dashboardQueries = {
       .where(
         and(
           sql`CAST(${products.currentStock} AS DECIMAL) < 10`,
-          eq(products.isActive, 1)
-        )
+          eq(products.isActive, 1),
+        ),
       );
 
     return {
@@ -390,7 +431,10 @@ export const dashboardQueries = {
   },
 
   // Get monthly stock movement
-  async getMonthlyMovement(year: number, month: number): Promise<{
+  async getMonthlyMovement(
+    year: number,
+    month: number,
+  ): Promise<{
     stockIn: number;
     stockOut: number;
     netMovement: number;
@@ -399,29 +443,29 @@ export const dashboardQueries = {
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
     const stockInResult = await db
-      .select({ 
-        total: sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0)` 
+      .select({
+        total: sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0)`,
       })
       .from(stockTransactions)
       .where(
         and(
           eq(stockTransactions.type, "stock_in"),
           gte(stockTransactions.transactionDate, startDate),
-          lte(stockTransactions.transactionDate, endDate)
-        )
+          lte(stockTransactions.transactionDate, endDate),
+        ),
       );
 
     const stockOutResult = await db
-      .select({ 
-        total: sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0)` 
+      .select({
+        total: sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0)`,
       })
       .from(stockTransactions)
       .where(
         and(
           eq(stockTransactions.type, "stock_out"),
           gte(stockTransactions.transactionDate, startDate),
-          lte(stockTransactions.transactionDate, endDate)
-        )
+          lte(stockTransactions.transactionDate, endDate),
+        ),
       );
 
     const stockIn = Number(stockInResult[0]?.total) || 0;
@@ -430,23 +474,36 @@ export const dashboardQueries = {
     return {
       stockIn,
       stockOut,
-      netMovement: stockIn - stockOut
+      netMovement: stockIn - stockOut,
     };
   },
 
   // Get detailed inventory analytics
   async getInventoryAnalytics(): Promise<{
-    productsByCategory: Array<{ category: string; count: number; totalStock: number }>;
-    topMovingProducts: Array<{ productId: number; productName: string; totalMovement: number }>;
+    productsByCategory: Array<{
+      category: string;
+      count: number;
+      totalStock: number;
+    }>;
+    topMovingProducts: Array<{
+      productId: number;
+      productName: string;
+      totalMovement: number;
+    }>;
     stockDistribution: Array<{ range: string; count: number }>;
-    monthlyTrends: Array<{ month: string; stockIn: number; stockOut: number; net: number }>;
+    monthlyTrends: Array<{
+      month: string;
+      stockIn: number;
+      stockOut: number;
+      net: number;
+    }>;
   }> {
     // Products by unit category
     const categoryData = await db
       .select({
         category: products.unit,
         count: count(),
-        totalStock: sql`COALESCE(SUM(CAST(${products.currentStock} AS DECIMAL)), 0)`
+        totalStock: sql`COALESCE(SUM(CAST(${products.currentStock} AS DECIMAL)), 0)`,
       })
       .from(products)
       .where(eq(products.isActive, 1))
@@ -460,22 +517,24 @@ export const dashboardQueries = {
       .select({
         productId: stockTransactions.productId,
         productName: products.name,
-        totalMovement: sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0)`
+        totalMovement: sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0)`,
       })
       .from(stockTransactions)
       .leftJoin(products, eq(stockTransactions.productId, products.id))
       .where(gte(stockTransactions.transactionDate, thirtyDaysAgo))
       .groupBy(stockTransactions.productId, products.name)
-      .orderBy(sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0) DESC`)
+      .orderBy(
+        sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0) DESC`,
+      )
       .limit(10);
 
     // Stock level distribution
     const stockRanges = [
-      { range: '0', min: 0, max: 0 },
-      { range: '1-10', min: 1, max: 10 },
-      { range: '11-50', min: 11, max: 50 },
-      { range: '51-100', min: 51, max: 100 },
-      { range: '100+', min: 101, max: 999999 }
+      { range: "0", min: 0, max: 0 },
+      { range: "1-10", min: 1, max: 10 },
+      { range: "11-50", min: 11, max: 50 },
+      { range: "51-100", min: 51, max: 100 },
+      { range: "100+", min: 101, max: 999999 },
     ];
 
     const stockDistribution = await Promise.all(
@@ -487,11 +546,11 @@ export const dashboardQueries = {
             and(
               eq(products.isActive, 1),
               sql`CAST(${products.currentStock} AS DECIMAL) >= ${range.min}`,
-              sql`CAST(${products.currentStock} AS DECIMAL) <= ${range.max}`
-            )
+              sql`CAST(${products.currentStock} AS DECIMAL) <= ${range.max}`,
+            ),
           );
         return { range: range.range, count: result[0]?.count || 0 };
-      })
+      }),
     );
 
     // Monthly trends (last 6 months)
@@ -502,22 +561,25 @@ export const dashboardQueries = {
       .select({
         month: sql`DATE_TRUNC('month', ${stockTransactions.transactionDate})`,
         type: stockTransactions.type,
-        total: sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0)`
+        total: sql`COALESCE(SUM(CAST(${stockTransactions.quantity} AS DECIMAL)), 0)`,
       })
       .from(stockTransactions)
       .where(gte(stockTransactions.transactionDate, sixMonthsAgo))
-      .groupBy(sql`DATE_TRUNC('month', ${stockTransactions.transactionDate})`, stockTransactions.type)
+      .groupBy(
+        sql`DATE_TRUNC('month', ${stockTransactions.transactionDate})`,
+        stockTransactions.type,
+      )
       .orderBy(sql`DATE_TRUNC('month', ${stockTransactions.transactionDate})`);
 
     // Process monthly trends
     const monthlyTrends = new Map();
-    monthlyData.forEach(row => {
+    monthlyData.forEach((row) => {
       const month = new Date(row.month as string).toISOString().slice(0, 7);
       if (!monthlyTrends.has(month)) {
         monthlyTrends.set(month, { month, stockIn: 0, stockOut: 0, net: 0 });
       }
       const trend = monthlyTrends.get(month);
-      if (row.type === 'stock_in') {
+      if (row.type === "stock_in") {
         trend.stockIn = Number(row.total);
       } else {
         trend.stockOut = Number(row.total);
@@ -526,20 +588,20 @@ export const dashboardQueries = {
     });
 
     return {
-      productsByCategory: categoryData.map(row => ({
+      productsByCategory: categoryData.map((row) => ({
         category: row.category,
         count: row.count,
-        totalStock: Number(row.totalStock)
+        totalStock: Number(row.totalStock),
       })),
-      topMovingProducts: topMovingData.map(row => ({
+      topMovingProducts: topMovingData.map((row) => ({
         productId: row.productId,
-        productName: row.productName || 'Unknown',
-        totalMovement: Number(row.totalMovement)
+        productName: row.productName || "Unknown",
+        totalMovement: Number(row.totalMovement),
       })),
       stockDistribution,
-      monthlyTrends: Array.from(monthlyTrends.values())
+      monthlyTrends: Array.from(monthlyTrends.values()),
     };
-  }
+  },
 };
 
 // ============= TRANSACTION HELPERS =============
@@ -554,7 +616,7 @@ export const transactionHelpers = {
     remarks?: string,
     poNumber?: string,
     originalQuantity?: string,
-    originalUnit?: string
+    originalUnit?: string,
   ): Promise<{ transaction: StockTransaction; product: Product }> {
     return await db.transaction(async (tx) => {
       // Get current product
@@ -569,7 +631,9 @@ export const transactionHelpers = {
       }
 
       const previousStock = currentProduct[0].currentStock;
-      const newStock = (parseFloat(previousStock) + parseFloat(quantity)).toString();
+      const newStock = (
+        parseFloat(previousStock) + parseFloat(quantity)
+      ).toString();
 
       // Update product stock
       const updatedProduct = await tx
@@ -593,13 +657,13 @@ export const transactionHelpers = {
           remarks,
           transactionDate,
           poNumber,
-          soNumber: null
+          soNumber: null,
         })
         .returning();
 
       return {
         transaction: transaction[0],
-        product: updatedProduct[0]
+        product: updatedProduct[0],
       };
     });
   },
@@ -613,7 +677,7 @@ export const transactionHelpers = {
     remarks?: string,
     soNumber?: string,
     originalQuantity?: string,
-    originalUnit?: string
+    originalUnit?: string,
   ): Promise<{ transaction: StockTransaction; product: Product }> {
     return await db.transaction(async (tx) => {
       // Get current product
@@ -632,7 +696,9 @@ export const transactionHelpers = {
       const quantityNum = parseFloat(quantity);
 
       if (currentStockNum < quantityNum) {
-        throw new Error(`Insufficient stock. Available: ${currentStockNum}, Requested: ${quantityNum}`);
+        throw new Error(
+          `Insufficient stock. Available: ${currentStockNum}, Requested: ${quantityNum}`,
+        );
       }
 
       const newStock = (currentStockNum - quantityNum).toString();
@@ -659,14 +725,14 @@ export const transactionHelpers = {
           remarks,
           transactionDate,
           soNumber,
-          poNumber: null
+          poNumber: null,
         })
         .returning();
 
       return {
         transaction: transaction[0],
-        product: updatedProduct[0]
+        product: updatedProduct[0],
       };
     });
-  }
+  },
 };
