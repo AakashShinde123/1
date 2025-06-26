@@ -440,10 +440,10 @@ export default function StockManagement() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-gray-900 text-center">
           {showStockInOnly ? 'Stock In Management' : showStockOutOnly ? 'Stock Out Management' : 'Stock Management'}
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-gray-600 mt-2 text-center">
           {showStockInOnly ? 'Add multiple products to your stock' : showStockOutOnly ? 'Remove multiple products from your stock' : 'Manage your inventory stock levels'}
         </p>
       </div>
