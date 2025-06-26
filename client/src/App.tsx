@@ -1,4 +1,5 @@
 import { Switch, Route } from "wouter";
+import { useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,7 +16,7 @@ import UserManagement from "@/pages/UserManagement";
 import Layout from "@/components/Layout";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -39,7 +40,15 @@ function Router() {
       ) : (
         <Layout>
           <Switch>
-            <Route path="/" component={Home} />
+            <Route path="/" component={() => {
+              // Redirect stock managers directly to stock management
+              const userRole = (user as any)?.role;
+              
+              if (userRole === 'stock_in_manager' || userRole === 'stock_out_manager') {
+                return <StockManagement />;
+              }
+              return <Home />;
+            }} />
             <Route path="/inventory" component={Inventory} />
             <Route path="/stock-management" component={StockManagement} />
             <Route path="/transactions" component={TransactionLog} />
