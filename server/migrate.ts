@@ -38,14 +38,28 @@ export async function runMigrations() {
       user_id INTEGER NOT NULL,
       type VARCHAR(10) NOT NULL,
       quantity DECIMAL(10,2) NOT NULL,
+      original_quantity DECIMAL(10,2),
+      original_unit VARCHAR(50),
       previous_stock DECIMAL(10,2) NOT NULL,
       new_stock DECIMAL(10,2) NOT NULL,
       remarks TEXT,
       transaction_date TIMESTAMP NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      so_number VARCHAR(100),
+      po_number VARCHAR(100),
       FOREIGN KEY (product_id) REFERENCES products(id),
       FOREIGN KEY (user_id) REFERENCES users(id)
     )`);
+
+    // Add missing columns if they don't exist (for existing databases)
+    try {
+      await db.execute(`ALTER TABLE stock_transactions ADD COLUMN IF NOT EXISTS so_number VARCHAR(100)`);
+      await db.execute(`ALTER TABLE stock_transactions ADD COLUMN IF NOT EXISTS po_number VARCHAR(100)`);
+      await db.execute(`ALTER TABLE stock_transactions ADD COLUMN IF NOT EXISTS original_quantity DECIMAL(10,2)`);
+      await db.execute(`ALTER TABLE stock_transactions ADD COLUMN IF NOT EXISTS original_unit VARCHAR(50)`);
+    } catch (error) {
+      // Columns may already exist, continue
+    }
 
     // Create sessions table
     await db.execute(`CREATE TABLE IF NOT EXISTS sessions (
@@ -72,10 +86,6 @@ export async function runMigrations() {
       });
       console.log("Super admin user created: username=Sudhamrit, password=Sudhamrit@1234");
     }
-
-    // Alter stock_transactions table to add so_number and po_number columns
-    await db.execute(`ALTER TABLE stock_transactions ADD COLUMN IF NOT EXISTS so_number VARCHAR(100)`);
-    await db.execute(`ALTER TABLE stock_transactions ADD COLUMN IF NOT EXISTS po_number VARCHAR(100)`);
 
     console.log("Database migrations completed successfully");
   } catch (error) {
