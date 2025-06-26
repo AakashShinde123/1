@@ -44,6 +44,16 @@ export default function ConfirmationDialog({
 }: ConfirmationDialogProps) {
   const [isConfirmed, setIsConfirmed] = useState(false);
 
+  // Format number to maximum 3 decimal places
+  const formatDecimal = (value: string | number): string => {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return '0';
+    
+    // Remove trailing zeros and limit to 3 decimal places
+    const formatted = num.toFixed(3);
+    return parseFloat(formatted).toString();
+  };
+
   const handleClose = () => {
     setIsConfirmed(false);
     onClose();
@@ -106,7 +116,7 @@ export default function ConfirmationDialog({
                 <div className="grid grid-cols-3 gap-4 text-sm mt-2">
                   <div>
                     <span className="text-gray-600">Current:</span>
-                    <div className="font-medium">{product.currentStock} {product.unit}</div>
+                    <div className="font-medium">{formatDecimal(product.currentStock)} {product.unit}</div>
                   </div>
                   <div>
                     <span className="text-gray-600">Quantity:</span>
@@ -114,16 +124,16 @@ export default function ConfirmationDialog({
                       {product.displayQuantity ? (
                         <div>
                           <div>{product.displayQuantity}</div>
-                          <div className="text-xs text-gray-500">({product.quantity} {product.unit})</div>
+                          <div className="text-xs text-gray-500">({formatDecimal(product.quantity)} {product.unit})</div>
                         </div>
                       ) : (
-                        <div>{product.quantity} {product.unit}</div>
+                        <div>{formatDecimal(product.quantity)} {product.unit}</div>
                       )}
                     </div>
                   </div>
                   <div>
                     <span className="text-gray-600">New Stock:</span>
-                    <div className="font-bold text-green-600">{product.newStock} {product.unit}</div>
+                    <div className="font-bold text-green-600">{formatDecimal(product.newStock)} {product.unit}</div>
                   </div>
                 </div>
               </div>
