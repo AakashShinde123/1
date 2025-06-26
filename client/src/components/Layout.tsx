@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { User } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +63,7 @@ export default function Layout({ children }: LayoutProps) {
     ];
 
     // Role-specific navigation
-    switch ((user as any)?.role) {
+    switch ((user as User)?.role) {
       case 'super_admin':
         items.push(
           { label: 'Master Inventory', icon: Package, href: '/inventory', roles: ['super_admin'] },
@@ -89,10 +90,13 @@ export default function Layout({ children }: LayoutProps) {
         break;
     }
 
-    return items.filter(item => item.roles.includes((user as any)?.role || ''));
+    return items.filter(item => item.roles.includes((user as User)?.role || ''));
   };
 
   const navigationItems = getNavigationItems();
+  
+  // Check if user has stock manager role (should not show sidebar)
+  const isStockManager = (user as User)?.role === 'stock_in_manager' || (user as User)?.role === 'stock_out_manager';
 
   return (
     <div className="min-h-screen" style={{backgroundColor: '#F5F0F6'}}>
@@ -113,11 +117,11 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center space-x-4">
               {user && (
                 <>
-                  <Badge className={`${getRoleBadgeColor((user as any)?.role || '')} border-0`}>
-                    {getRoleDisplayName((user as any)?.role || '')}
+                  <Badge className={`${getRoleBadgeColor((user as User)?.role || '')} border-0`}>
+                    {getRoleDisplayName((user as User)?.role || '')}
                   </Badge>
                   <span className="text-sm">
-                    {(user as any)?.firstName || (user as any)?.username || (user as any)?.email || 'User'}
+                    {(user as User)?.firstName || (user as User)?.username || (user as User)?.email || 'User'}
                   </span>
                   <Button
                     variant="outline"
@@ -136,32 +140,34 @@ export default function Layout({ children }: LayoutProps) {
       </nav>
 
       <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 shadow-md min-h-screen border-r border-purple-200" style={{backgroundColor: '#F5F0F6'}}>
-          <div className="p-4">
-            <nav className="space-y-2">
-              {navigationItems.map((item) => {
-                const isActive = location === item.href;
-                return (
-                  <Link key={item.href} href={item.href}>
-                    <Button
-                      variant={isActive ? "default" : "ghost"}
-                      className={`w-full justify-start btn-large ${
-                        isActive ? "bg-purple-600 text-white" : "text-purple-700 hover:bg-purple-100"
-                      }`}
-                    >
-                      <item.icon className="mr-3 h-5 w-5" />
-                      {item.label}
-                    </Button>
-                  </Link>
-                );
-              })}
-            </nav>
+        {/* Sidebar - Hidden for stock managers */}
+        {!isStockManager && (
+          <div className="w-64 shadow-md min-h-screen border-r border-purple-200" style={{backgroundColor: '#F5F0F6'}}>
+            <div className="p-4">
+              <nav className="space-y-2">
+                {navigationItems.map((item) => {
+                  const isActive = location === item.href;
+                  return (
+                    <Link key={item.href} href={item.href}>
+                      <Button
+                        variant={isActive ? "default" : "ghost"}
+                        className={`w-full justify-start btn-large ${
+                          isActive ? "bg-purple-600 text-white" : "text-purple-700 hover:bg-purple-100"
+                        }`}
+                      >
+                        <item.icon className="mr-3 h-5 w-5" />
+                        {item.label}
+                      </Button>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Main Content */}
-        <div className="flex-1 p-6">
+        {/* Main Content - Full width for stock managers */}
+        <div className={`${isStockManager ? 'flex-1' : 'flex-1'} p-6`}>
           {children}
         </div>
       </div>
