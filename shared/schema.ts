@@ -14,7 +14,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// Session storage table (required for Auth)
+
 export const sessions = pgTable(
   "sessions",
   {
@@ -58,6 +58,8 @@ export const stockTransactions = pgTable("stock_transactions", {
   userId: integer("user_id").notNull().references(() => users.id),
   type: varchar("type", { length: 10 }).notNull(),
   quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  originalQuantity: decimal("original_quantity", { precision: 10, scale: 2 }),
+  originalUnit: varchar("original_unit", { length: 50 }),
   previousStock: decimal("previous_stock", { precision: 10, scale: 2 }).notNull(),
   newStock: decimal("new_stock", { precision: 10, scale: 2 }).notNull(),
   remarks: text("remarks"),
