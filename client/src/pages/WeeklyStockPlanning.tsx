@@ -282,7 +282,7 @@ export default function WeeklyStockPlanning() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Fixed Back Button in Top-Left */}
-      <div className="fixed top-21 left-7 z-50">
+      <div className="absolute top-21 left-7 z-50">
         <Link href="/master-inventory">
           <Button variant="outline" size="sm" className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
