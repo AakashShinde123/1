@@ -1,74 +1,41 @@
-import { useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { 
-  Package, 
-  Warehouse, 
-  TrendingUp, 
-  TrendingDown, 
-  Plus,
-  List,
+import {
+  Package,
+  TrendingUp,
+  TrendingDown,
+  ShoppingCart,
   Users,
-  FileText
+  List,
+  BarChart3,
 } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
+
+interface DashboardStats {
+  totalProducts: number;
+  totalStock: number;
+  todayStockIn: number;
+  todayStockOut: number;
+  activeProducts: number;
+  lowStockProducts: number;
+}
 
 export default function Home() {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [showDashboard, setShowDashboard] = useState(false);
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 500);
-      return;
-    }
-
-    // Redirect users with specific roles directly to their forms
-    if (isAuthenticated && user) {
-      const userRole = (user as any)?.role;
-      if (userRole === 'stock_in_manager' || userRole === 'stock_out_manager') {
-        setLocation('/stock-management');
-        return;
-      }
-    }
-  }, [isAuthenticated, isLoading, user, toast, setLocation]);
-
-  // Only Super Admin and Master Inventory Handler can access dashboard
-  const canAccessDashboard = (user as any)?.role === 'super_admin' || (user as any)?.role === 'master_inventory_handler';
-
-  const { data: stats, isLoading: statsLoading, error } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
-    enabled: isAuthenticated && canAccessDashboard,
+    enabled:
+      isAuthenticated && showDashboard && (user as any)?.role === "super_admin",
   });
 
-  if (error && isUnauthorizedError(error as Error)) {
-    toast({
-      title: "Unauthorized",
-      description: "You are logged out. Logging in again...",
-      variant: "destructive",
-    });
-    setTimeout(() => {
-      window.location.href = "/";
-    }, 500);
-    return null;
-  }
-
-  if (isLoading || !user) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
           <p>Loading...</p>
@@ -77,167 +44,267 @@ export default function Home() {
     );
   }
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'super_admin':
-        return 'bg-red-100 text-red-800';
-      case 'master_inventory_handler':
-        return 'bg-blue-100 text-blue-800';
-      case 'stock_in_manager':
-        return 'bg-green-100 text-green-800';
-      case 'stock_out_manager':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">
+            Welcome to Sudhamrit Inventory Management
+          </h1>
+          <p className="text-gray-600">Please log in to access the system.</p>
+        </div>
+      </div>
+    );
+  }
 
-  const getRoleName = (role: string) => {
-    switch (role) {
-      case 'super_admin':
-        return '👑 Super Admin';
-      case 'master_inventory_handler':
-        return '🧑‍🔧 Master Inventory Handler';
-      case 'stock_in_manager':
-        return '📥 Stock In Manager';
-      case 'stock_out_manager':
-        return '📤 Stock Out Manager';
-      default:
-        return role;
-    }
-  };
+  const isSuperAdmin = (user as any)?.role === "super_admin";
+  const canViewDashboard = (user as any)?.role === "super_admin";
 
-  const getQuickActions = () => {
-    const actions = [];
+  // Redirect Master Inventory Handler to inventory page if they try to access dashboard
+  if ((user as any)?.role === "master_inventory_handler") {
+    window.location.href = "/inventory";
+    return null;
+  }
 
-    switch ((user as any)?.role) {
-      case 'super_admin':
-        actions.push(
-          { label: 'Master Inventory', icon: Package, href: '/inventory', color: 'primary' },
-          { label: 'Stock Management', icon: TrendingUp, href: '/stock-management', color: 'success' },
-          { label: 'User Management', icon: Users, href: '/users', color: 'secondary' }
+  // Redirect Master Inventory Handler users directly to inventory page
+  if ((user as any)?.role === "master_inventory_handler") {
+    window.location.href = "/inventory";
+    return null;
+  }
+
+  // For other roles without dashboard access
+  if (!canViewDashboard) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-gray-900 mb-2">
+            Welcome to Sudhamrit Inventory
+          </h1>
+          <p className="text-gray-600">
+            Use the navigation to manage your assigned tasks.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Super Admin main page with button navigation
+  if (isSuperAdmin) {
+    // Show dashboard stats if user clicked Dashboard button
+    if (showDashboard) {
+      if (statsLoading) {
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+              <p>Loading dashboard...</p>
+            </div>
+          </div>
         );
-        break;
-      case 'master_inventory_handler':
-        actions.push(
-          { label: 'Master Inventory', icon: Package, href: '/inventory', color: 'primary' },
-          { label: 'Transaction Log', icon: List, href: '/transactions', color: 'info' },
-          { label: 'Reports', icon: FileText, href: '#', color: 'secondary' }
-        );
-        break;
-      case 'stock_in_manager':
-        actions.push(
-          { label: 'Stock Management', icon: TrendingUp, href: '/stock-management', color: 'success' },
-          { label: 'My Transactions', icon: List, href: '/transactions', color: 'info' }
-        );
-        break;
-      case 'stock_out_manager':
-        actions.push(
-          { label: 'Stock Management', icon: TrendingDown, href: '/stock-management', color: 'warning' },
-          { label: 'My Transactions', icon: List, href: '/transactions', color: 'info' }
-        );
-        break;
-    }
+      }
 
-    return actions;
-  };
+      return (
+        <div className="p-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-8 flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  Dashboard
+                </h1>
+                <p className="text-gray-600">
+                  Overview of your inventory system
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowDashboard(false)}
+                className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+              >
+                Back to Menu
+              </Button>
+            </div>
 
-  return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="rounded-lg shadow-lg border border-purple-200 p-6" style={{backgroundColor: '#F5F0F6'}}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-purple-900">
-              Welcome, {(user as any)?.firstName || (user as any)?.email}!
-            </h1>
-            <div className="mt-2">
-              <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getRoleBadgeColor((user as any)?.role)}`}>
-                {getRoleName((user as any)?.role)}
-              </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total Products
+                  </CardTitle>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {(stats as DashboardStats)?.totalProducts || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Active inventory items
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Current Stock
+                  </CardTitle>
+                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {parseFloat(
+                      String((stats as DashboardStats)?.totalStock || 0),
+                    ).toFixed(2)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Total units in stock
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Today's Stock In
+                  </CardTitle>
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {parseFloat(
+                      String((stats as DashboardStats)?.todayStockIn || 0),
+                    ).toFixed(2)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Units added today
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Today's Stock Out
+                  </CardTitle>
+                  <TrendingDown className="h-4 w-4 text-red-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {parseFloat(
+                      String((stats as DashboardStats)?.todayStockOut || 0),
+                    ).toFixed(2)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Units removed today
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
-      </div>
+      );
+    }
 
-      {/* Dashboard Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="stat-card border-purple-200" style={{backgroundColor: '#F5F0F6'}}>
-          <CardContent className="p-6 text-center">
-            <Package className="h-12 w-12 text-purple-600 mx-auto mb-3" />
-            {statsLoading ? (
-              <Skeleton className="h-8 w-16 mx-auto mb-2" />
-            ) : (
-              <h3 className="text-3xl font-bold text-purple-700">{(stats as any)?.totalProducts || 0}</h3>
-            )}
-            <p className="text-purple-600 font-medium">Total Products</p>
-          </CardContent>
-        </Card>
-
-        <Card className="stat-card border-purple-200" style={{backgroundColor: '#F5F0F6'}}>
-          <CardContent className="p-6 text-center">
-            <Warehouse className="h-12 w-12 text-emerald-600 mx-auto mb-3" />
-            {statsLoading ? (
-              <Skeleton className="h-8 w-16 mx-auto mb-2" />
-            ) : (
-              <h3 className="text-3xl font-bold text-emerald-700">{(stats as any)?.totalStock || 0}</h3>
-            )}
-            <p className="text-emerald-600 font-medium">Current Stock</p>
-          </CardContent>
-        </Card>
-
-        <Card className="stat-card border-purple-200" style={{backgroundColor: '#F5F0F6'}}>
-          <CardContent className="p-6 text-center">
-            <TrendingUp className="h-12 w-12 text-blue-600 mx-auto mb-3" />
-            {statsLoading ? (
-              <Skeleton className="h-8 w-16 mx-auto mb-2" />
-            ) : (
-              <h3 className="text-3xl font-bold text-blue-700">{(stats as any)?.todayStockIn || 0}</h3>
-            )}
-            <p className="text-blue-600 font-medium">Today's Stock In</p>
-          </CardContent>
-        </Card>
-
-        <Card className="stat-card border-purple-200" style={{backgroundColor: '#F5F0F6'}}>
-          <CardContent className="p-6 text-center">
-            <TrendingDown className="h-12 w-12 text-amber-600 mx-auto mb-3" />
-            {statsLoading ? (
-              <Skeleton className="h-8 w-16 mx-auto mb-2" />
-            ) : (
-              <h3 className="text-3xl font-bold text-amber-700">{(stats as any)?.todayStockOut || 0}</h3>
-            )}
-            <p className="text-amber-600 font-medium">Today's Stock Out</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <Card className="border-purple-200" style={{backgroundColor: '#F5F0F6'}}>
-        <CardHeader className="border-b border-purple-200" style={{backgroundColor: '#F5F0F6'}}>
-          <CardTitle className="flex items-center text-purple-800">
-            <Plus className="mr-2 h-5 w-5" />
-            Quick Actions
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {getQuickActions().map((action, index) => (
-              <Link key={index} href={action.href}>
-                <Button
-                  variant="outline"
-                  className="w-full h-24 flex-col btn-large hover:shadow-lg transition-all duration-200 hover:scale-105 bg-white border-purple-300 hover:border-purple-400"
-                  style={{'--hover-bg': '#F5F0F6'} as any}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F0F6'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-                >
-                  <action.icon className="h-8 w-8 mb-2 text-purple-600" />
-                  <span className="text-purple-700 font-medium">{action.label}</span>
-                </Button>
-              </Link>
-            ))}
+    // Super Admin main menu with buttons
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="text-center mb-12">
+            {/* <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              Sudhamrit Inventory Management
+            </h1>
+            <p className="text-xl text-gray-600">Super Admin Control Panel</p> */}
           </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Dashboard Button */}
+            <Card
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => setShowDashboard(true)}
+            >
+              <CardHeader className="text-center pb-4">
+                <div className="mx-auto w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-4">
+                  <BarChart3 className="h-6 w-6 text-purple-600" />
+                </div>
+                <CardTitle className="text-xl">Dashboard</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600">
+                  View stock statistics and system overview
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Master Inventory */}
+            <Link href="/inventory">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                    <Package className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <CardTitle className="text-xl">Master Inventory</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-gray-600">
+                    Manage products and inventory items
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            {/* Stock Management */}
+            <Link href="/stock-management">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <TrendingUp className="h-6 w-6 text-green-600" />
+                  </div>
+                  <CardTitle className="text-xl">Stock Management</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-gray-600">
+                    Handle stock in and stock out operations
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            {/* Transaction Log */}
+            <Link href="/transactions">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+                    <List className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <CardTitle className="text-xl">Transaction Log</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-gray-600">
+                    View all stock transaction history
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            {/* User Management */}
+            <Link href="/users">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                    <Users className="h-6 w-6 text-red-600" />
+                  </div>
+                  <CardTitle className="text-xl">User Management</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-gray-600">Manage users and permissions</p>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
