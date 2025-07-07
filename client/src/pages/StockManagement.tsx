@@ -7,26 +7,48 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { TrendingUp, TrendingDown, RotateCcw, AlertTriangle, X } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  RotateCcw,
+  AlertTriangle,
+  X,
+  Plus,
+  Edit,
+  ArrowLeft,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import ProductSearch from "@/components/ProductSearch";
-import ConfirmationDialog, { type TransactionData } from "@/components/ConfirmationDialog";
+import ConfirmationDialog, {
+  type TransactionData,
+} from "@/components/ConfirmationDialog";
 import type { Product } from "@shared/schema";
+import { Link } from "wouter";
 
 const stockInFormSchema = z.object({
-  remarks: z.string().optional(),
   poNumber: z.string().optional(),
 });
 
 const stockOutFormSchema = z.object({
-  remarks: z.string().optional(),
   soNumber: z.string().optional(),
 });
 
@@ -47,39 +69,110 @@ type TransactionPreview = TransactionData;
 export default function StockManagement() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { toast } = useToast();
-  const [selectedProductsIn, setSelectedProductsIn] = useState<Array<{product: Product, quantity: string, selectedUnit: string}>>([]);
-  const [selectedProductsOut, setSelectedProductsOut] = useState<Array<{product: Product, quantityOut: string, selectedUnit: string}>>([]);
-  const [transactionPreview, setTransactionPreview] = useState<TransactionPreview | null>(null);
+  const [transactionPreview, setTransactionPreview] =
+    useState<TransactionPreview | null>(null);
   const [stockWarnings, setStockWarnings] = useState<string[]>([]);
+  const [showProductSearchIn, setShowProductSearchIn] = useState(false);
+  const [showProductSearchOut, setShowProductSearchOut] = useState(false);
+
+  // State for managing multiple product editing
+  const [editingQueue, setEditingQueue] = useState<
+    Array<{
+      product: Product;
+      quantity: string;
+      quantityOut?: string;
+      selectedUnit: string;
+    }>
+  >([]);
+  const [currentEditIndex, setCurrentEditIndex] = useState(0);
+  const [showEditQueue, setShowEditQueue] = useState(false);
+
+  // State for showing dashboard vs functionality
+  const [showDashboard, setShowDashboard] = useState(true);
+  const [selectedFunction, setSelectedFunction] = useState<
+    "stock-in" | "stock-out" | null
+  >(null);
+
+  // Current product being worked on
+  const [currentProductIn, setCurrentProductIn] = useState<{
+    product: Product;
+    quantity: string;
+    selectedUnit: string;
+  } | null>(null);
+  const [currentProductOut, setCurrentProductOut] = useState<{
+    product: Product;
+    quantityOut: string;
+    selectedUnit: string;
+  } | null>(null);
+
+  // Completed products ready for transaction
+  const [completedProductsIn, setCompletedProductsIn] = useState<
+    Array<{ product: Product; quantity: string; selectedUnit: string }>
+  >([]);
+  const [completedProductsOut, setCompletedProductsOut] = useState<
+    Array<{ product: Product; quantityOut: string; selectedUnit: string }>
+  >([]);
 
   // Unit conversion utilities
   const getAvailableUnits = (product: Product) => {
     const baseUnit = product.unit.toLowerCase();
     const units = [{ value: product.unit, label: product.unit }];
-    
-    // Add gram option for weight-based units
-    if (baseUnit === 'kg' || baseUnit === 'kilogram' || baseUnit === 'kilograms') {
-      units.push({ value: 'g', label: 'Grams' });
+
+    if (
+      baseUnit === "kg" ||
+      baseUnit === "kilogram" ||
+      baseUnit === "kilograms"
+    ) {
+      units.push({ value: "Grams", label: "Grams" });
     }
-    
+
+    if (
+      baseUnit === "litre" ||
+      baseUnit === "liter" ||
+      baseUnit === "litres" ||
+      baseUnit === "liters"
+    ) {
+      units.push({ value: "Millilitre", label: "Millilitre" });
+    }
+
     return units;
   };
 
-  const convertToBaseUnit = (quantity: string, selectedUnit: string, product: Product) => {
+  const convertToBaseUnit = (
+    quantity: string,
+    selectedUnit: string,
+    product: Product,
+  ) => {
     const baseUnit = product.unit.toLowerCase();
     const qty = parseFloat(quantity);
-    
-    if (selectedUnit === 'g' && (baseUnit === 'kg' || baseUnit === 'kilogram' || baseUnit === 'kilograms')) {
-      return (qty / 1000).toString(); // Convert grams to kg
+
+    if (
+      selectedUnit === "Grams" &&
+      (baseUnit === "kg" || baseUnit === "kilogram" || baseUnit === "kilograms")
+    ) {
+      return (qty / 1000).toString();
     }
-    
-    return quantity; // No conversion needed
+
+    if (
+      selectedUnit === "Millilitre" &&
+      (baseUnit === "litre" ||
+        baseUnit === "liter" ||
+        baseUnit === "litres" ||
+        baseUnit === "liters")
+    ) {
+      return (qty / 1000).toString();
+    }
+
+    return quantity;
   };
 
   const formatDisplayQuantity = (quantity: string, unit: string) => {
     const qty = parseFloat(quantity);
-    if (unit === 'g') {
+    if (unit === "Grams") {
       return `${qty} grams`;
+    }
+    if (unit === "Millilitre") {
+      return `${qty} millilitre`;
     }
     return `${qty} ${unit}`;
   };
@@ -98,16 +191,22 @@ export default function StockManagement() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const canStockIn = (user as any)?.role === 'super_admin' || (user as any)?.role === 'stock_in_manager' || (user as any)?.role === 'master_inventory_handler';
-  const canStockOut = (user as any)?.role === 'super_admin' || (user as any)?.role === 'stock_out_manager' || (user as any)?.role === 'master_inventory_handler';
-  
-  const showStockInOnly = (user as any)?.role === 'stock_in_manager';
-  const showStockOutOnly = (user as any)?.role === 'stock_out_manager';
+  const isSuperAdmin = (user as any)?.role === "super_admin";
+  const canStockIn =
+    (user as any)?.role === "super_admin" ||
+    (user as any)?.role === "master_inventory_handler" ||
+    (user as any)?.role === "stock_in_manager";
+  const canStockOut =
+    (user as any)?.role === "super_admin" ||
+    (user as any)?.role === "master_inventory_handler" ||
+    (user as any)?.role === "stock_out_manager";
+
+  const showStockInOnly = (user as any)?.role === "stock_in_manager";
+  const showStockOutOnly = (user as any)?.role === "stock_out_manager";
 
   const stockInForm = useForm<StockInFormData>({
     resolver: zodResolver(stockInFormSchema),
     defaultValues: {
-      remarks: "",
       poNumber: "",
     },
   });
@@ -115,91 +214,264 @@ export default function StockManagement() {
   const stockOutForm = useForm<StockOutFormData>({
     resolver: zodResolver(stockOutFormSchema),
     defaultValues: {
-      remarks: "",
       soNumber: "",
     },
   });
 
   // Product management functions
   const addProductIn = (product: Product) => {
-    const existingIndex = selectedProductsIn.findIndex(item => item.product.id === product.id);
-    if (existingIndex === -1) {
-      setSelectedProductsIn([...selectedProductsIn, { product, quantity: "", selectedUnit: product.unit }]);
+    if (
+      currentProductIn?.product.id === product.id ||
+      completedProductsIn.some((item) => item.product.id === product.id)
+    ) {
+      toast({
+        title: "Product already selected",
+        description: `${product.name} is already in your list`,
+        variant: "destructive",
+      });
+      return;
     }
+
+    if (
+      currentProductIn &&
+      currentProductIn.quantity &&
+      parseFloat(currentProductIn.quantity) > 0
+    ) {
+      setCompletedProductsIn((prev) => [...prev, currentProductIn]);
+    }
+
+    setCurrentProductIn({
+      product,
+      quantity: "",
+      selectedUnit: product.unit,
+    });
   };
 
   const addProductOut = (product: Product) => {
-    const existingIndex = selectedProductsOut.findIndex(item => item.product.id === product.id);
-    if (existingIndex === -1) {
-      setSelectedProductsOut([...selectedProductsOut, { product, quantityOut: "", selectedUnit: product.unit }]);
+    if (
+      currentProductOut?.product.id === product.id ||
+      completedProductsOut.some((item) => item.product.id === product.id)
+    ) {
+      toast({
+        title: "Product already selected",
+        description: `${product.name} is already in your list`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      currentProductOut &&
+      currentProductOut.quantityOut &&
+      parseFloat(currentProductOut.quantityOut) > 0
+    ) {
+      setCompletedProductsOut((prev) => [...prev, currentProductOut]);
+    }
+
+    setCurrentProductOut({
+      product,
+      quantityOut: "",
+      selectedUnit: product.unit,
+    });
+  };
+
+  const removeCompletedProductIn = (productId: number) => {
+    setCompletedProductsIn(
+      completedProductsIn.filter((item) => item.product.id !== productId),
+    );
+  };
+
+  const removeCompletedProductOut = (productId: number) => {
+    setCompletedProductsOut(
+      completedProductsOut.filter((item) => item.product.id !== productId),
+    );
+  };
+
+  // Functions for editing queue navigation
+  const goToNextEditProduct = () => {
+    if (currentEditIndex < editingQueue.length - 1) {
+      setCurrentEditIndex(currentEditIndex + 1);
     }
   };
 
-  const removeProductIn = (productId: number) => {
-    setSelectedProductsIn(selectedProductsIn.filter(item => item.product.id !== productId));
+  const goToPreviousEditProduct = () => {
+    if (currentEditIndex > 0) {
+      setCurrentEditIndex(currentEditIndex - 1);
+    }
   };
 
-  const removeProductOut = (productId: number) => {
-    setSelectedProductsOut(selectedProductsOut.filter(item => item.product.id !== productId));
-    setStockWarnings(stockWarnings.filter(w => !w.includes(selectedProductsOut.find(p => p.product.id === productId)?.product.name || "")));
+  const saveCurrentEdit = () => {
+    const currentEdit = editingQueue[currentEditIndex];
+    if (!currentEdit) return;
+
+    if (transactionPreview?.type === "Stock In" || currentEdit.quantity) {
+      // Save to completed products for stock in
+      const updatedProduct = {
+        product: currentEdit.product,
+        quantity: currentEdit.quantity,
+        selectedUnit: currentEdit.selectedUnit,
+      };
+      setCompletedProductsIn((prev) => [...prev, updatedProduct]);
+    } else {
+      // Save to completed products for stock out
+      const updatedProduct = {
+        product: currentEdit.product,
+        quantityOut: currentEdit.quantityOut || "",
+        selectedUnit: currentEdit.selectedUnit,
+      };
+      setCompletedProductsOut((prev) => [...prev, updatedProduct]);
+    }
+
+    // Remove from queue and go to next
+    const newQueue = editingQueue.filter(
+      (_, index) => index !== currentEditIndex,
+    );
+    setEditingQueue(newQueue);
+
+    if (newQueue.length === 0) {
+      // All products edited, close the queue
+      setShowEditQueue(false);
+      setCurrentEditIndex(0);
+      toast({
+        title: "Editing Complete",
+        description: "All selected products have been edited.",
+      });
+    } else if (currentEditIndex >= newQueue.length) {
+      // Adjust index if we were at the end
+      setCurrentEditIndex(newQueue.length - 1);
+    }
   };
 
-  const updateProductInQuantity = (productId: number, quantity: string) => {
-    setSelectedProductsIn(selectedProductsIn.map(item => 
-      item.product.id === productId ? { ...item, quantity } : item
-    ));
+  const skipCurrentEdit = () => {
+    const currentEdit = editingQueue[currentEditIndex];
+    if (!currentEdit) return;
+
+    // Return product to completed list without changes
+    if (transactionPreview?.type === "Stock In" || currentEdit.quantity) {
+      setCompletedProductsIn((prev) => [...prev, currentEdit]);
+    } else {
+      const productWithQuantityOut = {
+        product: currentEdit.product,
+        quantityOut: currentEdit.quantityOut || "",
+        selectedUnit: currentEdit.selectedUnit,
+      };
+      setCompletedProductsOut((prev) => [...prev, productWithQuantityOut]);
+    }
+
+    // Remove from queue
+    const newQueue = editingQueue.filter(
+      (_, index) => index !== currentEditIndex,
+    );
+    setEditingQueue(newQueue);
+
+    if (newQueue.length === 0) {
+      setShowEditQueue(false);
+      setCurrentEditIndex(0);
+    } else if (currentEditIndex >= newQueue.length) {
+      setCurrentEditIndex(newQueue.length - 1);
+    }
   };
 
-  const updateProductOutQuantity = (productId: number, quantityOut: string) => {
-    setSelectedProductsOut(selectedProductsOut.map(item => 
-      item.product.id === productId ? { ...item, quantityOut } : item
-    ));
-  };
-
-  const updateProductInUnit = (productId: number, selectedUnit: string) => {
-    setSelectedProductsIn(selectedProductsIn.map(item => 
-      item.product.id === productId ? { ...item, selectedUnit } : item
-    ));
-  };
-
-  const updateProductOutUnit = (productId: number, selectedUnit: string) => {
-    setSelectedProductsOut(selectedProductsOut.map(item => 
-      item.product.id === productId ? { ...item, selectedUnit } : item
-    ));
-  };
-
-  const updateQuantityIn = (productId: number, quantity: string) => {
-    setSelectedProductsIn(selectedProductsIn.map(item => 
-      item.product.id === productId ? { ...item, quantity } : item
-    ));
-  };
-
-  const updateQuantityOut = (productId: number, quantityOut: string) => {
-    setSelectedProductsOut(selectedProductsOut.map(item => 
-      item.product.id === productId ? { ...item, quantityOut } : item
-    ));
-    
-    const product = selectedProductsOut.find(item => item.product.id === productId);
-    if (product && quantityOut) {
-      const currentStock = parseFloat(product.product.currentStock);
-      const requestedQuantity = parseFloat(quantityOut);
-      
-      if (requestedQuantity > currentStock) {
-        const newWarnings = stockWarnings.filter(w => !w.includes(product.product.name));
-        newWarnings.push(`${product.product.name}: Requested ${requestedQuantity} exceeds available ${currentStock}`);
-        setStockWarnings(newWarnings);
+  const closeEditQueue = () => {
+    // Return all remaining items to completed list
+    editingQueue.forEach((item) => {
+      if (item.quantity) {
+        setCompletedProductsIn((prev) => [...prev, item]);
       } else {
-        setStockWarnings(stockWarnings.filter(w => !w.includes(product.product.name)));
+        const productWithQuantityOut = {
+          product: item.product,
+          quantityOut: item.quantityOut || "",
+          selectedUnit: item.selectedUnit,
+        };
+        setCompletedProductsOut((prev) => [...prev, productWithQuantityOut]);
       }
+    });
+
+    setEditingQueue([]);
+    setShowEditQueue(false);
+    setCurrentEditIndex(0);
+  };
+
+  const updateCurrentProductInQuantity = (quantity: string) => {
+    if (currentProductIn) {
+      setCurrentProductIn({ ...currentProductIn, quantity });
+    }
+  };
+
+  const updateCurrentProductOutQuantity = (quantityOut: string) => {
+    if (currentProductOut) {
+      setCurrentProductOut({ ...currentProductOut, quantityOut });
+    }
+  };
+
+  const updateCurrentProductInUnit = (selectedUnit: string) => {
+    if (currentProductIn) {
+      setCurrentProductIn({ ...currentProductIn, selectedUnit });
+    }
+  };
+
+  const updateCurrentProductOutUnit = (selectedUnit: string) => {
+    if (currentProductOut) {
+      setCurrentProductOut({ ...currentProductOut, selectedUnit });
+    }
+  };
+
+  const handleResetIn = () => {
+    setCurrentProductIn(null);
+    setCompletedProductsIn([]);
+    stockInForm.reset();
+  };
+
+  const handleResetOut = () => {
+    setCurrentProductOut(null);
+    setCompletedProductsOut([]);
+    setStockWarnings([]);
+    stockOutForm.reset();
+  };
+
+  // Functions to edit individual completed products
+  const editCompletedProductIn = (productId: number) => {
+    const productToEdit = completedProductsIn.find(
+      (p) => p.product.id === productId,
+    );
+    if (productToEdit) {
+      setCurrentProductIn(productToEdit);
+      setCompletedProductsIn((prev) =>
+        prev.filter((p) => p.product.id !== productId),
+      );
+    }
+  };
+
+  const editCompletedProductOut = (productId: number) => {
+    const productToEdit = completedProductsOut.find(
+      (p) => p.product.id === productId,
+    );
+    if (productToEdit) {
+      setCurrentProductOut(productToEdit);
+      setCompletedProductsOut((prev) =>
+        prev.filter((p) => p.product.id !== productId),
+      );
     }
   };
 
   // Mutations
   const stockInMutation = useMutation({
-    mutationFn: async (transactions: Array<{productId: number, quantity: string, originalQuantity?: string, originalUnit?: string, remarks?: string, poNumber?: string}>) => {
+    mutationFn: async (
+      transactions: Array<{
+        productId: number;
+        quantity: string;
+        originalQuantity?: string;
+        originalUnit?: string;
+        poNumber?: string;
+      }>,
+    ) => {
       const results = [];
       for (const transaction of transactions) {
-        const response = await apiRequest('POST', '/api/transactions/stock-in', transaction);
+        const response = await apiRequest(
+          "POST",
+          "/api/transactions/stock-in",
+          transaction,
+        );
         results.push(response);
       }
       return results;
@@ -222,10 +494,22 @@ export default function StockManagement() {
   });
 
   const stockOutMutation = useMutation({
-    mutationFn: async (transactions: Array<{productId: number, quantityOut: string, originalQuantity?: string, originalUnit?: string, remarks?: string, soNumber?: string}>) => {
+    mutationFn: async (
+      transactions: Array<{
+        productId: number;
+        quantityOut: string;
+        originalQuantity?: string;
+        originalUnit?: string;
+        soNumber?: string;
+      }>,
+    ) => {
       const results = [];
       for (const transaction of transactions) {
-        const response = await apiRequest('POST', '/api/transactions/stock-out', transaction);
+        const response = await apiRequest(
+          "POST",
+          "/api/transactions/stock-out",
+          transaction,
+        );
         results.push(response);
       }
       return results;
@@ -249,39 +533,45 @@ export default function StockManagement() {
 
   // Preview handlers
   const handlePreviewIn = (data: StockInFormData) => {
-    if (selectedProductsIn.length === 0) {
+    const allProducts = [...completedProductsIn];
+
+    // Add current product if it has quantity
+    if (
+      currentProductIn &&
+      currentProductIn.quantity &&
+      parseFloat(currentProductIn.quantity) > 0
+    ) {
+      allProducts.push(currentProductIn);
+    }
+
+    if (allProducts.length === 0) {
       toast({
         title: "Error",
-        description: "Please select at least one product",
+        description: "Please add at least one product with quantity",
         variant: "destructive",
       });
       return;
     }
 
-    const productItems: ProductItem[] = selectedProductsIn
-      .filter(item => item.quantity && parseFloat(item.quantity) > 0)
-      .map(item => {
-        const currentStock = parseFloat(item.product.currentStock);
-        const convertedQuantity = parseFloat(convertToBaseUnit(item.quantity, item.selectedUnit, item.product));
-        const newStock = currentStock + convertedQuantity;
+    const productItems: ProductItem[] = allProducts.map((item) => {
+      const currentStock = parseFloat(item.product.currentStock);
+      const convertedQuantity = parseFloat(
+        convertToBaseUnit(item.quantity, item.selectedUnit, item.product),
+      );
+      const newStock = currentStock + convertedQuantity;
 
-        return {
-          product: item.product,
-          quantity: convertToBaseUnit(item.quantity, item.selectedUnit, item.product),
-          currentStock: item.product.currentStock,
-          newStock: newStock.toString(),
-          selectedUnit: item.selectedUnit,
-        };
-      });
-
-    if (productItems.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please enter valid quantities for all selected products",
-        variant: "destructive",
-      });
-      return;
-    }
+      return {
+        product: item.product,
+        quantity: convertToBaseUnit(
+          item.quantity,
+          item.selectedUnit,
+          item.product,
+        ),
+        currentStock: item.product.currentStock,
+        newStock: newStock.toString(),
+        selectedUnit: item.selectedUnit,
+      };
+    });
 
     setTransactionPreview({
       products: productItems.map((item, index) => ({
@@ -290,530 +580,59 @@ export default function StockManagement() {
         currentStock: item.currentStock,
         quantity: item.quantity,
         newStock: item.newStock,
-        displayQuantity: formatDisplayQuantity(selectedProductsIn[index].quantity, selectedProductsIn[index].selectedUnit),
+        displayQuantity: formatDisplayQuantity(
+          allProducts[index].quantity,
+          allProducts[index].selectedUnit,
+        ),
       })),
-      remarks: data.remarks,
       date: new Date().toLocaleDateString(),
       poNumber: data.poNumber,
-      type: 'Stock In',
+      type: "Stock In",
     });
   };
 
   const handlePreviewOut = (data: StockOutFormData) => {
-    if (selectedProductsOut.length === 0) {
+    const allProducts = [...completedProductsOut];
+
+    // Add current product if it has quantity
+    if (
+      currentProductOut &&
+      currentProductOut.quantityOut &&
+      parseFloat(currentProductOut.quantityOut) > 0
+    ) {
+      allProducts.push(currentProductOut);
+    }
+
+    if (allProducts.length === 0) {
       toast({
         title: "Error",
-        description: "Please select at least one product",
+        description: "Please add at least one product with quantity",
         variant: "destructive",
       });
       return;
     }
 
-    const productItems: ProductItem[] = [];
-    const warnings: string[] = [];
-
-    for (const item of selectedProductsOut) {
-      if (!item.quantityOut || parseFloat(item.quantityOut) <= 0) continue;
-
+    const productItems: ProductItem[] = allProducts.map((item) => {
       const currentStock = parseFloat(item.product.currentStock);
-      const convertedQuantity = parseFloat(convertToBaseUnit(item.quantityOut, item.selectedUnit, item.product));
-      
-      if (convertedQuantity > currentStock) {
-        warnings.push(`${item.product.name}: Requested ${formatDisplayQuantity(item.quantityOut, item.selectedUnit)} exceeds available ${currentStock} ${item.product.unit}`);
-        continue;
-      }
-
+      const convertedQuantity = parseFloat(
+        convertToBaseUnit(item.quantityOut, item.selectedUnit, item.product),
+      );
       const newStock = currentStock - convertedQuantity;
-      productItems.push({
+
+      return {
         product: item.product,
-        quantity: convertToBaseUnit(item.quantityOut, item.selectedUnit, item.product),
-        quantityOut: item.quantityOut,
+        quantity: convertToBaseUnit(
+          item.quantityOut,
+          item.selectedUnit,
+          item.product,
+        ),
         currentStock: item.product.currentStock,
         newStock: newStock.toString(),
         selectedUnit: item.selectedUnit,
-      });
-    }
-
-    if (warnings.length > 0) {
-      setStockWarnings(warnings);
-      toast({
-        title: "Stock Validation Error",
-        description: warnings.join("; "),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (productItems.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please enter valid quantities for all selected products",
-        variant: "destructive",
-      });
-      return;
-    }
+      };
+    });
 
     setTransactionPreview({
       products: productItems.map((item, index) => ({
         product: item.product.name,
-        unit: item.product.unit,
-        currentStock: item.currentStock,
-        quantity: item.quantity,
-        newStock: item.newStock,
-        displayQuantity: formatDisplayQuantity(selectedProductsOut[index].quantityOut, selectedProductsOut[index].selectedUnit),
-      })),
-      remarks: data.remarks,
-      date: new Date().toLocaleDateString(),
-      soNumber: data.soNumber,
-      type: 'Stock Out',
-    });
-  };
-
-  const handleConfirm = () => {
-    if (!transactionPreview) return;
-    
-    if (transactionPreview.type === 'Stock In') {
-      const transactions = selectedProductsIn.map(item => ({
-        productId: item.product.id,
-        quantity: convertToBaseUnit(item.quantity, item.selectedUnit, item.product),
-        originalQuantity: item.selectedUnit !== item.product.unit ? item.quantity : undefined,
-        originalUnit: item.selectedUnit !== item.product.unit ? item.selectedUnit : undefined,
-        remarks: transactionPreview.remarks,
-        poNumber: transactionPreview.poNumber,
-      }));
-      stockInMutation.mutate(transactions);
-    } else {
-      const transactions = selectedProductsOut.map(item => ({
-        productId: item.product.id,
-        quantityOut: convertToBaseUnit(item.quantityOut, item.selectedUnit, item.product),
-        originalQuantity: item.selectedUnit !== item.product.unit ? item.quantityOut : undefined,
-        originalUnit: item.selectedUnit !== item.product.unit ? item.selectedUnit : undefined,
-        remarks: transactionPreview.remarks,
-        soNumber: transactionPreview.soNumber,
-      }));
-      stockOutMutation.mutate(transactions);
-    }
-  };
-
-  const handleResetIn = () => {
-    stockInForm.reset({
-      remarks: "",
-      poNumber: "",
-    });
-    setSelectedProductsIn([]);
-  };
-
-  const handleResetOut = () => {
-    stockOutForm.reset({
-      remarks: "",
-      soNumber: "",
-    });
-    setSelectedProductsOut([]);
-    setStockWarnings([]);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!canStockIn && !canStockOut) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6 text-center">
-            <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
-            <p className="text-gray-600">You don't have permission to access stock management.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 text-center">
-          {showStockInOnly ? 'Stock In Management' : showStockOutOnly ? 'Stock Out Management' : 'Stock Management'}
-        </h1>
-        <p className="text-gray-600 mt-2 text-center">
-          {showStockInOnly ? 'Add multiple products to your stock' : showStockOutOnly ? 'Remove multiple products from your stock' : 'Manage your inventory stock levels'}
-        </p>
-      </div>
-
-      <div className="max-w-4xl mx-auto">
-        {showStockInOnly ? (
-          <StockInForm />
-        ) : showStockOutOnly ? (
-          <StockOutForm />
-        ) : canStockIn && canStockOut ? (
-          <Tabs defaultValue="stock-in" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="stock-in" className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Stock In
-              </TabsTrigger>
-              <TabsTrigger value="stock-out" className="flex items-center gap-2">
-                <TrendingDown className="h-4 w-4" />
-                Stock Out
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="stock-in">
-              <StockInForm />
-            </TabsContent>
-
-            <TabsContent value="stock-out">
-              <StockOutForm />
-            </TabsContent>
-          </Tabs>
-        ) : canStockIn ? (
-          <StockInForm />
-        ) : (
-          <StockOutForm />
-        )}
-
-        {transactionPreview && (
-          <ConfirmationDialog
-            isOpen={!!transactionPreview}
-            onClose={() => setTransactionPreview(null)}
-            onConfirm={handleConfirm}
-            onEdit={() => setTransactionPreview(null)}
-            title={`Confirm ${transactionPreview.type} Transactions`}
-            transactionData={transactionPreview}
-            isLoading={stockInMutation.isPending || stockOutMutation.isPending}
-          />
-        )}
-      </div>
-    </div>
-  );
-
-  function StockInForm() {
-    return (
-      <Card>
-        <CardHeader className="bg-green-50">
-          <CardTitle className="flex items-center gap-2 text-green-800">
-            <TrendingUp className="h-5 w-5" />
-            Stock In - Multiple Products
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <Form {...stockInForm}>
-            <form onSubmit={stockInForm.handleSubmit(handlePreviewIn)} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search & Add Products
-                </label>
-                <ProductSearch
-                  onProductSelect={addProductIn}
-                  placeholder="Type to search and add products..."
-                />
-                
-                {selectedProductsIn.length > 0 && (
-                  <div className="mt-4 space-y-3">
-                    <h4 className="font-medium text-gray-900">Selected Products ({selectedProductsIn.length}):</h4>
-                    {selectedProductsIn.map((item) => (
-                      <div key={item.product.id} className="p-4 bg-green-50 rounded-lg border border-green-200">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h5 className="font-semibold text-green-900">{item.product.name}</h5>
-                            <p className="text-green-700">Current Stock: {item.product.currentStock} {item.product.unit}</p>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeProductIn(item.product.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Quantity to Add
-                            </label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min="0.01"
-                              placeholder="Enter quantity..."
-                              value={item.quantity}
-                              onChange={(e) => updateProductInQuantity(item.product.id, e.target.value)}
-                              className="text-lg"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Unit
-                            </label>
-                            <Select
-                              value={item.selectedUnit}
-                              onValueChange={(value) => updateProductInUnit(item.product.id, value)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {getAvailableUnits(item.product).map((unit) => (
-                                  <SelectItem key={unit.value} value={unit.value}>
-                                    {unit.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <FormField
-                control={stockInForm.control}
-                name="remarks"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Remarks (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Enter any remarks..."
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-
-
-              <FormField
-                control={stockInForm.control}
-                name="poNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>PO Number (Optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="STW-001"
-                        {...field}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (value && !value.startsWith('STW-')) {
-                            field.onChange('STW-' + value.replace(/[^0-9]/g, ''));
-                          } else {
-                            field.onChange(value);
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex justify-center space-x-4">
-                <Button
-                  type="submit"
-                  className="btn-large bg-green-600 hover:bg-green-700"
-                  disabled={selectedProductsIn.length === 0}
-                >
-                  <TrendingUp className="mr-2 h-4 w-4" />
-                  Preview Transactions
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="btn-large"
-                  onClick={handleResetIn}
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Reset
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  function StockOutForm() {
-    return (
-      <Card>
-        <CardHeader className="bg-orange-50">
-          <CardTitle className="flex items-center gap-2 text-orange-800">
-            <TrendingDown className="h-5 w-5" />
-            Stock Out - Multiple Products
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <Form {...stockOutForm}>
-            <form onSubmit={stockOutForm.handleSubmit(handlePreviewOut)} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search & Add Products
-                </label>
-                <ProductSearch
-                  onProductSelect={addProductOut}
-                  placeholder="Type to search and add products..."
-                />
-                
-                {selectedProductsOut.length > 0 && (
-                  <div className="mt-4 space-y-3">
-                    <h4 className="font-medium text-gray-900">Selected Products ({selectedProductsOut.length}):</h4>
-                    {selectedProductsOut.map((item) => (
-                      <div key={item.product.id} className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h5 className="font-semibold text-orange-900">{item.product.name}</h5>
-                            <p className="text-orange-700">Available Stock: {item.product.currentStock} {item.product.unit}</p>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeProductOut(item.product.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Quantity Out
-                            </label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min="0.01"
-                              placeholder="Enter quantity out..."
-                              value={item.quantityOut}
-                              onChange={(e) => updateProductOutQuantity(item.product.id, e.target.value)}
-                              className="text-lg"
-                            />
-                            {stockWarnings.some(w => w.includes(item.product.name)) && (
-                              <p className="text-red-600 text-sm mt-1">
-                                {stockWarnings.find(w => w.includes(item.product.name))}
-                              </p>
-                            )}
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Unit
-                            </label>
-                            <Select
-                              value={item.selectedUnit}
-                              onValueChange={(value) => updateProductOutUnit(item.product.id, value)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {getAvailableUnits(item.product).map((unit) => (
-                                  <SelectItem key={unit.value} value={unit.value}>
-                                    {unit.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {stockWarnings.length > 0 && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    {stockWarnings.join("; ")}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <FormField
-                control={stockOutForm.control}
-                name="soNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>SO Number (Optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="STW-001"
-                        {...field}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (value && !value.startsWith('STW-')) {
-                            field.onChange('STW-' + value.replace(/[^0-9]/g, ''));
-                          } else {
-                            field.onChange(value);
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={stockOutForm.control}
-                name="remarks"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Remarks (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Enter any remarks..."
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-
-
-              <div className="flex justify-center space-x-4">
-                <Button
-                  type="submit"
-                  className="btn-large bg-orange-600 hover:bg-orange-700"
-                  disabled={selectedProductsOut.length === 0 || stockWarnings.length > 0}
-                >
-                  <TrendingDown className="mr-2 h-4 w-4" />
-                  Preview Transactions
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="btn-large"
-                  onClick={handleResetOut}
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Reset
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    );
-  }
-}
+        unit: item.product.uni
