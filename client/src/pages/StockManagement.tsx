@@ -635,4 +635,972 @@ export default function StockManagement() {
     setTransactionPreview({
       products: productItems.map((item, index) => ({
         product: item.product.name,
-        unit: item.product.uni
+        unit: item.product.unit,
+        currentStock: item.currentStock,
+        quantity: item.quantity,
+        newStock: item.newStock,
+        displayQuantity: formatDisplayQuantity(
+          allProducts[index].quantityOut,
+          allProducts[index].selectedUnit,
+        ),
+      })),
+      date: new Date().toLocaleDateString(),
+      soNumber: data.soNumber,
+      type: "Stock Out",
+    });
+  };
+
+  const handleEdit = (selectedProducts?: number[]) => {
+    if (
+      !transactionPreview ||
+      !selectedProducts ||
+      selectedProducts.length === 0
+    ) {
+      // If no products selected, just close the dialog
+      setTransactionPreview(null);
+      return;
+    }
+
+    // Close the confirmation dialog
+    setTransactionPreview(null);
+
+    // Move selected products to editing queue
+    if (transactionPreview.type === "Stock In") {
+      const allProducts = [...completedProductsIn];
+      if (
+        currentProductIn &&
+        currentProductIn.quantity &&
+        parseFloat(currentProductIn.quantity) > 0
+      ) {
+        allProducts.push(currentProductIn);
+      }
+
+      // Get the selected products based on the indices
+      const productsToEdit = selectedProducts
+        .map((index) => allProducts[index])
+        .filter(Boolean);
+
+      // Keep only non-selected products
+      const remainingProducts = allProducts.filter(
+        (_, index) => !selectedProducts.includes(index),
+      );
+
+      // Set up editing queue
+      setEditingQueue(productsToEdit);
+      setCurrentEditIndex(0);
+      setShowEditQueue(true);
+
+      // Clear current states and set remaining products
+      setCurrentProductIn(null);
+      setCompletedProductsIn(remainingProducts);
+
+      toast({
+        title: "Edit Mode",
+        description: `${productsToEdit.length} product(s) ready for editing. Use navigation to edit each one.`,
+      });
+    } else {
+      const allProducts = [...completedProductsOut];
+      if (
+        currentProductOut &&
+        currentProductOut.quantityOut &&
+        parseFloat(currentProductOut.quantityOut) > 0
+      ) {
+        allProducts.push(currentProductOut);
+      }
+
+      // Get the selected products based on the indices
+      const productsToEdit = selectedProducts
+        .map((index) => allProducts[index])
+        .filter(Boolean);
+
+      // Keep only non-selected products
+      const remainingProducts = allProducts.filter(
+        (_, index) => !selectedProducts.includes(index),
+      );
+
+      // Set up editing queue
+      const queueItems = productsToEdit.map((item) => ({
+        product: item.product,
+        quantity: "",
+        quantityOut: item.quantityOut,
+        selectedUnit: item.selectedUnit,
+      }));
+
+      setEditingQueue(queueItems);
+      setCurrentEditIndex(0);
+      setShowEditQueue(true);
+
+      // Clear current states and set remaining products
+      setCurrentProductOut(null);
+      setCompletedProductsOut(remainingProducts);
+
+      toast({
+        title: "Edit Mode",
+        description: `${productsToEdit.length} product(s) ready for editing. Use navigation to edit each one.`,
+      });
+    }
+  };
+
+  const handleConfirm = () => {
+    if (!transactionPreview) return;
+
+    if (transactionPreview.type === "Stock In") {
+      const allProducts = [...completedProductsIn];
+      if (
+        currentProductIn &&
+        currentProductIn.quantity &&
+        parseFloat(currentProductIn.quantity) > 0
+      ) {
+        allProducts.push(currentProductIn);
+      }
+
+      const transactions = allProducts.map((item) => ({
+        productId: item.product.id,
+        quantity: convertToBaseUnit(
+          item.quantity,
+          item.selectedUnit,
+          item.product,
+        ),
+        originalQuantity: item.quantity,
+        originalUnit: item.selectedUnit,
+        poNumber: transactionPreview.poNumber,
+      }));
+
+      stockInMutation.mutate(transactions);
+    } else {
+      const allProducts = [...completedProductsOut];
+      if (
+        currentProductOut &&
+        currentProductOut.quantityOut &&
+        parseFloat(currentProductOut.quantityOut) > 0
+      ) {
+        allProducts.push(currentProductOut);
+      }
+
+      const transactions = allProducts.map((item) => ({
+        productId: item.product.id,
+        quantityOut: convertToBaseUnit(
+          item.quantityOut,
+          item.selectedUnit,
+          item.product,
+        ),
+        originalQuantity: item.quantityOut,
+        originalUnit: item.selectedUnit,
+        soNumber: transactionPreview.soNumber,
+      }));
+
+      stockOutMutation.mutate(transactions);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canStockIn && !canStockOut) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6 text-center">
+            <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h1 className="text-xl font-bold text-gray-900 mb-2">
+              Access Denied
+            </h1>
+            <p className="text-gray-600">
+              You don't have permission to access stock management.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Handle role-specific dashboard display - Show buttons first, then functions
+  if (showDashboard && (user as any)?.role !== "super_admin") {
+    const userRole = (user as any)?.role;
+
+    if (userRole === "stock_in_manager") {
+      return (
+        <div className="min-h-screen bg-gray-50 py-8">
+          <div className="max-w-2xl mx-auto px-4">
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                Stock Management Dashboard
+              </h1>
+              <p className="text-xl text-gray-600">Stock In Manager</p>
+              <p className="text-gray-500 mt-2">
+                Click the button below to start managing stock
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-8">
+              <Card
+                className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer p-6 border-2 border-green-200"
+                onClick={() => {
+                  setShowDashboard(false);
+                  setSelectedFunction("stock-in");
+                }}
+              >
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                    <TrendingUp className="h-8 w-8 text-green-600" />
+                  </div>
+                  <CardTitle className="text-2xl text-green-800">
+                    Stock In
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-gray-600 text-lg mb-3">
+                    Add stock quantities to inventory
+                  </p>
+                  <p className="text-sm text-green-600 font-medium">
+                    Click to open Stock In form
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (userRole === "stock_out_manager") {
+      return (
+        <div className="min-h-screen bg-gray-50 py-8">
+          <div className="max-w-2xl mx-auto px-4">
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                Stock Management Dashboard
+              </h1>
+              <p className="text-xl text-gray-600">Stock Out Manager</p>
+              <p className="text-gray-500 mt-2">
+                Click the button below to start managing stock
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-8">
+              <Card
+                className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer p-6 border-2 border-red-200"
+                onClick={() => {
+                  setShowDashboard(false);
+                  setSelectedFunction("stock-out");
+                }}
+              >
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                    <TrendingDown className="h-8 w-8 text-red-600" />
+                  </div>
+                  <CardTitle className="text-2xl text-red-800">
+                    Stock Out
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-gray-600 text-lg mb-3">
+                    Remove stock quantities from inventory
+                  </p>
+                  <p className="text-sm text-red-600 font-medium">
+                    Click to open Stock Out form
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // Show dashboard for super admin when coming from stock management link
+  if (showDashboard && (user as any)?.role === "super_admin") {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 relative">
+        <div className="max-w-4xl mx-auto px-4">
+          {/* Back to Dashboard Button */}
+          <div className="absolute top-4 left-4">
+            <Link href="/">
+              <Button variant="outline" className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
+            </Link>
+          </div>
+
+          <div className="text-center mb-12 pt-16">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              Stock Management Dashboard
+            </h1>
+            <p className="text-xl text-gray-600">Super Admin</p>
+            <p className="text-gray-500 mt-2">
+              Choose your stock management function
+            </p>
+          </div>
+
+
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card
+              className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer p-6 border-2 border-green-200"
+              onClick={() => {
+                setShowDashboard(false);
+                setSelectedFunction("stock-in");
+              }}
+            >
+              <CardHeader className="text-center pb-4">
+                <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                  <TrendingUp className="h-8 w-8 text-green-600" />
+                </div>
+                <CardTitle className="text-2xl text-green-800">
+                  Stock In
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 text-lg mb-3">
+                  Add stock quantities to inventory
+                </p>
+                <p className="text-sm text-green-600 font-medium">
+                  Click to open Stock In form
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer p-6 border-2 border-red-200"
+              onClick={() => {
+                setShowDashboard(false);
+                setSelectedFunction("stock-out");
+              }}
+            >
+              <CardHeader className="text-center pb-4">
+                <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                  <TrendingDown className="h-8 w-8 text-red-600" />
+                </div>
+                <CardTitle className="text-2xl text-red-800">
+                  Stock Out
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 text-lg mb-3">
+                  Remove stock quantities from inventory
+                </p>
+                <p className="text-sm text-red-600 font-medium">
+                  Click to open Stock Out form
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 relative">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Back to Dashboard Button in top-left corner */}
+        <div className="absolute top-4 left-4">
+          {(user as any)?.role === "super_admin" ? (
+            <Link href="/">
+              <Button variant="outline" className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
+            </Link>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => setShowDashboard(true)}
+              className="flex items-center gap-2 bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Menu
+            </Button>
+          )}
+        </div>
+
+        <div className="text-center mb-8 pt-16">
+          <div className="flex justify-center items-center mb-4">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Stock Management
+            </h1>
+          </div>
+          <p className="text-gray-600">
+            {selectedFunction === "stock-in" || showStockInOnly
+              ? "Add products to your stock"
+              : selectedFunction === "stock-out" || showStockOutOnly
+                ? "Remove products from your stock"
+                : "Manage your inventory stock levels"}
+          </p>
+        </div>
+
+        {selectedFunction === "stock-in" || showStockInOnly ? (
+          <StockInForm />
+        ) : selectedFunction === "stock-out" || showStockOutOnly ? (
+          <StockOutForm />
+        ) : canStockIn && canStockOut ? (
+          <Tabs defaultValue="stock-in" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="stock-in" className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Stock In
+              </TabsTrigger>
+              <TabsTrigger
+                value="stock-out"
+                className="flex items-center gap-2"
+              >
+                <TrendingDown className="h-4 w-4" />
+                Stock Out
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="stock-in">
+              <StockInForm />
+            </TabsContent>
+
+            <TabsContent value="stock-out">
+              <StockOutForm />
+            </TabsContent>
+          </Tabs>
+        ) : canStockIn ? (
+          <StockInForm />
+        ) : (
+          <StockOutForm />
+        )}
+
+        {/* Editing Queue Interface */}
+        {showEditQueue && editingQueue.length > 0 && (
+          <Card className="mt-6">
+            <CardHeader className="bg-purple-50">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Edit className="h-5 w-5 text-purple-700" />
+                  <span className="text-purple-800">
+                    Editing Products ({currentEditIndex + 1} of{" "}
+                    {editingQueue.length})
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={closeEditQueue}
+                  className="text-gray-600"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Cancel All
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              {editingQueue[currentEditIndex] && (
+                <div className="space-y-4">
+                  {/* Show all products in queue */}
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <h6 className="font-medium text-gray-800 mb-2">
+                      Products to Edit:
+                    </h6>
+                    <div className="flex flex-wrap gap-2">
+                      {editingQueue.map((item, index) => (
+                        <span
+                          key={item.product.id}
+                          className={`px-2 py-1 rounded text-sm ${
+                            index === currentEditIndex
+                              ? "bg-purple-200 text-purple-800 border-2 border-purple-400"
+                              : "bg-gray-200 text-gray-700"
+                          }`}
+                        >
+                          {item.product.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Current product editing form */}
+                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <h5 className="font-semibold text-purple-900 mb-3">
+                      Editing: {editingQueue[currentEditIndex].product.name}
+                    </h5>
+                    <p className="text-purple-700 mb-3">
+                      Current Stock:{" "}
+                      {editingQueue[currentEditIndex].product.currentStock}{" "}
+                      {editingQueue[currentEditIndex].product.unit}
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {editingQueue[currentEditIndex].quantity !== undefined
+                            ? "Quantity to Add"
+                            : "Quantity Out"}
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          placeholder="Enter quantity..."
+                          value={
+                            editingQueue[currentEditIndex].quantity ||
+                            editingQueue[currentEditIndex].quantityOut ||
+                            ""
+                          }
+                          onChange={(e) => {
+                            const newQueue = [...editingQueue];
+                            if (
+                              editingQueue[currentEditIndex].quantity !==
+                              undefined
+                            ) {
+                              newQueue[currentEditIndex].quantity =
+                                e.target.value;
+                            } else {
+                              newQueue[currentEditIndex].quantityOut =
+                                e.target.value;
+                            }
+                            setEditingQueue(newQueue);
+                          }}
+                          className="text-lg"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Unit
+                        </label>
+                        <Select
+                          value={editingQueue[currentEditIndex].selectedUnit}
+                          onValueChange={(value) => {
+                            const newQueue = [...editingQueue];
+                            newQueue[currentEditIndex].selectedUnit = value;
+                            setEditingQueue(newQueue);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getAvailableUnits(
+                              editingQueue[currentEditIndex].product,
+                            ).map((unit) => (
+                              <SelectItem key={unit.value} value={unit.value}>
+                                {unit.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Navigation and action buttons */}
+                  <div className="flex justify-between items-center">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={goToPreviousEditProduct}
+                        disabled={currentEditIndex === 0}
+                        size="sm"
+                      >
+                        ← Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={goToNextEditProduct}
+                        disabled={currentEditIndex === editingQueue.length - 1}
+                        size="sm"
+                      >
+                        Next →
+                      </Button>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={skipCurrentEdit}
+                        size="sm"
+                        className="text-gray-600"
+                      >
+                        Skip
+                      </Button>
+                      <Button
+                        onClick={saveCurrentEdit}
+                        className="bg-purple-600 hover:bg-purple-700"
+                        size="sm"
+                        disabled={
+                          !editingQueue[currentEditIndex]?.quantity &&
+                          !editingQueue[currentEditIndex]?.quantityOut
+                        }
+                      >
+                        Save & Continue
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {transactionPreview && (
+          <ConfirmationDialog
+            isOpen={!!transactionPreview}
+            onClose={() => setTransactionPreview(null)}
+            onConfirm={handleConfirm}
+            onEdit={handleEdit}
+            title={`Confirm ${transactionPreview.type} Transactions`}
+            transactionData={transactionPreview}
+            isLoading={stockInMutation.isPending || stockOutMutation.isPending}
+          />
+        )}
+      </div>
+    </div>
+  );
+
+  function StockInForm() {
+    return (
+      <Card>
+        <CardHeader className="bg-green-50">
+          <CardTitle className="flex items-center gap-2 text-green-800">
+            <TrendingUp className="h-5 w-5" />
+            Stock In - Add Products One by One
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <Form {...stockInForm}>
+            <form
+              onSubmit={stockInForm.handleSubmit(handlePreviewIn)}
+              className="space-y-6"
+            >
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Add Products to Stock In
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowProductSearchIn(!showProductSearchIn)}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Product
+                  </Button>
+                </div>
+
+                {showProductSearchIn && (
+                  <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
+                    <ProductSearch
+                      onProductSelect={(product) => {
+                        addProductIn(product);
+                        setShowProductSearchIn(false);
+                      }}
+                      placeholder="Type to search and add products..."
+                    />
+                  </div>
+                )}
+
+                {/* Current Product Input */}
+                {currentProductIn && (
+                  <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h5 className="font-semibold text-green-900">
+                          {currentProductIn.product.name}
+                        </h5>
+                        <p className="text-green-700">
+                          Current Stock: {currentProductIn.product.currentStock}{" "}
+                          {currentProductIn.product.unit}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCurrentProductIn(null)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Quantity to Add
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          placeholder="Enter quantity..."
+                          value={currentProductIn.quantity}
+                          onChange={(e) =>
+                            updateCurrentProductInQuantity(e.target.value)
+                          }
+                          className="text-lg"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Unit
+                        </label>
+                        <Select
+                          value={currentProductIn.selectedUnit}
+                          onValueChange={(value) =>
+                            updateCurrentProductInUnit(value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getAvailableUnits(currentProductIn.product).map(
+                              (unit) => (
+                                <SelectItem key={unit.value} value={unit.value}>
+                                  {unit.label}
+                                </SelectItem>
+                              ),
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <FormField
+                control={stockInForm.control}
+                name="poNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>PO Number (Optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="001"
+                        {...field}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value && !value.startsWith("")) {
+                            field.onChange(
+                              "" + value.replace(/[^0-9]/g, ""),
+                            );
+                          } else {
+                            field.onChange(value);
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-center space-x-4">
+                <Button
+                  type="submit"
+                  className="btn-large bg-green-600 hover:bg-green-700"
+                  disabled={
+                    !currentProductIn && completedProductsIn.length === 0
+                  }
+                >
+                  <TrendingUp className="mr-2 h-4 w-4" />
+                  Preview Transactions
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="btn-large"
+                  onClick={handleResetIn}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Reset
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  function StockOutForm() {
+    return (
+      <Card>
+        <CardHeader className="bg-orange-50">
+          <CardTitle className="flex items-center gap-2 text-orange-800">
+            <TrendingDown className="h-5 w-5" />
+            Stock Out - Add Products One by One
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <Form {...stockOutForm}>
+            <form
+              onSubmit={stockOutForm.handleSubmit(handlePreviewOut)}
+              className="space-y-6"
+            >
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Add Products to Stock Out
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setShowProductSearchOut(!showProductSearchOut)
+                    }
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Product
+                  </Button>
+                </div>
+
+                {showProductSearchOut && (
+                  <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
+                    <ProductSearch
+                      onProductSelect={(product) => {
+                        addProductOut(product);
+                        setShowProductSearchOut(false);
+                      }}
+                      placeholder="Type to search and add products..."
+                    />
+                  </div>
+                )}
+
+                {/* Current Product Input */}
+                {currentProductOut && (
+                  <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h5 className="font-semibold text-orange-900">
+                          {currentProductOut.product.name}
+                        </h5>
+                        <p className="text-orange-700">
+                          Available Stock:{" "}
+                          {currentProductOut.product.currentStock}{" "}
+                          {currentProductOut.product.unit}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCurrentProductOut(null)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Quantity Out
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          placeholder="Enter quantity out..."
+                          value={currentProductOut.quantityOut}
+                          onChange={(e) =>
+                            updateCurrentProductOutQuantity(e.target.value)
+                          }
+                          className="text-lg"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Unit
+                        </label>
+                        <Select
+                          value={currentProductOut.selectedUnit}
+                          onValueChange={(value) =>
+                            updateCurrentProductOutUnit(value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getAvailableUnits(currentProductOut.product).map(
+                              (unit) => (
+                                <SelectItem key={unit.value} value={unit.value}>
+                                  {unit.label}
+                                </SelectItem>
+                              ),
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {stockWarnings.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    {stockWarnings.join("; ")}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <FormField
+                control={stockOutForm.control}
+                name="soNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>SO Number (Optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="001"
+                        {...field}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value && !value.startsWith("")) {
+                            field.onChange(
+                              "" + value.replace(/[^0-9]/g, ""),
+                            );
+                          } else {
+                            field.onChange(value);
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-center space-x-4">
+                <Button
+                  type="submit"
+                  className="btn-large bg-orange-600 hover:bg-orange-700"
+                  disabled={
+                    !currentProductOut && completedProductsOut.length === 0
+                  }
+                >
+                  <TrendingDown className="mr-2 h-4 w-4" />
+                  Preview Transactions
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="btn-large"
+                  onClick={handleResetOut}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Reset
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    );
+  }
+}
