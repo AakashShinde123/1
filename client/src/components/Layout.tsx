@@ -59,7 +59,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const getNavigationItems = () => {
     const items = [
-      { label: 'Dashboard', icon: Home, href: '/', roles: ['super_admin', 'master_inventory_handler'] },
+      { label: 'Dashboard', icon: Home, href: '/', roles: ['super_admin'] },
     ];
 
     // Role-specific navigation
@@ -74,8 +74,8 @@ export default function Layout({ children }: LayoutProps) {
         break;
       case 'master_inventory_handler':
         items.push(
-          { label: 'Master Inventory', icon: Package, href: '/inventory', roles: ['master_inventory_handler'] },
-          { label: 'Transaction Log', icon: List, href: '/transactions', roles: ['master_inventory_handler'] }
+          { label: 'Master Inventory', icon: Package, href: '/inventory', roles: ['master_inventory_handler'] }
+          // { label: 'Transaction Log', icon: List, href: '/transactions', roles: ['master_inventory_handler'] }
         );
         break;
       case 'stock_in_manager':
@@ -95,8 +95,11 @@ export default function Layout({ children }: LayoutProps) {
 
   const navigationItems = getNavigationItems();
   
-  // Check if user has stock manager role (should not show sidebar)
-  const isStockManager = (user as User)?.role === 'stock_in_manager' || (user as User)?.role === 'stock_out_manager';
+  // Check if user should not show sidebar (stock managers and super admin)
+  const hideSidebar = (user as User)?.role === 'stock_in_manager' || 
+                      (user as User)?.role === 'stock_out_manager' || 
+                      (user as User)?.role === 'master_inventory_handler' || 
+                      (user as User)?.role === 'super_admin';
 
   return (
     <div className="min-h-screen" style={{backgroundColor: '#F5F0F6'}}>
@@ -140,8 +143,8 @@ export default function Layout({ children }: LayoutProps) {
       </nav>
 
       <div className="flex">
-        {/* Sidebar - Hidden for stock managers */}
-        {!isStockManager && (
+        {/* Sidebar - Hidden for stock managers and super admin */}
+        {!hideSidebar && (
           <div className="w-64 shadow-md min-h-screen border-r border-purple-200" style={{backgroundColor: '#F5F0F6'}}>
             <div className="p-4">
               <nav className="space-y-2">
@@ -166,8 +169,8 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         )}
 
-        {/* Main Content - Full width for stock managers */}
-        <div className={`${isStockManager ? 'flex-1' : 'flex-1'} p-6`}>
+        {/* Main Content - Full width for stock managers and super admin */}
+        <div className={`${hideSidebar ? 'flex-1' : 'flex-1'} p-6`}>
           {children}
         </div>
       </div>
