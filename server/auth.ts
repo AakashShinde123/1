@@ -78,11 +78,9 @@ export async function loginUser(username: string, password: string) {
   if (!user || !user.isActive) {
     return null;
   }
-
   const isValidPassword = await bcrypt.compare(password, user.password);
   if (!isValidPassword) {
     return null;
   }
-
   return user;
 }
