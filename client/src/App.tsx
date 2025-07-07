@@ -7,11 +7,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
-import Home from "@/pages/Home";
+import HomeNew from "@/pages/Home-new";
 import Inventory from "@/pages/Inventory";
+import MasterInventory from "@/pages/MasterInventory";
 import StockManagement from "@/pages/StockManagement";
 import TransactionLog from "@/pages/TransactionLog";
 import UserManagement from "@/pages/UserManagement";
+import WeeklyStockPlanning from "@/pages/WeeklyStockPlanning";
+import ProductCatalogPage from "@/pages/ProductCatalogPage";
 
 import Layout from "@/components/Layout";
 
@@ -40,19 +43,31 @@ function Router() {
       ) : (
         <Layout>
           <Switch>
-            <Route path="/" component={() => {
-              // Redirect stock managers directly to stock management
-              const userRole = (user as any)?.role;
-              
-              if (userRole === 'stock_in_manager' || userRole === 'stock_out_manager') {
-                return <StockManagement />;
-              }
-              return <Home />;
-            }} />
+            <Route
+              path="/"
+              component={() => {
+                // Redirect non-super admin users to their specific pages
+                const userRole = (user as any)?.role;
+
+                if (
+                  userRole === "stock_in_manager" ||
+                  userRole === "stock_out_manager"
+                ) {
+                  return <StockManagement />;
+                }
+                if (userRole === "master_inventory_handler") {
+                  return <HomeNew />;
+                }
+                return <HomeNew />;
+              }}
+            />
             <Route path="/inventory" component={Inventory} />
+            <Route path="/master-inventory" component={MasterInventory} />
             <Route path="/stock-management" component={StockManagement} />
             <Route path="/transactions" component={TransactionLog} />
             <Route path="/users" component={UserManagement} />
+            <Route path="/weekly-stock-planning" component={WeeklyStockPlanning} />
+            <Route path="/product-catalog" component={ProductCatalogPage} />
             <Route component={NotFound} />
           </Switch>
         </Layout>
