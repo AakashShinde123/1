@@ -301,7 +301,7 @@ export default function Inventory() {
     <div className="min-h-screen bg-gray-50 py-8">
       {/* Fixed Back Button in Top-Left */}
       {new URLSearchParams(window.location.search).has('direct') ? (
-        <div className="fixed top-21 left-7 z-50">
+        <div className="absolute top-21 left-7 z-50">
           <Link href="/master-inventory">
             <Button
               variant="outline"
