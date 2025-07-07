@@ -42,8 +42,8 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
     return matchesSearch && matchesUnit && matchesStock;
   }) || [];
 
-  // Get unique units for filter dropdown
-  const availableUnits = [...new Set(products?.map((p: Product) => p.unit) || [])];
+  // Get unique units for filter dropdown, filtering out empty values
+  const availableUnits = [...new Set(products?.map((p: Product) => p.unit).filter(unit => unit && unit.trim() !== '') || [])];
 
   // Get stock status for a product
   const getStockStatus = (stock: string) => {
@@ -113,8 +113,8 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
               <SelectContent>
                 <SelectItem value="all">All Units</SelectItem>
                 {availableUnits.map((unit) => (
-                  <SelectItem key={unit} value={unit}>
-                    {unit}
+                  <SelectItem key={unit} value={unit || 'unknown'}>
+                    {unit || 'Unknown Unit'}
                   </SelectItem>
                 ))}
               </SelectContent>
