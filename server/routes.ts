@@ -545,6 +545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             "master_inventory_handler",
             "stock_in_manager",
             "stock_out_manager",
+            "attendance_checker",
           ].includes(role)
         ) {
           return res.status(400).json({ message: "Invalid role" });
@@ -637,6 +638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             "master_inventory_handler",
             "stock_in_manager",
             "stock_out_manager",
+            "attendance_checker",
           ].includes(role)
         ) {
           return res.status(400).json({ message: "Invalid role" });
