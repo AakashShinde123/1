@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Product } from "@/shared/schema";
+import { Product } from "@shared/schema";
 
 interface ProductCatalogProps {
   className?: string;
@@ -21,12 +21,12 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
     data: products,
     isLoading,
     error,
-  } = useQuery({
+  } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
 
-  // Filter products based on search and filters
-  const filteredProducts = products?.filter((product: Product) => {
+  // Filter and sort products based on search and filters with priority
+  const filteredProducts = (products || []).filter((product: Product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesUnit = unitFilter === "all" || product.unit === unitFilter;
     
@@ -40,10 +40,26 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
     }
     
     return matchesSearch && matchesUnit && matchesStock;
-  }) || [];
+  }).sort((a: Product, b: Product) => {
+    if (!searchQuery) return a.name.localeCompare(b.name);
+    
+    const queryLower = searchQuery.toLowerCase();
+    const aNameLower = a.name.toLowerCase();
+    const bNameLower = b.name.toLowerCase();
+    
+    // Priority 1: Names that start with the search query
+    const aStartsWith = aNameLower.startsWith(queryLower);
+    const bStartsWith = bNameLower.startsWith(queryLower);
+    
+    if (aStartsWith && !bStartsWith) return -1;
+    if (!aStartsWith && bStartsWith) return 1;
+    
+    // If both start with query or neither starts with query, sort alphabetically
+    return a.name.localeCompare(b.name);
+  });
 
   // Get unique units for filter dropdown, filtering out empty values
-  const availableUnits = [...new Set(products?.map((p: Product) => p.unit).filter(unit => unit && unit.trim() !== '') || [])];
+  const availableUnits = Array.from(new Set((products || []).map((p: Product) => p.unit).filter((unit: string) => unit && unit.trim() !== '')));
 
   // Get stock status for a product
   const getStockStatus = (stock: string) => {
