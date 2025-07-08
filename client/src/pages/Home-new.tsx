@@ -15,6 +15,7 @@ import {
   ArrowUp,
   ArrowDown,
   Calendar,
+  CalendarCheck,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -266,6 +267,22 @@ export default function HomeNew() {
                 </div>
               </div>
             </Link>
+
+            {/* Attendance Portal */}
+            <div
+              className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 hover:bg-accent hover:shadow-md transition-all cursor-pointer"
+              onClick={() => window.open('https://attandace.netlify.app/', '_blank', 'noopener,noreferrer')}
+            >
+              <div className="text-center">
+                <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+                  <CalendarCheck className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-medium">Attendance Portal</h3>
+                <p className="text-gray-600 text-sm mt-2">
+                  Access employee attendance management system
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -279,26 +296,30 @@ export default function HomeNew() {
     console.log("User role:", userRole);
     
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+      <div className="page-container">
+        <div className="page-content max-w-4xl">
+          <div className="page-header fade-in">
+            <h1 className="page-title">
               Sudhamrit Inventory Management
             </h1>
-            <p className="text-xl text-gray-600">Master Inventory Handler</p>
-            <p className="text-sm text-blue-600 mt-2">✓ Dashboard page loaded correctly</p>
+            <p className="page-subtitle">Master Inventory Handler Dashboard</p>
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mt-4">
+              ✓ Dashboard loaded successfully
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-8">
+          <div className="grid grid-cols-1 gap-8 slide-up">
             {/* Master Inventory Button */}
             <Link href="/master-inventory">
-              <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 hover:bg-accent hover:shadow-md transition-all cursor-pointer">
-                <div className="text-center">
-                  <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
-                    <Package className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <h3 className="text-lg font-medium">Master Inventory</h3>
-                  <p className="text-gray-600 text-sm mt-2">
+              <div className="dashboard-card">
+                <div className="dashboard-card-icon">
+                  <Package className="h-12 w-12" />
+                </div>
+                <div>
+                  <h3 className="dashboard-card-title">
+                    Master Inventory
+                  </h3>
+                  <p className="dashboard-card-description">
                     Access product management and weekly stock planning
                   </p>
                 </div>
@@ -313,13 +334,16 @@ export default function HomeNew() {
   // Stock In Manager Dashboard
   if (isStockInManager) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+      <div className="page-container">
+        <div className="page-content max-w-4xl">
+          <div className="page-header fade-in">
+            <h1 className="page-title">
               Sudhamrit Inventory Management
             </h1>
-            <p className="text-xl text-gray-600">Stock In Manager</p>
+            <p className="page-subtitle">Stock In Manager Dashboard</p>
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-700 text-sm font-medium mt-4">
+              ✓ Stock In Operations Access
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-8">
@@ -370,6 +394,43 @@ export default function HomeNew() {
                 </div>
               </div>
             </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Attendance Checker Dashboard
+  if (userRole === "attendance_checker") {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-2xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              Sudhamrit Inventory Management
+            </h1>
+            <p className="text-xl text-gray-600">Attendance Checker</p>
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mt-4">
+              ✓ Attendance Portal Access
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8">
+            {/* Attendance Portal Button */}
+            <div
+              className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 hover:bg-accent hover:shadow-md transition-all cursor-pointer"
+              onClick={() => window.open('https://attandace.netlify.app/', '_blank', 'noopener,noreferrer')}
+            >
+              <div className="text-center">
+                <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+                  <CalendarCheck className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-medium">Attendance Portal</h3>
+                <p className="text-gray-600 text-sm mt-2">
+                  Access employee attendance management system
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
