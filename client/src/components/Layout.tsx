@@ -3,8 +3,8 @@ import { User } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, TrendingUp, TrendingDown, List, Users, Home, LogOut } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { LogOut } from "lucide-react";
+import { Link } from "wouter";
 
 interface LayoutProps {
   children: ReactNode;
@@ -12,7 +12,6 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const { user } = useAuth();
-  const [location] = useLocation();
 
   const handleLogout = async () => {
     try {
@@ -37,6 +36,8 @@ export default function Layout({ children }: LayoutProps) {
         return 'bg-green-100 text-green-800';
       case 'stock_out_manager':
         return 'bg-yellow-100 text-yellow-800';
+      case 'attendance_checker':
+        return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -52,54 +53,14 @@ export default function Layout({ children }: LayoutProps) {
         return '📥 Stock In Manager';
       case 'stock_out_manager':
         return '📤 Stock Out Manager';
+      case 'attendance_checker':
+        return '📅 Attendance Checker';
       default:
         return role;
     }
   };
 
-  const getNavigationItems = () => {
-    const items = [
-      { label: 'Dashboard', icon: Home, href: '/', roles: ['super_admin'] },
-    ];
 
-    // Role-specific navigation
-    switch ((user as User)?.role) {
-      case 'super_admin':
-        items.push(
-          { label: 'Master Inventory', icon: Package, href: '/inventory', roles: ['super_admin'] },
-          { label: 'Stock Management', icon: TrendingUp, href: '/stock-management', roles: ['super_admin'] },
-          { label: 'Transaction Log', icon: List, href: '/transactions', roles: ['super_admin'] },
-          { label: 'User Management', icon: Users, href: '/users', roles: ['super_admin'] }
-        );
-        break;
-      case 'master_inventory_handler':
-        items.push(
-          { label: 'Master Inventory', icon: Package, href: '/inventory', roles: ['master_inventory_handler'] }
-          // { label: 'Transaction Log', icon: List, href: '/transactions', roles: ['master_inventory_handler'] }
-        );
-        break;
-      case 'stock_in_manager':
-        items.push(
-          { label: 'Stock Management', icon: TrendingUp, href: '/stock-management', roles: ['stock_in_manager'] }
-        );
-        break;
-      case 'stock_out_manager':
-        items.push(
-          { label: 'Stock Management', icon: TrendingDown, href: '/stock-management', roles: ['stock_out_manager'] }
-        );
-        break;
-    }
-
-    return items.filter(item => item.roles.includes((user as User)?.role || ''));
-  };
-
-  const navigationItems = getNavigationItems();
-  
-  // Check if user should not show sidebar (stock managers and super admin)
-  const hideSidebar = (user as User)?.role === 'stock_in_manager' || 
-                      (user as User)?.role === 'stock_out_manager' || 
-                      (user as User)?.role === 'master_inventory_handler' || 
-                      (user as User)?.role === 'super_admin';
 
   return (
     <div className="min-h-screen" style={{backgroundColor: '#F5F0F6'}}>
@@ -142,37 +103,9 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </nav>
 
-      <div className="flex">
-        {/* Sidebar - Hidden for stock managers and super admin */}
-        {!hideSidebar && (
-          <div className="w-64 shadow-md min-h-screen border-r border-purple-200" style={{backgroundColor: '#F5F0F6'}}>
-            <div className="p-4">
-              <nav className="space-y-2">
-                {navigationItems.map((item) => {
-                  const isActive = location === item.href;
-                  return (
-                    <Link key={item.href} href={item.href}>
-                      <Button
-                        variant={isActive ? "default" : "ghost"}
-                        className={`w-full justify-start btn-large ${
-                          isActive ? "bg-purple-600 text-white" : "text-purple-700 hover:bg-purple-100"
-                        }`}
-                      >
-                        <item.icon className="mr-3 h-5 w-5" />
-                        {item.label}
-                      </Button>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
-          </div>
-        )}
-
-        {/* Main Content - Full width for stock managers and super admin */}
-        <div className={`${hideSidebar ? 'flex-1' : 'flex-1'} p-6`}>
-          {children}
-        </div>
+      {/* Main Content - Full width for all users */}
+      <div className="p-6">
+        {children}
       </div>
     </div>
   );
