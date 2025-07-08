@@ -55,6 +55,7 @@ const updateRoleSchema = z.object({
     "master_inventory_handler",
     "stock_in_manager",
     "stock_out_manager",
+    "attendance_checker",
   ]),
 });
 
@@ -85,6 +86,7 @@ const createUserSchema = z
       "master_inventory_handler",
       "stock_in_manager",
       "stock_out_manager",
+      "attendance_checker",
     ]),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -619,6 +621,9 @@ export default function UserManagement() {
                             <SelectItem value="stock_out_manager">
                               📤 Stock Out Manager
                             </SelectItem>
+                            <SelectItem value="attendance_checker">
+                              📅 Attendance Checker
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -855,6 +860,9 @@ export default function UserManagement() {
                         <SelectItem value="stock_out_manager">
                           📤 Stock Out Manager
                         </SelectItem>
+                        <SelectItem value="attendance_checker">
+                          📅 Attendance Checker
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -959,6 +967,8 @@ function getRoleDisplayName(role: string): string {
       return "📥 Stock In Manager";
     case "stock_out_manager":
       return "📤 Stock Out Manager";
+    case "attendance_checker":
+      return "📅 Attendance Checker";
     default:
       return role;
   }
@@ -974,6 +984,8 @@ function getRoleBadgeColor(role: string): string {
       return "bg-green-100 text-green-800 border-green-200";
     case "stock_out_manager":
       return "bg-orange-100 text-orange-800 border-orange-200";
+    case "attendance_checker":
+      return "bg-blue-100 text-blue-800 border-blue-200";
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
   }
