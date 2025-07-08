@@ -178,6 +178,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  role: z.enum(['super_admin', 'master_inventory_handler', 'stock_in_manager', 'stock_out_manager', 'attendance_checker']).default('stock_in_manager'),
 });
 
 export const loginSchema = z.object({
@@ -280,4 +282,5 @@ export type UserRole =
   | "super_admin"
   | "master_inventory_handler"
   | "stock_in_manager"
-  | "stock_out_manager";
+  | "stock_out_manager"
+  | "attendance_checker";
