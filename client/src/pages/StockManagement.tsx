@@ -1369,13 +1369,13 @@ export default function StockManagement() {
                     <FormLabel>PO Number (Optional)</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="STW-001"
+                        placeholder="001"
                         {...field}
                         onChange={(e) => {
                           const value = e.target.value;
-                          if (value && !value.startsWith("STW-")) {
+                          if (value && !value.startsWith("")) {
                             field.onChange(
-                              "STW-" + value.replace(/[^0-9]/g, ""),
+                              "" + value.replace(/[^0-9]/g, ""),
                             );
                           } else {
                             field.onChange(value);
@@ -1550,13 +1550,13 @@ export default function StockManagement() {
                     <FormLabel>SO Number (Optional)</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="STW-001"
+                        placeholder="001"
                         {...field}
                         onChange={(e) => {
                           const value = e.target.value;
-                          if (value && !value.startsWith("STW-")) {
+                          if (value && !value.startsWith("")) {
                             field.onChange(
-                              "STW-" + value.replace(/[^0-9]/g, ""),
+                              "" + value.replace(/[^0-9]/g, ""),
                             );
                           } else {
                             field.onChange(value);
