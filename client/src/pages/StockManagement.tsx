@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
@@ -41,6 +41,7 @@ import ProductSearch from "@/components/ProductSearch";
 import ConfirmationDialog, {
   type TransactionData,
 } from "@/components/ConfirmationDialog";
+
 import type { Product } from "@shared/schema";
 import { Link } from "wouter";
 
@@ -392,29 +393,29 @@ export default function StockManagement() {
     setCurrentEditIndex(0);
   };
 
-  const updateCurrentProductInQuantity = (quantity: string) => {
-    if (currentProductIn) {
-      setCurrentProductIn({ ...currentProductIn, quantity });
-    }
-  };
+  const updateCurrentProductInQuantity = useCallback((quantity: string) => {
+    setCurrentProductIn(current => {
+      if (!current) return null;
+      if (current.quantity === quantity) return current;
+      return { ...current, quantity };
+    });
+  }, []);
 
-  const updateCurrentProductOutQuantity = (quantityOut: string) => {
-    if (currentProductOut) {
-      setCurrentProductOut({ ...currentProductOut, quantityOut });
-    }
-  };
+  const updateCurrentProductOutQuantity = useCallback((quantityOut: string) => {
+    setCurrentProductOut(current => {
+      if (!current) return null;
+      if (current.quantityOut === quantityOut) return current;
+      return { ...current, quantityOut };
+    });
+  }, []);
 
-  const updateCurrentProductInUnit = (selectedUnit: string) => {
-    if (currentProductIn) {
-      setCurrentProductIn({ ...currentProductIn, selectedUnit });
-    }
-  };
+  const updateCurrentProductInUnit = useCallback((selectedUnit: string) => {
+    setCurrentProductIn(prev => prev ? { ...prev, selectedUnit } : null);
+  }, []);
 
-  const updateCurrentProductOutUnit = (selectedUnit: string) => {
-    if (currentProductOut) {
-      setCurrentProductOut({ ...currentProductOut, selectedUnit });
-    }
-  };
+  const updateCurrentProductOutUnit = useCallback((selectedUnit: string) => {
+    setCurrentProductOut(prev => prev ? { ...prev, selectedUnit } : null);
+  }, []);
 
   const handleResetIn = () => {
     setCurrentProductIn(null);
@@ -922,12 +923,12 @@ export default function StockManagement() {
     return (
       <div className="min-h-screen bg-gray-50 py-8 relative">
         <div className="max-w-4xl mx-auto px-4">
-          {/* Back to Dashboard Button */}
+          {/* Back to Home Button */}
           <div className="absolute top-4 left-4">
             <Link href="/">
               <Button variant="outline" className="flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
+                Back to Home
               </Button>
             </Link>
           </div>
@@ -1003,25 +1004,14 @@ export default function StockManagement() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 relative">
       <div className="max-w-4xl mx-auto px-4">
-        {/* Back to Dashboard Button in top-left corner */}
+        {/* Back to Home Button in top-left corner */}
         <div className="absolute top-4 left-4">
-          {(user as any)?.role === "super_admin" ? (
-            <Link href="/">
-              <Button variant="outline" className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
-              </Button>
-            </Link>
-          ) : (
-            <Button
-              variant="outline"
-              onClick={() => setShowDashboard(true)}
-              className="flex items-center gap-2 bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
-            >
+          <Link href="/">
+            <Button variant="outline" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back to Menu
+              Back to Home
             </Button>
-          )}
+          </Link>
         </div>
 
         <div className="text-center mb-8 pt-16">
@@ -1138,10 +1128,9 @@ export default function StockManagement() {
                             ? "Quantity to Add"
                             : "Quantity Out"}
                         </label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0.01"
+                        <input
+                          type="text"
+                          inputMode="decimal"
                           placeholder="Enter quantity..."
                           value={
                             editingQueue[currentEditIndex].quantity ||
@@ -1149,20 +1138,20 @@ export default function StockManagement() {
                             ""
                           }
                           onChange={(e) => {
+                            // Allow only numbers and decimal points
+                            const value = e.target.value.replace(/[^0-9.]/g, '');
                             const newQueue = [...editingQueue];
                             if (
                               editingQueue[currentEditIndex].quantity !==
                               undefined
                             ) {
-                              newQueue[currentEditIndex].quantity =
-                                e.target.value;
+                              newQueue[currentEditIndex].quantity = value;
                             } else {
-                              newQueue[currentEditIndex].quantityOut =
-                                e.target.value;
+                              newQueue[currentEditIndex].quantityOut = value;
                             }
                             setEditingQueue(newQueue);
                           }}
-                          className="text-lg"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-lg ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         />
                       </div>
                       <div>
@@ -1329,16 +1318,18 @@ export default function StockManagement() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Quantity to Add
                         </label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0.01"
-                          placeholder="Enter quantity..."
+                        <input
+                          type="text"
+                          inputMode="decimal"
                           value={currentProductIn.quantity}
-                          onChange={(e) =>
-                            updateCurrentProductInQuantity(e.target.value)
-                          }
-                          className="text-lg"
+                          onChange={(e) => {
+                            // Allow only numbers and decimal points
+                            const value = e.target.value.replace(/[^0-9.]/g, '');
+                            updateCurrentProductInQuantity(value);
+                          }}
+                          placeholder="Enter quantity..."
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-lg ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          autoFocus
                         />
                       </div>
                       <div>
@@ -1378,13 +1369,13 @@ export default function StockManagement() {
                     <FormLabel>PO Number (Optional)</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="001"
+                        placeholder="STW-001"
                         {...field}
                         onChange={(e) => {
                           const value = e.target.value;
-                          if (value && !value.startsWith("")) {
+                          if (value && !value.startsWith("STW-")) {
                             field.onChange(
-                              "" + value.replace(/[^0-9]/g, ""),
+                              "STW-" + value.replace(/[^0-9]/g, ""),
                             );
                           } else {
                             field.onChange(value);
@@ -1499,16 +1490,18 @@ export default function StockManagement() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Quantity Out
                         </label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0.01"
-                          placeholder="Enter quantity out..."
+                        <input
+                          type="text"
+                          inputMode="decimal"
                           value={currentProductOut.quantityOut}
-                          onChange={(e) =>
-                            updateCurrentProductOutQuantity(e.target.value)
-                          }
-                          className="text-lg"
+                          onChange={(e) => {
+                            // Allow only numbers and decimal points
+                            const value = e.target.value.replace(/[^0-9.]/g, '');
+                            updateCurrentProductOutQuantity(value);
+                          }}
+                          placeholder="Enter quantity out..."
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-lg ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          autoFocus
                         />
                       </div>
                       <div>
@@ -1557,13 +1550,13 @@ export default function StockManagement() {
                     <FormLabel>SO Number (Optional)</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="001"
+                        placeholder="STW-001"
                         {...field}
                         onChange={(e) => {
                           const value = e.target.value;
-                          if (value && !value.startsWith("")) {
+                          if (value && !value.startsWith("STW-")) {
                             field.onChange(
-                              "" + value.replace(/[^0-9]/g, ""),
+                              "STW-" + value.replace(/[^0-9]/g, ""),
                             );
                           } else {
                             field.onChange(value);
