@@ -476,10 +476,10 @@ export default function UserManagement() {
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-gray-600 text-lg mb-3">
-                  Manage system users, roles, and permissions
+                  Manage system users
                 </p>
                 <p className="text-sm text-red-600 font-medium">
-                  Click to open user management
+                  Click to open 
                 </p>
               </CardContent>
             </Card>
