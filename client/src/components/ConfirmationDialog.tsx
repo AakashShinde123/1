@@ -27,7 +27,7 @@ interface ConfirmationDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  onEdit: () => void;
+  onEdit: (selectedProducts?: number[]) => void;
   title: string;
   transactionData: TransactionData;
   isLoading?: boolean;
@@ -43,19 +43,31 @@ export default function ConfirmationDialog({
   isLoading = false,
 }: ConfirmationDialogProps) {
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [showEditOptions, setShowEditOptions] = useState(false);
 
-  // Format number to maximum 3 decimal places
+  // Format number to maximum 3 decimal places, removing unnecessary zeros
   const formatDecimal = (value: string | number): string => {
     const num = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(num)) return '0';
     
-    // Remove trailing zeros and limit to 3 decimal places
-    const formatted = num.toFixed(3);
-    return parseFloat(formatted).toString();
+    // Return whole number if no decimals, otherwise format with up to 3 decimals and remove trailing zeros
+    return num % 1 === 0 ? num.toString() : num.toFixed(3).replace(/\.?0+$/, '');
+  };
+
+  // Handle checkbox changes
+  const handleProductSelect = (productIndex: number, checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(prev => [...prev, productIndex]);
+    } else {
+      setSelectedProducts(prev => prev.filter(index => index !== productIndex));
+    }
   };
 
   const handleClose = () => {
     setIsConfirmed(false);
+    setSelectedProducts([]);
+    setShowEditOptions(false);
     onClose();
   };
 
@@ -65,8 +77,14 @@ export default function ConfirmationDialog({
   };
 
   const handleEdit = () => {
-    setIsConfirmed(false);
-    onEdit();
+    if (showEditOptions) {
+      // If we're showing edit options and user clicks edit, pass selected products
+      onEdit(selectedProducts);
+      setIsConfirmed(false);
+    } else {
+      // First click - show edit options
+      setShowEditOptions(true);
+    }
   };
 
   return (
@@ -100,40 +118,52 @@ export default function ConfirmationDialog({
                 <span className="text-gray-900">{transactionData.poNumber}</span>
               </div>
             )}
-            {transactionData.remarks && (
-              <div className="flex justify-between items-center mt-2">
-                <span className="font-medium text-gray-600">Remarks:</span>
-                <span className="text-gray-900">{transactionData.remarks}</span>
-              </div>
-            )}
           </div>
 
           <div className="space-y-3">
-            <h4 className="font-medium text-gray-900">Products ({transactionData.products.length}):</h4>
+            <h4 className="font-medium text-gray-900">
+              Products ({transactionData.products.length}):
+              {showEditOptions && (
+                <span className="text-sm text-blue-600 font-normal ml-2">
+                  Select products to edit
+                </span>
+              )}
+            </h4>
             {transactionData.products.map((product, index) => (
-              <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                <div className="font-semibold text-gray-900">{product.product}</div>
-                <div className="grid grid-cols-3 gap-4 text-sm mt-2">
-                  <div>
-                    <span className="text-gray-600">Current:</span>
-                    <div className="font-medium">{formatDecimal(product.currentStock)} {product.unit}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Quantity:</span>
-                    <div className="font-medium text-blue-600">
-                      {product.displayQuantity ? (
-                        <div>
-                          <div>{product.displayQuantity}</div>
-                          <div className="text-xs text-gray-500">({formatDecimal(product.quantity)} {product.unit})</div>
+              <div key={index} className={`bg-gray-50 p-3 rounded-lg ${showEditOptions ? 'border-2 border-gray-200' : ''}`}>
+                <div className="flex items-start gap-3">
+                  {showEditOptions && (
+                    <Checkbox
+                      checked={selectedProducts.includes(index)}
+                      onCheckedChange={(checked) => handleProductSelect(index, checked === true)}
+                      className="mt-1"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-900">{product.product}</div>
+                    <div className="grid grid-cols-3 gap-4 text-sm mt-2">
+                      <div>
+                        <span className="text-gray-600">Current:</span>
+                        <div className="font-medium">{formatDecimal(product.currentStock)} {product.unit}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Quantity:</span>
+                        <div className="font-medium text-blue-600">
+                          {product.displayQuantity ? (
+                            <div>
+                              <div>{product.displayQuantity}</div>
+                              <div className="text-xs text-gray-500">({formatDecimal(product.quantity)} {product.unit})</div>
+                            </div>
+                          ) : (
+                            <div>{formatDecimal(product.quantity)} {product.unit}</div>
+                          )}
                         </div>
-                      ) : (
-                        <div>{formatDecimal(product.quantity)} {product.unit}</div>
-                      )}
+                      </div>
+                      <div>
+                        <span className="text-gray-600">New Stock:</span>
+                        <div className="font-bold text-green-600">{formatDecimal(product.newStock)} {product.unit}</div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">New Stock:</span>
-                    <div className="font-bold text-green-600">{formatDecimal(product.newStock)} {product.unit}</div>
                   </div>
                 </div>
               </div>
@@ -159,10 +189,19 @@ export default function ConfirmationDialog({
           <Button variant="outline" onClick={handleClose} disabled={isLoading}>
             Cancel
           </Button>
-          <div className="space-x-2">
-            <Button variant="outline" onClick={handleEdit} disabled={isLoading}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Transaction
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleEdit}
+              disabled={isLoading}
+              className="bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              {showEditOptions ? (
+                selectedProducts.length > 0 ? `Edit Selected (${selectedProducts.length})` : 'Select Products'
+              ) : (
+                'Edit Transaction'
+              )}
             </Button>
             <Button
               onClick={handleConfirm}
@@ -170,11 +209,16 @@ export default function ConfirmationDialog({
               className="bg-green-600 hover:bg-green-700"
             >
               {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
               ) : (
-                <Check className="mr-2 h-4 w-4" />
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Confirm Transaction
+                </>
               )}
-              Confirm Transaction
             </Button>
           </div>
         </DialogFooter>
