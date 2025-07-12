@@ -760,22 +760,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { weeklyStockPlanQueries } = await import("./queries");
         
         const userId = req.user.id;
+        console.log("Creating weekly stock plan with data:", req.body);
+        console.log("User ID:", userId);
+        
         const planData = insertWeeklyStockPlanSchema.parse({
           ...req.body,
           userId,
         });
 
+        console.log("Parsed plan data:", planData);
         const plan = await weeklyStockPlanQueries.create(planData);
         res.status(201).json(plan);
       } catch (error) {
         console.error("Error creating weekly stock plan:", error);
+        console.error("Error details:", error.message);
         if (error instanceof z.ZodError) {
+          console.error("Validation errors:", error.errors);
           res.status(400).json({
             message: "Invalid plan data",
             errors: error.errors,
           });
         } else {
-          res.status(500).json({ message: "Failed to create weekly stock plan" });
+          res.status(500).json({ 
+            message: "Failed to create weekly stock plan",
+            error: error.message 
+          });
         }
       }
     }
