@@ -23,7 +23,7 @@
   --destructive-foreground: hsl(60, 9.1%, 97.8%);
   --ring: hsl(20, 14.3%, 4.1%);
   --radius: 0.5rem;
-  
+
   /* Custom inventory management colors */
   --success: hsl(135, 65%, 45%);
   --success-foreground: hsl(0, 0%, 98%);
@@ -54,7 +54,7 @@
   --destructive-foreground: hsl(0, 0%, 98%);
   --ring: hsl(240, 4.9%, 83.9%);
   --radius: 0.5rem;
-  
+
   /* Dark mode custom colors */
   --success: hsl(142, 76%, 36%);
   --success-foreground: hsl(355, 7%, 97%);
@@ -73,6 +73,72 @@
     @apply font-sans antialiased bg-background text-foreground;
     font-size: 16px;
     line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+  /* Mobile responsive styling */
+  @media (max-width: 768px) {
+    body {
+      font-size: 14px;
+    }
+    
+    /* Prevent zoom on input focus for iOS */
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+    
+    /* Ensure buttons are touch-friendly */
+    button {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Make cards stack on mobile */
+    .grid-cols-2 {
+      grid-template-columns: 1fr;
+    }
+    
+    .grid-cols-3 {
+      grid-template-columns: 1fr;
+    }
+    
+    /* Better spacing on mobile */
+    .p-6 {
+      padding: 1rem;
+    }
+    
+    .p-4 {
+      padding: 0.75rem;
+    }
+    
+    /* Mobile-friendly form inputs */
+    .form-input {
+      height: 48px;
+      font-size: 16px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    /* Extra small screens */
+    .text-lg {
+      font-size: 1rem;
+    }
+    
+    .text-xl {
+      font-size: 1.125rem;
+    }
+    
+    .text-2xl {
+      font-size: 1.25rem;
+    }
+    
+    /* Stack buttons vertically on very small screens */
+    .flex-wrap-mobile {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
   }
 
   /* Large button styling for low-literacy users */
@@ -80,12 +146,13 @@
     @apply px-6 py-3 text-lg;
     border-radius: 8px;
     font-weight: 500;
+    min-height: 48px;
   }
-
+  
   /* Card styling with enhanced shadows */
   .card {
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   /* Stat card hover effect */
@@ -104,7 +171,8 @@
   }
 
   /* Enhanced form controls */
-  .form-control, .form-select {
+  .form-control,
+  .form-select {
     font-size: 16px;
   }
 
@@ -239,10 +307,12 @@
     background: linear-gradient(135deg, hsl(207, 90%, 96%) 0%, hsl(221, 83%, 96%) 100%);
   }
 
-  /* Mobile responsiveness for large buttons */
+  /* Combined mobile responsiveness */
   @media (max-width: 768px) {
     .btn-large {
-      @apply px-4 py-2 text-base;
+      @apply px-4 py-4 text-base;
+      min-height: 52px;
+      width: 100%;
     }
 
     .stat-card {
@@ -276,6 +346,7 @@
     from {
       transform: rotate(0deg);
     }
+
     to {
       transform: rotate(360deg);
     }
@@ -320,7 +391,6 @@
     border-radius: 8px;
     padding: 12px 16px;
   }
-}
 
 /* Utility classes for role-based styling */
 .role-super-admin {
