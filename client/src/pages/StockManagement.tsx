@@ -394,7 +394,7 @@ export default function StockManagement() {
   };
 
   const updateCurrentProductInQuantity = useCallback((quantity: string) => {
-    setCurrentProductIn(current => {
+    setCurrentProductIn((current) => {
       if (!current) return null;
       if (current.quantity === quantity) return current;
       return { ...current, quantity };
@@ -402,7 +402,7 @@ export default function StockManagement() {
   }, []);
 
   const updateCurrentProductOutQuantity = useCallback((quantityOut: string) => {
-    setCurrentProductOut(current => {
+    setCurrentProductOut((current) => {
       if (!current) return null;
       if (current.quantityOut === quantityOut) return current;
       return { ...current, quantityOut };
@@ -410,11 +410,11 @@ export default function StockManagement() {
   }, []);
 
   const updateCurrentProductInUnit = useCallback((selectedUnit: string) => {
-    setCurrentProductIn(prev => prev ? { ...prev, selectedUnit } : null);
+    setCurrentProductIn((prev) => (prev ? { ...prev, selectedUnit } : null));
   }, []);
 
   const updateCurrentProductOutUnit = useCallback((selectedUnit: string) => {
-    setCurrentProductOut(prev => prev ? { ...prev, selectedUnit } : null);
+    setCurrentProductOut((prev) => (prev ? { ...prev, selectedUnit } : null));
   }, []);
 
   const handleResetIn = () => {
@@ -943,8 +943,6 @@ export default function StockManagement() {
             </p>
           </div>
 
-
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card
               className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer p-6 border-2 border-green-200"
@@ -1002,21 +1000,22 @@ export default function StockManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 relative">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8 relative">
+      <div className="max-w-4xl mx-auto px-2 sm:px-4">
         {/* Back to Home Button in top-left corner */}
-        <div className="absolute top-4 left-4">
+        <div className="absolute top-2 left-2 sm:top-4 sm:left-4">
           <Link href="/">
-            <Button variant="outline" className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
+            <Button variant="outline" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2">
+              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Back to Home</span>
+              <span className="sm:hidden">Back</span>
             </Button>
           </Link>
         </div>
 
-        <div className="text-center mb-8 pt-16">
+        <div className="text-center mb-6 sm:mb-8 pt-12 sm:pt-16">
           <div className="flex justify-center items-center mb-4">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               Stock Management
             </h1>
           </div>
@@ -1086,7 +1085,7 @@ export default function StockManagement() {
                 </Button>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               {editingQueue[currentEditIndex] && (
                 <div className="space-y-4">
                   {/* Show all products in queue */}
@@ -1139,7 +1138,10 @@ export default function StockManagement() {
                           }
                           onChange={(e) => {
                             // Allow only numbers and decimal points
-                            const value = e.target.value.replace(/[^0-9.]/g, '');
+                            const value = e.target.value.replace(
+                              /[^0-9.]/g,
+                              "",
+                            );
                             const newQueue = [...editingQueue];
                             if (
                               editingQueue[currentEditIndex].quantity !==
@@ -1256,11 +1258,11 @@ export default function StockManagement() {
             Stock In - Add Products One by One
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <Form {...stockInForm}>
             <form
               onSubmit={stockInForm.handleSubmit(handlePreviewIn)}
-              className="space-y-6"
+              className="space-y-4 sm:space-y-6"
             >
               <div>
                 <div className="flex justify-between items-center mb-4">
@@ -1313,7 +1315,7 @@ export default function StockManagement() {
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Quantity to Add
@@ -1324,11 +1326,14 @@ export default function StockManagement() {
                           value={currentProductIn.quantity}
                           onChange={(e) => {
                             // Allow only numbers and decimal points
-                            const value = e.target.value.replace(/[^0-9.]/g, '');
+                            const value = e.target.value.replace(
+                              /[^0-9.]/g,
+                              "",
+                            );
                             updateCurrentProductInQuantity(value);
                           }}
                           placeholder="Enter quantity..."
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-lg ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="flex h-12 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:text-lg ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           autoFocus
                         />
                       </div>
@@ -1366,17 +1371,15 @@ export default function StockManagement() {
                 name="poNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>PO Number (Optional)</FormLabel>
+                    <FormLabel>PO Number</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="001"
+                        placeholder=""
                         {...field}
                         onChange={(e) => {
                           const value = e.target.value;
                           if (value && !value.startsWith("")) {
-                            field.onChange(
-                              "" + value.replace(/[^0-9]/g, ""),
-                            );
+                            field.onChange("" + value.replace(/[^0-9]/g, ""));
                           } else {
                             field.onChange(value);
                           }
@@ -1388,7 +1391,7 @@ export default function StockManagement() {
                 )}
               />
 
-              <div className="flex justify-center space-x-4">
+              <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Button
                   type="submit"
                   className="btn-large bg-green-600 hover:bg-green-700"
@@ -1425,11 +1428,11 @@ export default function StockManagement() {
             Stock Out - Add Products One by One
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <Form {...stockOutForm}>
             <form
               onSubmit={stockOutForm.handleSubmit(handlePreviewOut)}
-              className="space-y-6"
+              className="space-y-4 sm:space-y-6"
             >
               <div>
                 <div className="flex justify-between items-center mb-4">
@@ -1485,7 +1488,7 @@ export default function StockManagement() {
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Quantity Out
@@ -1496,11 +1499,14 @@ export default function StockManagement() {
                           value={currentProductOut.quantityOut}
                           onChange={(e) => {
                             // Allow only numbers and decimal points
-                            const value = e.target.value.replace(/[^0-9.]/g, '');
+                            const value = e.target.value.replace(
+                              /[^0-9.]/g,
+                              "",
+                            );
                             updateCurrentProductOutQuantity(value);
                           }}
                           placeholder="Enter quantity out..."
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-lg ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="flex h-12 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:text-lg ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           autoFocus
                         />
                       </div>
@@ -1547,17 +1553,15 @@ export default function StockManagement() {
                 name="soNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>SO Number (Optional)</FormLabel>
+                    <FormLabel>SO Number</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="001"
+                        placeholder=""
                         {...field}
                         onChange={(e) => {
                           const value = e.target.value;
                           if (value && !value.startsWith("")) {
-                            field.onChange(
-                              "" + value.replace(/[^0-9]/g, ""),
-                            );
+                            field.onChange("" + value.replace(/[^0-9]/g, ""));
                           } else {
                             field.onChange(value);
                           }
@@ -1569,7 +1573,7 @@ export default function StockManagement() {
                 )}
               />
 
-              <div className="flex justify-center space-x-4">
+              <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Button
                   type="submit"
                   className="btn-large bg-orange-600 hover:bg-orange-700"
