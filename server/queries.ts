@@ -899,11 +899,38 @@ export const weeklyStockPlanQueries = {
 
   // Create weekly stock plan
   async create(planData: InsertWeeklyStockPlan): Promise<WeeklyStockPlan> {
-    const result = await db
-      .insert(weeklyStockPlans)
-      .values(planData)
-      .returning();
-    return result[0];
+    try {
+      console.log("Creating weekly stock plan with data:", planData);
+      
+      // Validate required fields
+      if (!planData.productId || !planData.userId) {
+        throw new Error("Product ID and User ID are required");
+      }
+      
+      if (!planData.plannedQuantity || parseFloat(planData.plannedQuantity) <= 0) {
+        throw new Error("Planned quantity must be greater than 0");
+      }
+      
+      if (!planData.weekStartDate || !planData.weekEndDate) {
+        throw new Error("Week start and end dates are required");
+      }
+      
+      const result = await db
+        .insert(weeklyStockPlans)
+        .values(planData)
+        .returning();
+      
+      if (!result[0]) {
+        throw new Error("Failed to create weekly stock plan - no result returned");
+      }
+      
+      console.log("Successfully created weekly stock plan:", result[0]);
+      return result[0];
+    } catch (error) {
+      console.error("Error in weeklyStockPlanQueries.create:", error);
+      console.error("Plan data that caused error:", planData);
+      throw error;
+    }
   },
 
   // Update weekly stock plan
