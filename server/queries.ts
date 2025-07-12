@@ -181,10 +181,19 @@ export const productQueries = {
   // Search products by name
   async search(query: string): Promise<Product[]> {
     return await db
-      .select()
+      .select({
+        ...products,
+        priority: sql<number>`
+          CASE 
+            WHEN LOWER(${products.name}) LIKE LOWER(${query + '%'}) THEN 1
+            WHEN LOWER(${products.name}) LIKE LOWER(${'%' + query + '%'}) THEN 2
+            ELSE 3
+          END
+        `.as('priority')
+      })
       .from(products)
       .where(and(ilike(products.name, `%${query}%`), eq(products.isActive, 1)))
-      .orderBy(asc(products.name))
+      .orderBy(sql`priority ASC`, asc(products.name))
       .limit(20);
   },
 
