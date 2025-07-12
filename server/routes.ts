@@ -112,31 +112,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Database health check endpoint
-  app.get("/api/health", async (req, res) => {
-    try {
-      const { testDatabaseConnection } = await import("./db");
-      const dbHealthy = await testDatabaseConnection();
-      
-      const health = {
-        status: dbHealthy ? "healthy" : "unhealthy",
-        database: dbHealthy ? "connected" : "disconnected",
-        environment: process.env.NODE_ENV || "development",
-        timestamp: new Date().toISOString(),
-        hasDbUrl: !!process.env.DATABASE_URL,
-        dbUrlLength: process.env.DATABASE_URL ? process.env.DATABASE_URL.length : 0
-      };
-      
-      res.status(dbHealthy ? 200 : 500).json(health);
-    } catch (error) {
-      console.error("Health check failed:", error);
-      res.status(500).json({
-        status: "error",
-        message: error instanceof Error ? error.message : "Health check failed"
-      });
-    }
-  });
-
   // Dashboard stats
   app.get(
     "/api/dashboard/stats",
@@ -781,9 +756,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireRole(["super_admin", "master_inventory_handler"]),
     async (req: any, res) => {
       try {
-        console.log("Creating weekly stock plan - Request body:", req.body);
-        console.log("User ID:", req.user?.id);
-        
         const { insertWeeklyStockPlanSchema } = await import("@shared/schema");
         const { weeklyStockPlanQueries } = await import("./queries");
         
@@ -793,39 +765,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId,
         });
 
-        console.log("Parsed plan data:", planData);
-        
-        // Check if required tables exist before creating
-        const { testDatabaseConnection } = await import("./db");
-        const dbHealthy = await testDatabaseConnection();
-        
-        if (!dbHealthy) {
-          throw new Error("Database connection failed");
-        }
-        
         const plan = await weeklyStockPlanQueries.create(planData);
-        console.log("Created plan:", plan);
-        
         res.status(201).json(plan);
       } catch (error) {
         console.error("Error creating weekly stock plan:", error);
-        console.error("Error details:", {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-          body: req.body,
-          userId: req.user?.id
-        });
-        
         if (error instanceof z.ZodError) {
           res.status(400).json({
             message: "Invalid plan data",
             errors: error.errors,
           });
         } else {
-          res.status(500).json({ 
-            message: "Failed to create weekly stock plan",
-            error: error instanceof Error ? error.message : 'Unknown error'
-          });
+          res.status(500).json({ message: "Failed to create weekly stock plan" });
         }
       }
     }
