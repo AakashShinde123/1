@@ -14,7 +14,7 @@ import StockManagement from "@/pages/StockManagement";
 import TransactionLog from "@/pages/TransactionLog";
 import UserManagement from "@/pages/UserManagement";
 import WeeklyStockPlanning from "@/pages/WeeklyStockPlanning";
-import ProductCatalogPage from "@/pages/ProductCatalogPage";
+import ProductCatalog from "@/pages/ProductCatalog";
 
 import Layout from "@/components/Layout";
 
@@ -36,8 +36,8 @@ function Router() {
     <Switch>
       {!isAuthenticated ? (
         <>
-{/*           <Route path="/" component={Login} />
-          <Route path="/login" component={Login} /> */}
+          <Route path="/" component={Login} />
+          <Route path="/login" component={Login} />
           <Route component={Login} />
         </>
       ) : (
@@ -67,7 +67,7 @@ function Router() {
             <Route path="/transactions" component={TransactionLog} />
             <Route path="/users" component={UserManagement} />
             <Route path="/weekly-stock-planning" component={WeeklyStockPlanning} />
-            <Route path="/product-catalog" component={ProductCatalogPage} />
+            <Route path="/product-catalog" component={ProductCatalog} />
             <Route component={NotFound} />
           </Switch>
         </Layout>
