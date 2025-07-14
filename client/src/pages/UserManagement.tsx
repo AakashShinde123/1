@@ -437,24 +437,27 @@ export default function UserManagement() {
   // Show dashboard with button first
   if (showDashboard) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 relative">
-        <div className="max-w-2xl mx-auto px-4">
-          {/* Back to Home Button */}
-          <div className="absolute top-4 left-4">
+      <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6">
+          {/* Back to Home Button - Mobile Optimized */}
+          <div className="mb-8 sm:mb-6">
             <Link href="/">
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2 min-h-[44px] no-zoom"
+              >
                 <ArrowLeft className="h-4 w-4" />
-                Back to Home
+                <span className="text-sm sm:text-base">Back to Home</span>
               </Button>
             </Link>
           </div>
 
-          <div className="text-center mb-12 pt-16">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8 sm:mb-12 mt-4 sm:mt-0">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">
               User Management Dashboard
             </h1>
-            <p className="text-xl text-gray-600">Super Admin</p>
-            <p className="text-gray-500 mt-2">
+            <p className="text-lg sm:text-xl text-gray-600">Super Admin</p>
+            <p className="text-sm sm:text-base text-gray-500 mt-2 px-2">
               Click the button below to manage system users
             </p>
           </div>
@@ -476,10 +479,10 @@ export default function UserManagement() {
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-gray-600 text-lg mb-3">
-                  Manage system users
+                  Manage system users, roles, and permissions
                 </p>
                 <p className="text-sm text-red-600 font-medium">
-                  Click to open 
+                  Click to open user management
                 </p>
               </CardContent>
             </Card>
@@ -490,38 +493,43 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
-        <Button
-          variant="outline"
-          className="flex items-center space-x-2"
-          onClick={() => setShowDashboard(true)}
-        >
-          <span>← Back to Home</span>
-        </Button>
-      </div>
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
-          <Users className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">User Management</h1>
-        </div>
-        <div className="flex items-center space-x-3">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Mobile-responsive back button */}
+        <div className="mb-6 sm:mb-4">
           <Button
             variant="outline"
-            size="sm"
-            onClick={() => setShowUsername(!showUsername)}
-            className="flex items-center space-x-2"
+            className="flex items-center gap-2 min-h-[44px] no-zoom"
+            onClick={() => setShowDashboard(true)}
           >
-            <Eye className="h-4 w-4" />
-            <span>{showUsername ? "Hide" : "Show"} Usernames</span>
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-sm sm:text-base">Back to Home</span>
           </Button>
-          <Dialog open={showCreateUser} onOpenChange={setShowCreateUser}>
-            <DialogTrigger asChild>
-              <Button className="btn-large">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add New User
-              </Button>
-            </DialogTrigger>
+        </div>
+        
+        {/* Header section */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+            <h1 className="text-xl sm:text-2xl font-bold">User Management</h1>
+          </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowUsername(!showUsername)}
+              className="flex items-center space-x-2 min-h-[44px]"
+            >
+              <Eye className="h-4 w-4" />
+              <span>{showUsername ? "Hide" : "Show"} Usernames</span>
+            </Button>
+            <Dialog open={showCreateUser} onOpenChange={setShowCreateUser}>
+              <DialogTrigger asChild>
+                <Button className="btn-large min-h-[44px]">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Add New User
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Create New User</DialogTitle>
@@ -688,6 +696,7 @@ export default function UserManagement() {
               </Form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 
