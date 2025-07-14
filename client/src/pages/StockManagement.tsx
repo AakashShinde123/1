@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
@@ -55,6 +55,80 @@ const stockOutFormSchema = z.object({
 
 type StockInFormData = z.infer<typeof stockInFormSchema>;
 type StockOutFormData = z.infer<typeof stockOutFormSchema>;
+
+// Custom hook for focus-locked number input to prevent cursor jumping
+function useFocusLockedInput(initialValue: string = "") {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const valueRef = useRef(initialValue);
+  const isTypingRef = useRef(false);
+  const [, forceUpdate] = useState({});
+  
+  const handleFocus = useCallback(() => {
+    isTypingRef.current = true;
+  }, []);
+  
+  const handleBlur = useCallback(() => {
+    isTypingRef.current = false;
+  }, []);
+  
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    
+    if (inputRef.current) {
+      const target = e.target;
+      const inputValue = target.value;
+      const cursorPosition = target.selectionStart;
+      
+      // Allow only numbers
+      const processedValue = inputValue.replace(/[^0-9]/g, "");
+      
+      // Update ref value directly
+      valueRef.current = processedValue;
+      
+      // Update DOM value directly without React re-render
+      if (inputRef.current.value !== processedValue) {
+        inputRef.current.value = processedValue;
+      }
+      
+      // Restore cursor position
+      if (cursorPosition !== null) {
+        requestAnimationFrame(() => {
+          if (inputRef.current) {
+            inputRef.current.setSelectionRange(cursorPosition, cursorPosition);
+          }
+        });
+      }
+    }
+  }, []);
+  
+  const reset = useCallback(() => {
+    valueRef.current = "";
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+    isTypingRef.current = false;
+  }, []);
+  
+  return {
+    get value() {
+      return valueRef.current;
+    },
+    inputRef,
+    handleFocus,
+    handleBlur,
+    handleChange,
+    reset,
+    inputProps: {
+      ref: inputRef,
+      defaultValue: initialValue,
+      onFocus: handleFocus,
+      onBlur: handleBlur,
+      onChange: handleChange,
+      type: "text" as const,
+      inputMode: "numeric" as const,
+    }
+  };
+}
 
 interface ProductItem {
   product: Product;
@@ -113,6 +187,10 @@ export default function StockManagement() {
   const [completedProductsOut, setCompletedProductsOut] = useState<
     Array<{ product: Product; quantityOut: string; selectedUnit: string }>
   >([]);
+
+  // Focus-locked inputs for PO and SO numbers to prevent cursor jumping
+  const poNumberInput = useFocusLockedInput("");
+  const soNumberInput = useFocusLockedInput("");
 
   // Unit conversion utilities
   const getAvailableUnits = (product: Product) => {
@@ -420,6 +498,7 @@ export default function StockManagement() {
   const handleResetIn = () => {
     setCurrentProductIn(null);
     setCompletedProductsIn([]);
+    poNumberInput.reset();
     stockInForm.reset();
   };
 
@@ -427,6 +506,7 @@ export default function StockManagement() {
     setCurrentProductOut(null);
     setCompletedProductsOut([]);
     setStockWarnings([]);
+    soNumberInput.reset();
     stockOutForm.reset();
   };
 
@@ -587,7 +667,7 @@ export default function StockManagement() {
         ),
       })),
       date: new Date().toLocaleDateString(),
-      poNumber: data.poNumber,
+      poNumber: poNumberInput.value,
       type: "Stock In",
     });
   };
@@ -646,7 +726,7 @@ export default function StockManagement() {
         ),
       })),
       date: new Date().toLocaleDateString(),
-      soNumber: data.soNumber,
+      soNumber: soNumberInput.value,
       type: "Stock Out",
     });
   };
@@ -764,7 +844,7 @@ export default function StockManagement() {
         ),
         originalQuantity: item.quantity,
         originalUnit: item.selectedUnit,
-        poNumber: transactionPreview.poNumber,
+        poNumber: poNumberInput.value,
       }));
 
       stockInMutation.mutate(transactions);
@@ -787,7 +867,7 @@ export default function StockManagement() {
         ),
         originalQuantity: item.quantityOut,
         originalUnit: item.selectedUnit,
-        soNumber: transactionPreview.soNumber,
+        soNumber: soNumberInput.value,
       }));
 
       stockOutMutation.mutate(transactions);
@@ -1005,7 +1085,10 @@ export default function StockManagement() {
         {/* Back to Home Button in top-left corner */}
         <div className="absolute top-2 left-2 sm:top-4 sm:left-4">
           <Link href="/">
-            <Button variant="outline" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2">
+            <Button
+              variant="outline"
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2"
+            >
               <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Back to Home</span>
               <span className="sm:hidden">Back</span>
@@ -1366,30 +1449,16 @@ export default function StockManagement() {
                 )}
               </div>
 
-              <FormField
-                control={stockInForm.control}
-                name="poNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>PO Number</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder=""
-                        {...field}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (value && !value.startsWith("")) {
-                            field.onChange("" + value.replace(/[^0-9]/g, ""));
-                          } else {
-                            field.onChange(value);
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  PO Number
+                </label>
+                <input
+                  {...poNumberInput.inputProps}
+                  placeholder=""
+                  className="flex h-12 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:text-lg ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
 
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Button
@@ -1548,30 +1617,16 @@ export default function StockManagement() {
                 </Alert>
               )}
 
-              <FormField
-                control={stockOutForm.control}
-                name="soNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>SO Number</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder=""
-                        {...field}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (value && !value.startsWith("")) {
-                            field.onChange("" + value.replace(/[^0-9]/g, ""));
-                          } else {
-                            field.onChange(value);
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  SO Number
+                </label>
+                <input
+                  {...soNumberInput.inputProps}
+                  placeholder=""
+                  className="flex h-12 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:text-lg ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
 
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <Button
