@@ -280,32 +280,36 @@ export default function WeeklyStockPlanning() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Fixed Back Button in Top-Left */}
-      <div className="absolute top-21 left-7 z-50">
-        <Link href="/master-inventory">
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Button>
-        </Link>
-      </div>
-
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col items-center justify-center mb-8 mt-2">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">
-            Weekly Stock Planning
-          </h1>
-          <p className="text-gray-600 text-center mb-4">
-            Plan and manage weekly stock requirements for inventory forecasting
-          </p>
+        {/* Header - Mobile Optimized */}
+        <div className="mb-6 sm:mb-8">
+          <div className="mb-4 sm:mb-6">
+            <Link href="/master-inventory">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2 min-h-[44px] no-zoom"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="text-sm sm:text-base">Back to Master Inventory</span>
+              </Button>
+            </Link>
+          </div>
+          
+          <div className="text-center sm:text-left">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">
+              Weekly Stock Planning
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600 px-2 sm:px-0">
+              Plan and manage weekly stock requirements for inventory forecasting
+            </p>
+          </div>
+        </div>
+
+        <div className="flex justify-center sm:justify-end mb-6">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button
-                onClick={openNewPlanDialog}
-                className="flex items-center gap-2"
-              >
+              <Button onClick={openNewPlanDialog} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Plan Weekly Stock
               </Button>
