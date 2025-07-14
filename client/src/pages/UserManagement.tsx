@@ -442,8 +442,8 @@ export default function UserManagement() {
           {/* Back to Home Button - Mobile Optimized */}
           <div className="mb-8 sm:mb-6">
             <Link href="/">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="flex items-center gap-2 min-h-[44px] no-zoom"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -461,8 +461,6 @@ export default function UserManagement() {
               Click the button below to manage system users
             </p>
           </div>
-
-
 
           <div className="grid grid-cols-1 gap-8">
             <Card
@@ -493,10 +491,10 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Mobile-responsive back button */}
-        <div className="mb-6 sm:mb-4">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        {/* Back button - properly aligned */}
+        <div className="mb-6 lg:mb-8">
           <Button
             variant="outline"
             className="flex items-center gap-2 min-h-[44px] no-zoom"
@@ -506,62 +504,98 @@ export default function UserManagement() {
             <span className="text-sm sm:text-base">Back to Home</span>
           </Button>
         </div>
-        
-        {/* Header section */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 sm:h-6 sm:w-6" />
-            <h1 className="text-xl sm:text-2xl font-bold">User Management</h1>
-          </div>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowUsername(!showUsername)}
-              className="flex items-center space-x-2 min-h-[44px]"
-            >
-              <Eye className="h-4 w-4" />
-              <span>{showUsername ? "Hide" : "Show"} Usernames</span>
-            </Button>
-            <Dialog open={showCreateUser} onOpenChange={setShowCreateUser}>
-              <DialogTrigger asChild>
-                <Button className="btn-large min-h-[44px]">
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Add New User
-                </Button>
-              </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Create New User</DialogTitle>
-              </DialogHeader>
-              <Form {...createUserForm}>
-                <form
-                  onSubmit={createUserForm.handleSubmit(handleCreateUser)}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={createUserForm.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter username" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
-                  <div className="grid grid-cols-2 gap-4">
+        {/* Header section - improved alignment */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 lg:p-8 mb-6 lg:mb-8">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <Users className="h-5 w-5 lg:h-6 lg:w-6 text-red-600" />
+              </div>
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-900">User Management</h1>
+            </div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 lg:gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowUsername(!showUsername)}
+                className="flex items-center space-x-2 min-h-[44px] lg:min-h-[48px] px-4 lg:px-6"
+              >
+                <Eye className="h-4 w-4" />
+                <span>{showUsername ? "Hide" : "Show"} Usernames</span>
+              </Button>
+              <Dialog open={showCreateUser} onOpenChange={setShowCreateUser}>
+                <DialogTrigger asChild>
+                  <Button className="min-h-[44px] lg:min-h-[48px] px-4 lg:px-6 bg-red-600 hover:bg-red-700 text-white">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Add New User
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Create New User</DialogTitle>
+                  </DialogHeader>
+                  <Form {...createUserForm}>
+                    <form
+                      onSubmit={createUserForm.handleSubmit(handleCreateUser)}
+                      className="space-y-4"
+                    >
                     <FormField
                       control={createUserForm.control}
-                      name="firstName"
+                      name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>First Name</FormLabel>
+                          <FormLabel>Username *</FormLabel>
                           <FormControl>
-                            <Input placeholder="First name" {...field} />
+                            <Input placeholder="Enter username" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={createUserForm.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>First Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="First name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={createUserForm.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Last Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Last name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={createUserForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="email@example.com"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -570,143 +604,113 @@ export default function UserManagement() {
 
                     <FormField
                       control={createUserForm.control}
-                      name="lastName"
+                      name="role"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Last Name</FormLabel>
+                          <FormLabel>Role *</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a role" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="super_admin">
+                                👑 Super Admin
+                              </SelectItem>
+                              <SelectItem value="master_inventory_handler">
+                                🧑‍🔧 Master Inventory Handler
+                              </SelectItem>
+                              <SelectItem value="stock_in_manager">
+                                📥 Stock In Manager
+                              </SelectItem>
+                              <SelectItem value="stock_out_manager">
+                                📤 Stock Out Manager
+                              </SelectItem>
+                              <SelectItem value="attendance_checker">
+                                📅 Attendance Checker
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={createUserForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password *</FormLabel>
                           <FormControl>
-                            <Input placeholder="Last name" {...field} />
+                            <Input
+                              type="password"
+                              placeholder="Enter password"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </div>
 
-                  <FormField
-                    control={createUserForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="email@example.com"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={createUserForm.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Role *</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
+                    <FormField
+                      control={createUserForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm Password *</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a role" />
-                            </SelectTrigger>
+                            <Input
+                              type="password"
+                              placeholder="Confirm password"
+                              {...field}
+                            />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="super_admin">
-                              👑 Super Admin
-                            </SelectItem>
-                            <SelectItem value="master_inventory_handler">
-                              🧑‍🔧 Master Inventory Handler
-                            </SelectItem>
-                            <SelectItem value="stock_in_manager">
-                              📥 Stock In Manager
-                            </SelectItem>
-                            <SelectItem value="stock_out_manager">
-                              📤 Stock Out Manager
-                            </SelectItem>
-                            <SelectItem value="attendance_checker">
-                              📅 Attendance Checker
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  <FormField
-                    control={createUserForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password *</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Enter password"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={createUserForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm Password *</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Confirm password"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex justify-end space-x-2 pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowCreateUser(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={createUserMutation.isPending}
-                    >
-                      {createUserMutation.isPending
-                        ? "Creating..."
-                        : "Create User"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+                    <div className="flex justify-end space-x-2 pt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowCreateUser(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={createUserMutation.isPending}
+                      >
+                        {createUserMutation.isPending
+                          ? "Creating..."
+                          : "Create User"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>System Users</CardTitle>
+      <Card className="shadow-lg border-0">
+        <CardHeader className="bg-white border-b border-gray-200 px-6 py-4">
+          <CardTitle className="text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Users className="h-5 w-5 lg:h-6 lg:w-6 text-red-600" />
+            System Users
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {usersLoading ? (
-            <div className="space-y-4">
+            <div className="space-y-4 p-6">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="flex items-center space-x-4">
                   <Skeleton className="h-12 w-12 rounded-full" />
@@ -721,67 +725,70 @@ export default function UserManagement() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b bg-gray-50">
-                    <th className="text-left p-4 font-semibold">User ID</th>
+                  <tr className="border-b bg-gray-50/50">
+                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">User ID</th>
                     {showUsername && (
-                      <th className="text-left p-4 font-semibold">Username</th>
+                      <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Username</th>
                     )}
-                    <th className="text-left p-4 font-semibold">Email</th>
-                    <th className="text-left p-4 font-semibold">Name</th>
-                    <th className="text-left p-4 font-semibold">Role</th>
-                    <th className="text-left p-4 font-semibold">Status</th>
-                    <th className="text-left p-4 font-semibold">Created</th>
-                    <th className="text-left p-4 font-semibold">Actions</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Email</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Name</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Role</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Status</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Created</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(users as User[])?.map((userItem: User) => (
-                    <tr key={userItem.id} className="border-b hover:bg-gray-50">
-                      <td className="p-4 font-mono text-sm">{userItem.id}</td>
+                    <tr key={userItem.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
+                      <td className="p-3 lg:p-4 font-mono text-sm lg:text-base text-gray-600">{userItem.id}</td>
                       {showUsername && (
-                        <td className="p-4 font-medium">{userItem.username}</td>
+                        <td className="p-3 lg:p-4 font-medium text-sm lg:text-base text-gray-900">{userItem.username}</td>
                       )}
-                      <td className="p-4">{userItem.email}</td>
-                      <td className="p-4">
+                      <td className="p-3 lg:p-4 text-sm lg:text-base text-gray-700">{userItem.email}</td>
+                      <td className="p-3 lg:p-4 text-sm lg:text-base text-gray-700">
                         {userItem.firstName || userItem.lastName
                           ? `${userItem.firstName || ""} ${userItem.lastName || ""}`.trim()
                           : "N/A"}
                       </td>
-                      <td className="p-4">
+                      <td className="p-3 lg:p-4">
                         <Badge className={getRoleBadgeColor(userItem.role)}>
                           {getRoleDisplayName(userItem.role)}
                         </Badge>
                       </td>
-                      <td className="p-4">
+                      <td className="p-3 lg:p-4">
                         <Badge
                           variant={userItem.isActive ? "default" : "secondary"}
+                          className="text-xs lg:text-sm"
                         >
                           {userItem.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </td>
-                      <td className="p-4">
+                      <td className="p-3 lg:p-4 text-sm lg:text-base text-gray-600">
                         {userItem.createdAt
                           ? formatDate(userItem.createdAt.toString())
                           : "N/A"}
                       </td>
-                      <td className="p-4">
-                        <div className="flex space-x-2">
+                      <td className="p-3 lg:p-4">
+                        <div className="flex space-x-1 lg:space-x-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleEditRole(userItem)}
                             disabled={userItem.id === (user as any)?.id}
                             title="Edit Role"
+                            className="h-8 w-8 lg:h-9 lg:w-9 p-0"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-3 w-3 lg:h-4 lg:w-4" />
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleEditPassword(userItem)}
                             title="Change Password"
+                            className="h-8 w-8 lg:h-9 lg:w-9 p-0"
                           >
-                            <Key className="h-4 w-4" />
+                            <Key className="h-3 w-3 lg:h-4 lg:w-4" />
                           </Button>
                           <Button
                             variant="outline"
@@ -798,11 +805,12 @@ export default function UserManagement() {
                                 ? "Deactivate User"
                                 : "Activate User"
                             }
+                            className="h-8 w-8 lg:h-9 lg:w-9 p-0"
                           >
                             {userItem.isActive ? (
-                              <UserX className="h-4 w-4 text-red-600" />
+                              <UserX className="h-3 w-3 lg:h-4 lg:w-4 text-red-600" />
                             ) : (
-                              <UserCheck className="h-4 w-4 text-green-600" />
+                              <UserCheck className="h-3 w-3 lg:h-4 lg:w-4 text-green-600" />
                             )}
                           </Button>
                           <Button
@@ -811,8 +819,9 @@ export default function UserManagement() {
                             onClick={() => handleDeleteUser(userItem)}
                             disabled={userItem.id === (user as any)?.id}
                             title="Delete User"
+                            className="h-8 w-8 lg:h-9 lg:w-9 p-0"
                           >
-                            <Trash2 className="h-4 w-4 text-red-600" />
+                            <Trash2 className="h-3 w-3 lg:h-4 lg:w-4 text-red-600" />
                           </Button>
                         </div>
                       </td>
@@ -821,8 +830,10 @@ export default function UserManagement() {
                 </tbody>
               </table>
               {(users as User[])?.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  No users found
+                <div className="text-center py-12 text-gray-500">
+                  <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-400">No users found</p>
+                  <p className="text-sm text-gray-400 mt-1">Get started by creating your first user</p>
                 </div>
               )}
             </div>
@@ -961,6 +972,7 @@ export default function UserManagement() {
           </Form>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
