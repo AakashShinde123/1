@@ -63,11 +63,11 @@ export default function Layout({ children }: LayoutProps) {
 
 
   return (
-    <div className="min-h-screen" style={{backgroundColor: '#F5F0F6'}}>
+    <div className="min-h-screen app-container webview-optimized" style={{backgroundColor: '#F5F0F6'}}>
       {/* Navigation Bar */}
-      <nav className="text-purple-900 shadow-lg" style={{backgroundColor: '#F5F0F6', borderBottom: '1px solid #E2D5F3'}}>
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
+      <nav className="text-purple-900 shadow-lg safe-area-top" style={{backgroundColor: '#F5F0F6', borderBottom: '1px solid #E2D5F3'}}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-16 sm:h-20">
             <Link href="/">
               <div className="flex items-center space-x-2 cursor-pointer rounded-lg p-2" style={{backgroundColor: '#F5F0F6'}}>
                 <img 
@@ -91,10 +91,11 @@ export default function Layout({ children }: LayoutProps) {
                     variant="outline"
                     size="sm"
                     onClick={handleLogout}
-                    className="text-purple-700 border-purple-300 hover:bg-purple-100 hover:text-purple-900"
+                    className="text-purple-700 border-purple-300 hover:bg-purple-100 hover:text-purple-900 min-h-[44px] min-w-[44px] no-zoom"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
-                    Logout
+                    <span className="mobile-hidden">Logout</span>
+                    <span className="mobile-only sr-only">Logout</span>
                   </Button>
                 </>
               )}
@@ -104,8 +105,10 @@ export default function Layout({ children }: LayoutProps) {
       </nav>
 
       {/* Main Content - Full width for all users */}
-      <div className="p-6">
-        {children}
+      <div className="p-4 sm:p-6 safe-area-bottom mobile-full-width">
+        <div className="webview-optimized">
+          {children}
+        </div>
       </div>
     </div>
   );
