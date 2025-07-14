@@ -298,41 +298,38 @@ export default function Inventory() {
 
   // Show the actual form
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      {/* Fixed Back Button in Top-Left */}
-      {new URLSearchParams(window.location.search).has('direct') ? (
-        <div className="absolute top-21 left-7 z-50">
-          <Link href="/master-inventory">
-            <Button
-              variant="outline"
-              className="flex items-center space-x-2"
-            >
-              <span>← Back to Master Inventory</span>
-            </Button>
-          </Link>
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6">
+        <div className="mb-6 sm:mb-8">
+          {/* Navigate back based on context - Mobile Optimized */}
+          {new URLSearchParams(window.location.search).has('direct') ? (
+            <Link href="/master-inventory">
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 min-h-[44px] no-zoom"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="text-sm sm:text-base">Back to Master Inventory</span>
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/">
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 min-h-[44px] no-zoom"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="text-sm sm:text-base">Back to Home</span>
+              </Button>
+            </Link>
+          )}
         </div>
-      ) : (
-        <div className="fixed top-6 left-6 z-50">
-          <Link href="/">
-            <Button
-              variant="outline"
-              className="flex items-center space-x-2"
-            >
-              <span>← Back to Home</span>
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      <div className="max-w-2xl mx-auto px-4">
-        {/* Remove the old button container here */}
-        {/* <div className="flex justify-between items-center mb-8"> ... </div> */}
         
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">
             Add New Product
           </h1>
-          <p className="text-gray-600">Create new inventory items</p>
+          <p className="text-sm sm:text-base text-gray-600">Create new inventory items</p>
         </div>
 
         <Card>
