@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Switch, Route } from "wouter";
 import { useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
@@ -17,6 +18,7 @@ import WeeklyStockPlanning from "@/pages/WeeklyStockPlanning";
 import ProductCatalog from "@/pages/ProductCatalog";
 
 import Layout from "@/components/Layout";
+import SplashScreen from "@/components/SplashScreen";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -36,7 +38,7 @@ function Router() {
     <Switch>
       {!isAuthenticated ? (
         <>
-{/*           <Route path="/" component={Login} />
+          {/* <Route path="/" component={Login} />
           <Route path="/login" component={Login} /> */}
           <Route component={Login} />
         </>
@@ -66,7 +68,10 @@ function Router() {
             <Route path="/stock-management" component={StockManagement} />
             <Route path="/transactions" component={TransactionLog} />
             <Route path="/users" component={UserManagement} />
-            <Route path="/weekly-stock-planning" component={WeeklyStockPlanning} />
+            <Route
+              path="/weekly-stock-planning"
+              component={WeeklyStockPlanning}
+            />
             <Route path="/product-catalog" component={ProductCatalog} />
             <Route component={NotFound} />
           </Switch>
@@ -77,11 +82,21 @@ function Router() {
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        {showSplash ? (
+          <SplashScreen onComplete={handleSplashComplete} duration={3000} />
+        ) : (
+          <Router />
+        )}
       </TooltipProvider>
     </QueryClientProvider>
   );
