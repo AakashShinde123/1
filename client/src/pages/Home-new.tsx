@@ -62,125 +62,298 @@ export default function HomeNew() {
     );
   }
 
-  const userRole = (user as any)?.role;
-  const isSuperAdmin = userRole === "super_admin";
-  const isMasterInventoryHandler = userRole === "master_inventory_handler";
-  const isStockInManager = userRole === "stock_in_manager";
-  const isStockOutManager = userRole === "stock_out_manager";
+  // Get user's active roles (support both single role and multiple roles)
+  const userRoles = (user as any)?.roles || [(user as any)?.role];
+  const hasRole = (role: string) => userRoles.includes(role);
 
-  // Super Admin main page with button navigation
-  if (isSuperAdmin) {
-    // Show dashboard stats if user clicked Dashboard button
-    if (showDashboard) {
-      if (statsLoading) {
-        return (
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-              <p>Loading dashboard...</p>
-            </div>
-          </div>
-        );
-      }
+  const isSuperAdmin = hasRole("super_admin");
+  const isMasterInventoryHandler = hasRole("master_inventory_handler");
+  const isStockInManager = hasRole("stock_in_manager");
+  const isStockOutManager = hasRole("stock_out_manager");
+  const isAttendanceChecker = hasRole("attendance_checker");
 
+  // Show dashboard stats if Super Admin user clicked Dashboard button
+  if (isSuperAdmin && showDashboard) {
+    if (statsLoading) {
       return (
-        <div className="p-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-8 flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  Dashboard
-                </h1>
-                <p className="text-gray-600">
-                  Overview of your inventory system
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setShowDashboard(false)}
-                className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
-              >
-                Back to Menu
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Products
-                  </CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {stats?.totalProducts || 0}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Active inventory items
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Current Stock
-                  </CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {stats?.totalStock || 0}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Total units in stock
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Today Stock In
-                  </CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {stats?.todayStockIn || 0}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Units added today
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Today Stock Out
-                  </CardTitle>
-                  <TrendingDown className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {stats?.todayStockOut || 0}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Units removed today
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Low Stock Alerts Section */}
-            <div className="mt-8">
-              <AlertDashboard />
-            </div>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+            <p>Loading dashboard...</p>
           </div>
         </div>
       );
     }
 
-    // Super Admin main menu with buttons
+    return (
+      <div className="p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8 flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Dashboard
+              </h1>
+              <p className="text-gray-600">Overview of your inventory system</p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowDashboard(false)}
+              className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+            >
+              Back to Menu
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Products
+                </CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats?.totalProducts || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Active inventory items
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Current Stock
+                </CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats?.totalStock || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Total units in stock
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Today Stock In
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats?.todayStockIn || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Units added today
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Today Stock Out
+                </CardTitle>
+                <TrendingDown className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats?.todayStockOut || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Units removed today
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Low Stock Alerts Section */}
+          <div className="mt-8">
+            <AlertDashboard />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Role-specific dashboard - Super Admin gets all cards, others get role-specific cards
+  const availableActions = [];
+
+  // Dashboard access - only for Super Admin role
+  if (hasRole("super_admin")) {
+    availableActions.push({
+      key: "dashboard",
+      component: (
+        <div
+          key="dashboard"
+          className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32"
+          onClick={() => setShowDashboard(true)}
+        >
+          <div className="text-center h-full flex flex-col justify-center">
+            <div className="mx-auto w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+              <BarChart3 className="h-5 w-5 text-white" />
+            </div>
+            <h3 className="text-base font-medium text-purple-800 mb-1">Dashboard</h3>
+            <p className="text-purple-600 text-xs">
+              View statistics
+            </p>
+          </div>
+        </div>
+      ),
+    });
+  }
+
+  // Master Inventory access - for Master Inventory Handler role OR Super Admin
+  if (hasRole("master_inventory_handler") || hasRole("super_admin")) {
+    availableActions.push({
+      key: "master-inventory",
+      component: (
+        <Link key="master-inventory" href="/master-inventory">
+          <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+            <div className="text-center h-full flex flex-col justify-center">
+              <div className="mx-auto w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+                <Package className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-base font-medium text-blue-800 mb-1">Master Inventory</h3>
+              <p className="text-blue-600 text-xs">
+                Manage products
+              </p>
+            </div>
+          </div>
+        </Link>
+      ),
+    });
+  }
+
+  // Stock In access - for Stock In Manager role OR Super Admin
+  if (hasRole("stock_in_manager") || hasRole("super_admin")) {
+    availableActions.push({
+      key: "stock-in",
+      component: (
+        <Link key="stock-in" href="/stock-management?tab=stock-in">
+          <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+            <div className="text-center h-full flex flex-col justify-center">
+              <div className="mx-auto w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+                <ArrowUp className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-base font-medium text-green-800 mb-1">Stock In</h3>
+              <p className="text-green-600 text-xs">
+                Add inventory
+              </p>
+            </div>
+          </div>
+        </Link>
+      ),
+    });
+  }
+
+  // Stock Out access - for Stock Out Manager role OR Super Admin
+  if (hasRole("stock_out_manager") || hasRole("super_admin")) {
+    availableActions.push({
+      key: "stock-out",
+      component: (
+        <Link key="stock-out" href="/stock-management?tab=stock-out">
+          <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-red-50 to-red-100 rounded-lg border border-red-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+            <div className="text-center h-full flex flex-col justify-center">
+              <div className="mx-auto w-10 h-10 bg-red-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+                <ArrowDown className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-base font-medium text-red-800 mb-1">Stock Out</h3>
+              <p className="text-red-600 text-xs">
+                Remove inventory
+              </p>
+            </div>
+          </div>
+        </Link>
+      ),
+    });
+  }
+
+  // Transaction Log access - only for Super Admin role
+  if (hasRole("super_admin")) {
+    availableActions.push({
+      key: "transactions",
+      component: (
+        <Link key="transactions" href="/transactions">
+          <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+            <div className="text-center h-full flex flex-col justify-center">
+              <div className="mx-auto w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+                <List className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-base font-medium text-yellow-800 mb-1">Transaction Log</h3>
+              <p className="text-yellow-600 text-xs">
+                View transactions
+              </p>
+            </div>
+          </div>
+        </Link>
+      ),
+    });
+  }
+
+  // User Management access - only for Super Admin role
+  if (hasRole("super_admin")) {
+    availableActions.push({
+      key: "users",
+      component: (
+        <Link key="users" href="/users">
+          <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg border border-rose-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+            <div className="text-center h-full flex flex-col justify-center">
+              <div className="mx-auto w-10 h-10 bg-rose-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+                <Users className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-base font-medium text-rose-800 mb-1">User Management</h3>
+              <p className="text-rose-600 text-xs">
+                Manage users
+              </p>
+            </div>
+          </div>
+        </Link>
+      ),
+    });
+  }
+
+  // Attendance Portal access - for Attendance Checker role OR Super Admin
+  if (hasRole("attendance_checker") || hasRole("super_admin")) {
+    availableActions.push({
+      key: "attendance",
+      component: (
+        <a
+          key="attendance"
+          href="https://attandace.netlify.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg border border-indigo-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+            <div className="text-center h-full flex flex-col justify-center">
+              <div className="mx-auto w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+                <CalendarCheck className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-base font-medium text-indigo-800 mb-1">Attendance Portal</h3>
+              <p className="text-indigo-600 text-xs">
+                Track attendance
+              </p>
+            </div>
+          </div>
+        </a>
+      ),
+    });
+  }
+
+  // Create dynamic title based on roles
+  const roleNames = [];
+  if (isSuperAdmin) roleNames.push("Super Admin");
+  if (isMasterInventoryHandler) roleNames.push("Master Inventory Handler");
+  if (isStockInManager) roleNames.push("Stock In Manager");
+  if (isStockOutManager) roleNames.push("Stock Out Manager");
+  if (isAttendanceChecker) roleNames.push("Attendance Checker");
+
+  // Only show multi-role dashboard if user has at least one available action
+  if (availableActions.length > 0) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4">
@@ -188,266 +361,39 @@ export default function HomeNew() {
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
               Sudhamrit Inventory Management
             </h1>
-            <p className="text-xl text-gray-600">Super Admin Control Panel</p>
+            <p className="text-xl text-gray-600">
+              {roleNames.length > 1
+                ? `${roleNames.join(", ")} Control Panel`
+                : `${roleNames[0]} Control Panel`}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Dashboard Button */}
-            <div
-              className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 hover:bg-accent hover:shadow-md transition-all cursor-pointer"
-              onClick={() => setShowDashboard(true)}
-            >
-              <div className="text-center">
-                <div className="mx-auto w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-3">
-                  <BarChart3 className="h-6 w-6 text-purple-600" />
-                </div>
-                <h3 className="text-lg font-medium">Dashboard</h3>
-                <p className="text-gray-600 text-sm mt-2">
-                  View stock statistics and system overview
-                </p>
-              </div>
-            </div>
-
-            {/* Master Inventory */}
-            <Link href="/master-inventory">
-              <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 hover:bg-accent hover:shadow-md transition-all cursor-pointer">
-                <div className="text-center">
-                  <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
-                    <Package className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <h3 className="text-lg font-medium">Master Inventory</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Manage products and inventory planning
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            {/* Stock Management */}
-            <Link href="/stock-management">
-              <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 hover:bg-accent hover:shadow-md transition-all cursor-pointer">
-                <div className="text-center">
-                  <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
-                    <TrendingUp className="h-6 w-6 text-green-600" />
-                  </div>
-                  <h3 className="text-lg font-medium">Stock Management</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Handle stock in and stock out operations
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            {/* Transaction Log */}
-            <Link href="/transactions">
-              <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 hover:bg-accent hover:shadow-md transition-all cursor-pointer">
-                <div className="text-center">
-                  <div className="mx-auto w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mb-3">
-                    <List className="h-6 w-6 text-yellow-600" />
-                  </div>
-                  <h3 className="text-lg font-medium">Transaction Log</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    View all stock movement history
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            {/* User Management */}
-            <Link href="/users">
-              <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 hover:bg-accent hover:shadow-md transition-all cursor-pointer">
-                <div className="text-center">
-                  <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-3">
-                    <Users className="h-6 w-6 text-red-600" />
-                  </div>
-                  <h3 className="text-lg font-medium">User Management</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Manage system users and permissions
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            {/* Attendance Portal */}
-            <div
-              className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 hover:bg-accent hover:shadow-md transition-all cursor-pointer"
-              onClick={() => window.open('https://attandace.netlify.app/', '_blank', 'noopener,noreferrer')}
-            >
-              <div className="text-center">
-                <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
-                  <CalendarCheck className="h-6 w-6 text-blue-600" />
-                </div>
-                <h3 className="text-lg font-medium">Attendance Portal</h3>
-                <p className="text-gray-600 text-sm mt-2">
-                  Access employee attendance management system
-                </p>
-              </div>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {availableActions.map((action) => action.component)}
           </div>
         </div>
       </div>
     );
   }
 
-  // Master Inventory Handler Dashboard
-  if (isMasterInventoryHandler) {
-    // Debug logging
-    console.log("Home-new: Master Inventory Handler dashboard rendering");
-    console.log("User role:", userRole);
-    
-    return (
-      <div className="page-container">
-        <div className="page-content max-w-4xl">
-          <div className="page-header fade-in">
-            <h1 className="page-title">
-              Sudhamrit Inventory Management
-            </h1>
-            <p className="page-subtitle">Master Inventory Handler Dashboard</p>
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mt-4">
-              ✓ Dashboard loaded successfully
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-8 slide-up">
-            {/* Master Inventory Button */}
-            <Link href="/master-inventory">
-              <div className="dashboard-card">
-                <div className="dashboard-card-icon">
-                  <Package className="h-12 w-12" />
-                </div>
-                <div>
-                  <h3 className="dashboard-card-title">
-                    Master Inventory
-                  </h3>
-                  <p className="dashboard-card-description">
-                    Access product management and weekly stock planning
-                  </p>
-                </div>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Stock In Manager Dashboard
-  if (isStockInManager) {
-    return (
-      <div className="page-container">
-        <div className="page-content max-w-4xl">
-          <div className="page-header fade-in">
-            <h1 className="page-title">
-              Sudhamrit Inventory Management
-            </h1>
-            <p className="page-subtitle">Stock In Manager Dashboard</p>
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-700 text-sm font-medium mt-4">
-              ✓ Stock In Operations Access
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-8">
-            {/* Stock In Button */}
-            <Link href="/stock-management">
-              <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 hover:bg-accent hover:shadow-md transition-all cursor-pointer">
-                <div className="text-center">
-                  <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
-                    <ArrowUp className="h-6 w-6 text-green-600" />
-                  </div>
-                  <h3 className="text-lg font-medium">Stock In</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Add stock quantities to inventory
-                  </p>
-                </div>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Stock Out Manager Dashboard
-  if (isStockOutManager) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Sudhamrit Inventory Management
-            </h1>
-            <p className="text-xl text-gray-600">Stock Out Manager</p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-8">
-            {/* Stock Out Button */}
-            <Link href="/stock-management">
-              <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 hover:bg-accent hover:shadow-md transition-all cursor-pointer">
-                <div className="text-center">
-                  <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-3">
-                    <ArrowDown className="h-6 w-6 text-red-600" />
-                  </div>
-                  <h3 className="text-lg font-medium">Stock Out</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Remove stock quantities from inventory
-                  </p>
-                </div>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Attendance Checker Dashboard
-  if (userRole === "attendance_checker") {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Sudhamrit Inventory Management
-            </h1>
-            <p className="text-xl text-gray-600">Attendance Checker</p>
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mt-4">
-              ✓ Attendance Portal Access
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-8">
-            {/* Attendance Portal Button */}
-            <div
-              className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 hover:bg-accent hover:shadow-md transition-all cursor-pointer"
-              onClick={() => window.open('https://attandace.netlify.app/', '_blank', 'noopener,noreferrer')}
-            >
-              <div className="text-center">
-                <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
-                  <CalendarCheck className="h-6 w-6 text-blue-600" />
-                </div>
-                <h3 className="text-lg font-medium">Attendance Portal</h3>
-                <p className="text-gray-600 text-sm mt-2">
-                  Access employee attendance management system
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // For any other roles or unrecognized users, show simple welcome message
+  // If user has no roles or unrecognized configuration, show a fallback
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <h1 className="text-xl font-bold text-gray-900 mb-2">
-          Welcome to Sudhamrit Inventory
-        </h1>
-        <p className="text-gray-600">
-          Access your assigned functionality through the system.
-        </p>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Sudhamrit Inventory Management
+          </h1>
+          <p className="text-xl text-gray-600">
+            No authorized access available
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-gray-600">
+            Your account doesn't have any assigned roles. Please contact an
+            administrator.
+          </p>
+        </div>
       </div>
     </div>
   );
