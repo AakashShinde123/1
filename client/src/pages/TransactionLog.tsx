@@ -159,6 +159,8 @@ export default function TransactionLog() {
         return "Stock In Manager";
       case "stock_out_manager":
         return "Stock Out Manager";
+      case "attendance_checker":
+        return "Attendance Checker";
       default:
         return role;
     }
@@ -202,28 +204,21 @@ export default function TransactionLog() {
 
 
 
-          <div className="grid grid-cols-1 gap-8">
-            <Card
-              className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer p-6 border-2 border-yellow-200"
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 justify-center">
+            <div
+              className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-4 hover:bg-accent hover:shadow-md transition-all cursor-pointer"
               onClick={() => setShowDashboard(false)}
             >
-              <CardHeader className="text-center pb-4">
-                <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4 shadow-lg">
-                  <List className="h-8 w-8 text-yellow-600" />
+              <div className="text-center">
+                <div className="mx-auto w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mb-2">
+                  <List className="h-5 w-5 text-yellow-600" />
                 </div>
-                <CardTitle className="text-2xl text-yellow-800">
-                  Transaction Log
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-gray-600 text-lg mb-3">
-                  View all stock movement history and transaction details
+                <h3 className="text-base font-medium">Transaction Log</h3>
+                <p className="text-gray-600 text-xs mt-1">
+                  View history
                 </p>
-                <p className="text-sm text-yellow-600 font-medium">
-                  Click to open transaction log
-                </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
