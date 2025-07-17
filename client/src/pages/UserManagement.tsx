@@ -543,7 +543,7 @@ export default function UserManagement() {
                     Add New User
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="w-full max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Create New User</DialogTitle>
                   </DialogHeader>
@@ -559,14 +559,14 @@ export default function UserManagement() {
                         <FormItem>
                           <FormLabel>Username *</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter username" {...field} />
+                            <Input placeholder="Enter username" className="h-12 text-base" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FormField
                         control={createUserForm.control}
                         name="firstName"
@@ -574,7 +574,7 @@ export default function UserManagement() {
                           <FormItem>
                             <FormLabel>First Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="First name" {...field} />
+                              <Input placeholder="First name" className="h-12 text-base" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -588,7 +588,7 @@ export default function UserManagement() {
                           <FormItem>
                             <FormLabel>Last Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="Last name" {...field} />
+                              <Input placeholder="Last name" className="h-12 text-base" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -606,6 +606,7 @@ export default function UserManagement() {
                             <Input
                               type="email"
                               placeholder="email@example.com"
+                              className="h-12 text-base"
                               {...field}
                             />
                           </FormControl>
@@ -665,6 +666,7 @@ export default function UserManagement() {
                             <Input
                               type="password"
                               placeholder="Enter password"
+                              className="h-12 text-base"
                               {...field}
                             />
                           </FormControl>
@@ -683,6 +685,7 @@ export default function UserManagement() {
                             <Input
                               type="password"
                               placeholder="Confirm password"
+                              className="h-12 text-base"
                               {...field}
                             />
                           </FormControl>
