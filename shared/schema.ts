@@ -34,7 +34,8 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).unique(),
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
-  role: varchar("role", { length: 30 }).notNull().default("stock_in_manager"),
+  role: varchar("role", { length: 30 }).notNull().default("stock_in_manager"), // Legacy single role field
+  roles: json("roles").$type<UserRole[]>().notNull().default([]), // New multiple roles field
   isActive: integer("is_active").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -180,6 +181,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
 }).extend({
   role: z.enum(['super_admin', 'master_inventory_handler', 'stock_in_manager', 'stock_out_manager', 'attendance_checker']).default('stock_in_manager'),
+  roles: z.array(z.enum(['super_admin', 'master_inventory_handler', 'stock_in_manager', 'stock_out_manager', 'attendance_checker'])).default([]),
 });
 
 export const loginSchema = z.object({
@@ -284,3 +286,28 @@ export type UserRole =
   | "stock_in_manager"
   | "stock_out_manager"
   | "attendance_checker";
+
+// Helper type for multiple roles support
+export type UserWithRoles = User & {
+  activeRoles: UserRole[];
+};
+
+// Helper functions for role management
+export function getUserActiveRoles(user: User): UserRole[] {
+  // If the user has roles array and it's not empty, use it
+  if (user.roles && Array.isArray(user.roles) && user.roles.length > 0) {
+    return user.roles;
+  }
+  // Fallback to legacy single role field
+  return [user.role as UserRole];
+}
+
+export function hasUserRole(user: User, targetRole: UserRole): boolean {
+  const activeRoles = getUserActiveRoles(user);
+  return activeRoles.includes(targetRole);
+}
+
+export function hasUserAnyRole(user: User, targetRoles: UserRole[]): boolean {
+  const activeRoles = getUserActiveRoles(user);
+  return targetRoles.some(role => activeRoles.includes(role));
+}
