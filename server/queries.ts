@@ -70,6 +70,20 @@ export const userQueries = {
     return result[0];
   },
 
+  // Update user roles (multiple roles support)
+  async updateRoles(userId: number, roles: UserRole[]): Promise<User> {
+    const result = await db
+      .update(users)
+      .set({ 
+        roles: roles, // Store as JSON array directly
+        role: roles[0] || 'stock_in_manager', // Keep legacy field for compatibility
+        updatedAt: sql`now()` 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return result[0];
+  },
+
   // Update user password
   async updatePassword(userId: number, hashedPassword: string): Promise<User> {
     const result = await db
