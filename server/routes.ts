@@ -8,6 +8,7 @@ import {
   insertStockTransactionSchema,
   loginSchema,
   type UserRole,
+  hasUserAnyRole,
 } from "@shared/schema";
 import { dashboardQueries } from "./queries";
 import { z } from "zod";
@@ -16,9 +17,15 @@ import bcrypt from "bcrypt";
 // Role-based access control middleware
 const requireRole = (allowedRoles: UserRole[]) => {
   return async (req: any, res: any, next: any) => {
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
+    if (!req.user) {
       return res.status(403).json({ message: "Insufficient permissions" });
     }
+    
+    // Check if user has any of the allowed roles (supports multiple roles)
+    if (!hasUserAnyRole(req.user, allowedRoles)) {
+      return res.status(403).json({ message: "Insufficient permissions" });
+    }
+    
     next();
   };
 };
@@ -41,6 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: "Super",
           lastName: "Admin",
           role: "super_admin",
+          roles: ["super_admin"],
           isActive: 1,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -75,6 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: "Super",
           lastName: "Admin",
           role: "super_admin",
+          roles: ["super_admin"],
           isActive: 1,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -105,10 +114,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {
       const user = req.user;
+      console.log("User data being returned:", { 
+        id: user.id, 
+        username: user.username, 
+        role: user.role, 
+        roles: user.roles 
+      });
       res.json({ ...user, password: undefined });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Database health check endpoint
+  app.get("/api/health", async (req, res) => {
+    try {
+      const { checkDatabaseHealth, ensureTablesExist } = await import("./database-health");
+      
+      const dbHealthy = await checkDatabaseHealth();
+      const tablesExist = await ensureTablesExist();
+      
+      const health = {
+        status: (dbHealthy && tablesExist) ? "healthy" : "unhealthy",
+        database: dbHealthy ? "connected" : "disconnected",
+        tables: tablesExist ? "verified" : "missing",
+        environment: process.env.NODE_ENV || "development",
+        timestamp: new Date().toISOString(),
+        hasDbUrl: !!process.env.DATABASE_URL,
+        dbUrlLength: process.env.DATABASE_URL ? process.env.DATABASE_URL.length : 0
+      };
+      
+      res.status((dbHealthy && tablesExist) ? 200 : 500).json(health);
+    } catch (error) {
+      console.error("Health check failed:", error);
+      res.status(500).json({
+        status: "error",
+        message: error instanceof Error ? error.message : "Health check failed"
+      });
     }
   });
 
@@ -560,6 +603,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // New multiple roles update endpoint
+  app.put(
+    "/api/users/:id/roles",
+    isAuthenticated,
+    requireRole(["super_admin"]),
+    async (req, res) => {
+      try {
+        const userId = parseInt(req.params.id);
+        const { roles } = req.body;
+
+        if (!Array.isArray(roles)) {
+          return res.status(400).json({ message: "Roles must be an array" });
+        }
+
+        if (roles.length === 0) {
+          return res.status(400).json({ message: "At least one role is required" });
+        }
+
+        const validRoles = [
+          "super_admin",
+          "master_inventory_handler",
+          "stock_in_manager",
+          "stock_out_manager",
+          "attendance_checker",
+        ];
+
+        for (const role of roles) {
+          if (!validRoles.includes(role)) {
+            return res.status(400).json({ message: `Invalid role: ${role}` });
+          }
+        }
+
+        // Remove duplicates
+        const uniqueRoles = [...new Set(roles)];
+
+        const user = await storage.updateUserRoles(userId, uniqueRoles);
+        res.json({ ...user, password: undefined });
+      } catch (error) {
+        console.error("Error updating user roles:", error);
+        res.status(500).json({ message: "Failed to update user roles" });
+      }
+    },
+  );
+
   app.put(
     "/api/users/:id/password",
     isAuthenticated,
@@ -617,13 +704,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireRole(["super_admin"]),
     async (req, res) => {
       try {
-        const { username, password, email, firstName, lastName, role } =
+        const { username, password, email, firstName, lastName, role, roles } =
           req.body;
 
-        if (!username || !password || !role) {
+        if (!username || !password) {
           return res
             .status(400)
-            .json({ message: "Username, password, and role are required" });
+            .json({ message: "Username and password are required" });
         }
 
         if (password.length < 6) {
@@ -632,16 +719,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .json({ message: "Password must be at least 6 characters long" });
         }
 
-        if (
-          ![
-            "super_admin",
-            "master_inventory_handler",
-            "stock_in_manager",
-            "stock_out_manager",
-            "attendance_checker",
-          ].includes(role)
-        ) {
-          return res.status(400).json({ message: "Invalid role" });
+        // Support both single role and multiple roles
+        let userRoles: UserRole[] = [];
+        
+        if (roles && Array.isArray(roles) && roles.length > 0) {
+          // Multiple roles provided
+          userRoles = [...new Set(roles)]; // Remove duplicates
+        } else if (role) {
+          // Single role provided (backwards compatibility)
+          userRoles = [role];
+        } else {
+          return res.status(400).json({ message: "At least one role is required" });
+        }
+
+        const validRoles = [
+          "super_admin",
+          "master_inventory_handler",
+          "stock_in_manager",
+          "stock_out_manager",
+          "attendance_checker",
+        ];
+
+        for (const userRole of userRoles) {
+          if (!validRoles.includes(userRole)) {
+            return res.status(400).json({ message: `Invalid role: ${userRole}` });
+          }
         }
 
         // Hash the password before storing
@@ -653,7 +755,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email,
           firstName,
           lastName,
-          role,
+          role: userRoles[0], // Legacy single role field
+          roles: userRoles, // New multiple roles field
         });
 
         res.status(201).json({ ...newUser, password: undefined });
@@ -756,6 +859,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireRole(["super_admin", "master_inventory_handler"]),
     async (req: any, res) => {
       try {
+        console.log("Creating weekly stock plan - Request body:", req.body);
+        console.log("User ID:", req.user?.id);
+        
         const { insertWeeklyStockPlanSchema } = await import("@shared/schema");
         const { weeklyStockPlanQueries } = await import("./queries");
         
@@ -765,17 +871,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId,
         });
 
+        console.log("Parsed plan data:", planData);
+        
+        // Comprehensive database health check
+        const { checkDatabaseHealth } = await import("./database-health");
+        const dbHealthy = await checkDatabaseHealth();
+        
+        if (!dbHealthy) {
+          throw new Error("Database health check failed - see server logs for details");
+        }
+        
         const plan = await weeklyStockPlanQueries.create(planData);
+        console.log("Created plan:", plan);
+        
         res.status(201).json(plan);
       } catch (error) {
         console.error("Error creating weekly stock plan:", error);
+        console.error("Error details:", {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          body: req.body,
+          userId: req.user?.id
+        });
+        
         if (error instanceof z.ZodError) {
           res.status(400).json({
             message: "Invalid plan data",
             errors: error.errors,
           });
         } else {
-          res.status(500).json({ message: "Failed to create weekly stock plan" });
+          res.status(500).json({ 
+            message: "Failed to create weekly stock plan",
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
         }
       }
     }
