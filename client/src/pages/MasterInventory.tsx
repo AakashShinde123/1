@@ -39,20 +39,17 @@ export default function MasterInventory() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
           {/* Manage Products */}
           <Link href="/inventory?direct=true">
-            <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 sm:p-8 hover:bg-accent hover:shadow-md transition-all cursor-pointer no-zoom">
+            <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-4 hover:bg-accent hover:shadow-md transition-all cursor-pointer">
               <div className="text-center">
-                <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center mb-3 sm:mb-4">
-                  <Package className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+                <div className="mx-auto w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-2">
+                  <Package className="h-5 w-5 text-blue-600" />
                 </div>
-                <h3 className="text-lg sm:text-xl lg:text-2xl font-medium text-blue-800 mb-2 sm:mb-3">Manage Products</h3>
-                <p className="text-gray-600 text-sm sm:text-base lg:text-lg mb-2 sm:mb-3">
-                  Create and manage inventory products
-                </p>
-                <p className="text-xs sm:text-sm text-blue-600 font-medium">
-                  Click to manage products
+                <h3 className="text-base font-medium">Manage Products</h3>
+                <p className="text-gray-600 text-xs mt-1">
+                  Create products
                 </p>
               </div>
             </div>
@@ -60,17 +57,14 @@ export default function MasterInventory() {
 
           {/* Plan Weekly Stock */}
           <Link href="/weekly-stock-planning">
-            <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 sm:p-8 hover:bg-accent hover:shadow-md transition-all cursor-pointer no-zoom">
+            <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-4 hover:bg-accent hover:shadow-md transition-all cursor-pointer">
               <div className="text-center">
-                <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center mb-3 sm:mb-4">
-                  <Calendar className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
+                <div className="mx-auto w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                  <Calendar className="h-5 w-5 text-green-600" />
                 </div>
-                <h3 className="text-lg sm:text-xl lg:text-2xl font-medium text-green-800 mb-2 sm:mb-3">Plan Weekly Stock</h3>
-                <p className="text-gray-600 text-sm sm:text-base lg:text-lg mb-2 sm:mb-3">
-                  Set weekly stock requirements and manage forecasting
-                </p>
-                <p className="text-xs sm:text-sm text-green-600 font-medium">
-                  Click to plan weekly stock
+                <h3 className="text-base font-medium">Plan Weekly Stock</h3>
+                <p className="text-gray-600 text-xs mt-1">
+                  Set weekly plans
                 </p>
               </div>
             </div>
@@ -78,17 +72,14 @@ export default function MasterInventory() {
 
           {/* Product Catalog */}
           <Link href="/product-catalog">
-            <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-6 sm:p-8 hover:bg-accent hover:shadow-md transition-all cursor-pointer no-zoom">
+            <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-4 hover:bg-accent hover:shadow-md transition-all cursor-pointer">
               <div className="text-center">
-                <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-purple-100 rounded-full flex items-center justify-center mb-3 sm:mb-4">
-                  <Search className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
+                <div className="mx-auto w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mb-2">
+                  <Search className="h-5 w-5 text-purple-600" />
                 </div>
-                <h3 className="text-lg sm:text-xl lg:text-2xl font-medium text-purple-800 mb-2 sm:mb-3">Product Catalog</h3>
-                <p className="text-gray-600 text-sm sm:text-base lg:text-lg mb-2 sm:mb-3">
-                  Browse all products with search and filter options
-                </p>
-                <p className="text-xs sm:text-sm text-purple-600 font-medium">
-                  Click to view catalog
+                <h3 className="text-base font-medium">Product Catalog</h3>
+                <p className="text-gray-600 text-xs mt-1">
+                  Browse catalog
                 </p>
               </div>
             </div>
