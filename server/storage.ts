@@ -23,6 +23,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserRole(userId: number, role: UserRole): Promise<User>;
+  updateUserRoles(userId: number, roles: UserRole[]): Promise<User>;
   updateUserPassword(userId: number, password: string): Promise<User>;
   updateUserStatus(userId: number, isActive: boolean): Promise<User>;
   getUsers(): Promise<User[]>;
@@ -72,6 +73,7 @@ export class DatabaseStorage implements IStorage {
           firstName: "Super",
           lastName: "Admin",
           role: "super_admin",
+          roles: ["super_admin"],
           isActive: 1,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -97,6 +99,7 @@ export class DatabaseStorage implements IStorage {
           firstName: "Super",
           lastName: "Admin",
           role: "super_admin",
+          roles: ["super_admin"],
           isActive: 1,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -112,6 +115,10 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserRole(userId: number, role: UserRole): Promise<User> {
     return await userQueries.updateRole(userId, role);
+  }
+
+  async updateUserRoles(userId: number, roles: UserRole[]): Promise<User> {
+    return await userQueries.updateRoles(userId, roles);
   }
 
   async updateUserPassword(userId: number, password: string): Promise<User> {
