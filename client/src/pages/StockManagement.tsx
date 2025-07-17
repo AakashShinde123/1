@@ -168,6 +168,17 @@ export default function StockManagement() {
     "stock-in" | "stock-out" | null
   >(null);
 
+  // Check URL parameters to determine which form to show
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    
+    if (tabParam === 'stock-in' || tabParam === 'stock-out') {
+      setSelectedFunction(tabParam);
+      setShowDashboard(false);
+    }
+  }, []);
+
   // Current product being worked on
   const [currentProductIn, setCurrentProductIn] = useState<{
     product: Product;
@@ -270,18 +281,17 @@ export default function StockManagement() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const isSuperAdmin = (user as any)?.role === "super_admin";
-  const canStockIn =
-    (user as any)?.role === "super_admin" ||
-    (user as any)?.role === "master_inventory_handler" ||
-    (user as any)?.role === "stock_in_manager";
-  const canStockOut =
-    (user as any)?.role === "super_admin" ||
-    (user as any)?.role === "master_inventory_handler" ||
-    (user as any)?.role === "stock_out_manager";
+  // Get user's active roles (support both single role and multiple roles)
+  const userRoles = (user as any)?.roles || [(user as any)?.role];
+  const hasRole = (role: string) => userRoles.includes(role);
+  
+  const isSuperAdmin = hasRole("super_admin");
+  const canStockIn = hasRole("super_admin") || hasRole("master_inventory_handler") || hasRole("stock_in_manager");
+  const canStockOut = hasRole("super_admin") || hasRole("master_inventory_handler") || hasRole("stock_out_manager");
 
-  const showStockInOnly = (user as any)?.role === "stock_in_manager";
-  const showStockOutOnly = (user as any)?.role === "stock_out_manager";
+  // Show single function only if user has ONLY that role (not multiple roles)
+  const showStockInOnly = userRoles.length === 1 && hasRole("stock_in_manager");
+  const showStockOutOnly = userRoles.length === 1 && hasRole("stock_out_manager");
 
   const stockInForm = useForm<StockInFormData>({
     resolver: zodResolver(stockInFormSchema),
@@ -904,10 +914,15 @@ export default function StockManagement() {
   }
 
   // Handle role-specific dashboard display - Show buttons first, then functions
-  if (showDashboard && (user as any)?.role !== "super_admin") {
-    const userRole = (user as any)?.role;
+  if (showDashboard && !isSuperAdmin) {
+    // For users with multiple roles, don't show dashboard - go directly to forms
+    if (userRoles.length > 1) {
+      // Skip dashboard for multi-role users
+      setShowDashboard(false);
+      return null; // Will re-render with forms
+    }
 
-    if (userRole === "stock_in_manager") {
+    if (showStockInOnly) {
       return (
         <div className="min-h-screen bg-gray-50 py-8">
           <div className="max-w-2xl mx-auto px-4">
@@ -952,7 +967,7 @@ export default function StockManagement() {
       );
     }
 
-    if (userRole === "stock_out_manager") {
+    if (showStockOutOnly) {
       return (
         <div className="min-h-screen bg-gray-50 py-8">
           <div className="max-w-2xl mx-auto px-4">
