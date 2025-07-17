@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -46,7 +47,7 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { User, UserRole } from "@shared/schema";
+import type { User, UserRole, getUserActiveRoles } from "@shared/schema";
 import { Link } from "wouter";
 
 const updateRoleSchema = z.object({
@@ -56,7 +57,14 @@ const updateRoleSchema = z.object({
     "stock_in_manager",
     "stock_out_manager",
     "attendance_checker",
-  ]),
+  ]).optional(),
+  roles: z.array(z.enum([
+    "super_admin",
+    "master_inventory_handler",
+    "stock_in_manager",
+    "stock_out_manager",
+    "attendance_checker",
+  ])).min(1, "At least one role must be selected"),
 });
 
 const updatePasswordSchema = z
@@ -87,7 +95,14 @@ const createUserSchema = z
       "stock_in_manager",
       "stock_out_manager",
       "attendance_checker",
-    ]),
+    ]).optional(),
+    roles: z.array(z.enum([
+      "super_admin",
+      "master_inventory_handler",
+      "stock_in_manager",
+      "stock_out_manager",
+      "attendance_checker",
+    ])).min(1, "At least one role must be selected"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -149,7 +164,7 @@ export default function UserManagement() {
   const form = useForm<UpdateRoleFormData>({
     resolver: zodResolver(updateRoleSchema),
     defaultValues: {
-      role: "stock_in_manager",
+      roles: [],
     },
   });
 
@@ -170,25 +185,25 @@ export default function UserManagement() {
       email: "",
       firstName: "",
       lastName: "",
-      role: "stock_in_manager",
+      roles: [],
     },
   });
 
-  const updateRoleMutation = useMutation({
+  const updateRolesMutation = useMutation({
     mutationFn: async ({
       userId,
-      role,
+      roles,
     }: {
       userId: string;
-      role: UserRole;
+      roles: UserRole[];
     }) => {
-      await apiRequest("PUT", `/api/users/${userId}/role`, { role });
+      await apiRequest("PUT", `/api/users/${userId}/roles`, { roles });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "Success",
-        description: "User role updated successfully",
+        description: "User roles updated successfully",
       });
       form.reset();
       setEditingUser(null);
@@ -207,7 +222,7 @@ export default function UserManagement() {
       }
       toast({
         title: "Error",
-        description: "Failed to update user role",
+        description: "Failed to update user roles",
         variant: "destructive",
       });
     },
@@ -358,14 +373,18 @@ export default function UserManagement() {
 
   const handleEditRole = (user: User) => {
     setEditingUser(user);
-    form.setValue("role", user.role as UserRole);
+    // Get user's current roles (either from roles array or fallback to single role)
+    const activeRoles = (user.roles && Array.isArray(user.roles) && user.roles.length > 0) 
+      ? user.roles 
+      : [user.role as UserRole];
+    form.setValue("roles", activeRoles);
   };
 
   const handleUpdateRole = (data: UpdateRoleFormData) => {
-    if (editingUser) {
-      updateRoleMutation.mutate({
+    if (editingUser && data.roles) {
+      updateRolesMutation.mutate({
         userId: editingUser.id.toString(),
-        role: data.role,
+        roles: data.roles,
       });
     }
   };
@@ -462,28 +481,21 @@ export default function UserManagement() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-8">
-            <Card
-              className="hover:shadow-lg hover:scale-105 transition-all cursor-pointer p-6 border-2 border-red-200"
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 justify-center">
+            <div
+              className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-4 hover:bg-accent hover:shadow-md transition-all cursor-pointer"
               onClick={() => setShowDashboard(false)}
             >
-              <CardHeader className="text-center pb-4">
-                <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 shadow-lg">
-                  <Users className="h-8 w-8 text-red-600" />
+              <div className="text-center">
+                <div className="mx-auto w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mb-2">
+                  <Users className="h-5 w-5 text-red-600" />
                 </div>
-                <CardTitle className="text-2xl text-red-800">
-                  User Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-gray-600 text-lg mb-3">
-                  Manage system users, roles, and permissions
+                <h3 className="text-base font-medium">User Management</h3>
+                <p className="text-gray-600 text-xs mt-1">
+                  Manage users
                 </p>
-                <p className="text-sm text-red-600 font-medium">
-                  Click to open user management
-                </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -604,37 +616,40 @@ export default function UserManagement() {
 
                     <FormField
                       control={createUserForm.control}
-                      name="role"
+                      name="roles"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Role *</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a role" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="super_admin">
-                                👑 Super Admin
-                              </SelectItem>
-                              <SelectItem value="master_inventory_handler">
-                                🧑‍🔧 Master Inventory Handler
-                              </SelectItem>
-                              <SelectItem value="stock_in_manager">
-                                📥 Stock In Manager
-                              </SelectItem>
-                              <SelectItem value="stock_out_manager">
-                                📤 Stock Out Manager
-                              </SelectItem>
-                              <SelectItem value="attendance_checker">
-                                📅 Attendance Checker
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormLabel>Roles * (Select at least one)</FormLabel>
+                          <div className="space-y-3">
+                            {[
+                              { value: "super_admin", label: "👑 Super Admin" },
+                              { value: "master_inventory_handler", label: "🧑‍🔧 Master Inventory Handler" },
+                              { value: "stock_in_manager", label: "📥 Stock In Manager" },
+                              { value: "stock_out_manager", label: "📤 Stock Out Manager" },
+                              { value: "attendance_checker", label: "📅 Attendance Checker" }
+                            ].map((role) => (
+                              <div key={role.value} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`create-${role.value}`}
+                                  checked={field.value?.includes(role.value as UserRole) || false}
+                                  onCheckedChange={(checked) => {
+                                    const currentRoles = field.value || [];
+                                    if (checked) {
+                                      field.onChange([...currentRoles, role.value as UserRole]);
+                                    } else {
+                                      field.onChange(currentRoles.filter((r: UserRole) => r !== role.value));
+                                    }
+                                  }}
+                                />
+                                <label
+                                  htmlFor={`create-${role.value}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                  {role.label}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -752,9 +767,16 @@ export default function UserManagement() {
                           : "N/A"}
                       </td>
                       <td className="p-3 lg:p-4">
-                        <Badge className={getRoleBadgeColor(userItem.role)}>
-                          {getRoleDisplayName(userItem.role)}
-                        </Badge>
+                        <div className="flex flex-wrap gap-1">
+                          {((userItem.roles && Array.isArray(userItem.roles) && userItem.roles.length > 0) 
+                            ? userItem.roles 
+                            : [userItem.role as UserRole]
+                          ).map((role: UserRole) => (
+                            <Badge key={role} className={getRoleBadgeColor(role)} style={{ fontSize: '0.7rem' }}>
+                              {getRoleDisplayName(role)}
+                            </Badge>
+                          ))}
+                        </div>
                       </td>
                       <td className="p-3 lg:p-4">
                         <Badge
@@ -845,7 +867,7 @@ export default function UserManagement() {
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Update User Role</DialogTitle>
+            <DialogTitle>Update User Roles</DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form
@@ -854,37 +876,40 @@ export default function UserManagement() {
             >
               <FormField
                 control={form.control}
-                name="role"
+                name="roles"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="super_admin">
-                          👑 Super Admin
-                        </SelectItem>
-                        <SelectItem value="master_inventory_handler">
-                          🧑‍🔧 Master Inventory Handler
-                        </SelectItem>
-                        <SelectItem value="stock_in_manager">
-                          📥 Stock In Manager
-                        </SelectItem>
-                        <SelectItem value="stock_out_manager">
-                          📤 Stock Out Manager
-                        </SelectItem>
-                        <SelectItem value="attendance_checker">
-                          📅 Attendance Checker
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Roles (Select multiple)</FormLabel>
+                    <div className="space-y-3">
+                      {[
+                        { value: "super_admin", label: "👑 Super Admin" },
+                        { value: "master_inventory_handler", label: "🧑‍🔧 Master Inventory Handler" },
+                        { value: "stock_in_manager", label: "📥 Stock In Manager" },
+                        { value: "stock_out_manager", label: "📤 Stock Out Manager" },
+                        { value: "attendance_checker", label: "📅 Attendance Checker" }
+                      ].map((role) => (
+                        <div key={role.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={role.value}
+                            checked={field.value?.includes(role.value as UserRole) || false}
+                            onCheckedChange={(checked) => {
+                              const currentRoles = field.value || [];
+                              if (checked) {
+                                field.onChange([...currentRoles, role.value as UserRole]);
+                              } else {
+                                field.onChange(currentRoles.filter((r: UserRole) => r !== role.value));
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={role.value}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            {role.label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -897,8 +922,8 @@ export default function UserManagement() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={updateRoleMutation.isPending}>
-                  {updateRoleMutation.isPending ? "Updating..." : "Update Role"}
+                <Button type="submit" disabled={updateRolesMutation.isPending}>
+                  {updateRolesMutation.isPending ? "Updating..." : "Update Roles"}
                 </Button>
               </div>
             </form>
