@@ -48,18 +48,27 @@ function Router() {
             <Route
               path="/"
               component={() => {
-                // Redirect non-super admin users to their specific pages
-                const userRole = (user as any)?.role;
-
-                if (
-                  userRole === "stock_in_manager" ||
-                  userRole === "stock_out_manager"
-                ) {
-                  return <StockManagement />;
-                }
-                if (userRole === "master_inventory_handler") {
+                // Get user's active roles (support both single role and multiple roles)
+                const userRoles = (user as any)?.roles || [(user as any)?.role];
+                const hasRole = (role: string) => userRoles.includes(role);
+                
+                // Check if user has multiple roles - if so, show the multi-role dashboard
+                if (userRoles.length > 1) {
                   return <HomeNew />;
                 }
+                
+                // For users with single roles, redirect to their specific functionality
+                if (hasRole("stock_in_manager") && !hasRole("stock_out_manager") && !hasRole("master_inventory_handler")) {
+                  return <StockManagement />;
+                }
+                if (hasRole("stock_out_manager") && !hasRole("stock_in_manager") && !hasRole("master_inventory_handler")) {
+                  return <StockManagement />;
+                }
+                if (hasRole("master_inventory_handler") && !hasRole("stock_in_manager") && !hasRole("stock_out_manager")) {
+                  return <HomeNew />;
+                }
+                
+                // For all other cases (including super admin and multiple roles), show HomeNew dashboard
                 return <HomeNew />;
               }}
             />
