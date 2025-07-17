@@ -206,15 +206,15 @@ export default function TransactionLog() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 justify-center">
             <div
-              className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-background rounded-lg border p-4 hover:bg-accent hover:shadow-md transition-all cursor-pointer"
+              className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32"
               onClick={() => setShowDashboard(false)}
             >
-              <div className="text-center">
-                <div className="mx-auto w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mb-2">
-                  <List className="h-5 w-5 text-yellow-600" />
+              <div className="text-center h-full flex flex-col justify-center">
+                <div className="mx-auto w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+                  <List className="h-5 w-5 text-white" />
                 </div>
-                <h3 className="text-base font-medium">Transaction Log</h3>
-                <p className="text-gray-600 text-xs mt-1">
+                <h3 className="text-base font-medium text-yellow-800 mb-1">Transaction Log</h3>
+                <p className="text-yellow-600 text-xs">
                   View history
                 </p>
               </div>
