@@ -78,7 +78,7 @@ export default function Login() {
               </div>
             </div>
             <h1 className="text-3xl font-bold text-purple-800 sketch-underline">
-              Sudhamrit
+{/*               Sudhamrit */}
             </h1>
             <p className="text-gray-600 mt-2 font-medium">Secure Access Portal</p>
             <div className="w-16 h-1 bg-gradient-to-r from-purple-600 to-blue-600 mx-auto mt-4 rounded-full"></div>
