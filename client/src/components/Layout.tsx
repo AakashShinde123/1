@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { User } from "@shared/schema";
+import { User, getUserActiveRoles, UserRole } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -67,7 +67,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Clean Navigation Bar */}
       <nav className="bg-white shadow-sm border-b border-gray-200 safe-area-top">
         <div className="max-w-7xl mx-auto px-3 sm:px-6">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-16 gap-2">
             <Link href="/">
               <div className="flex items-center space-x-2 sm:space-x-3 cursor-pointer">
                 <img 
@@ -75,31 +75,30 @@ export default function Layout({ children }: LayoutProps) {
                   alt="Sudhamrit Logo" 
                   className="h-7 sm:h-8 w-auto"
                 />
-                <div className="hidden sm:block">
-                  <h1 className="text-xl font-semibold text-gray-900">
-                    {/* Sudhamrit */}
-                  </h1>
-                  {/* <p className="text-xs text-gray-500">Inventory Management</p> */}
-                </div>
               </div>
             </Link>
             
-            <div className="flex items-center space-x-2 sm:space-x-4">
+            <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
               {user && (
                 <>
-                  <div className="block">
-                    <Badge className={`${getRoleBadgeColor((user as User)?.role || '')} border-0 text-xs px-2 py-1`}>
-                      {getRoleDisplayName((user as User)?.role || '')}
-                    </Badge>
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 items-end sm:items-center">
+                    <div className="flex flex-wrap gap-1 justify-end">
+                      {getUserActiveRoles(user as User).map((role: UserRole) => (
+                        <Badge key={role} className={`${getRoleBadgeColor(role)} border-0 text-xs px-1 py-0.5 sm:px-2 sm:py-1 whitespace-nowrap`}>
+                          <span className="hidden lg:inline">{getRoleDisplayName(role)}</span>
+                          <span className="lg:hidden">{getRoleDisplayName(role).split(' ')[0]}</span>
+                        </Badge>
+                      ))}
+                    </div>
+                    <span className="text-xs sm:text-sm text-gray-700 hidden sm:block truncate">
+                      {(user as User)?.firstName || (user as User)?.username || (user as User)?.email || 'User'}
+                    </span>
                   </div>
-                  <span className="text-sm text-gray-700 hidden sm:block">
-                    {(user as User)?.firstName || (user as User)?.username || (user as User)?.email || 'User'}
-                  </span>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleLogout}
-                    className="text-gray-600 border-gray-300 hover:bg-gray-50 min-h-[44px] min-w-[44px] no-zoom"
+                    className="text-gray-600 border-gray-300 hover:bg-gray-50 min-h-[44px] min-w-[44px] no-zoom flex-shrink-0"
                   >
                     <LogOut className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Logout</span>
