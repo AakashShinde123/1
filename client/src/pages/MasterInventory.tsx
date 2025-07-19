@@ -12,7 +12,7 @@ export default function MasterInventory() {
   console.log("MasterInventory page - User role:", (user as any)?.role);
   
   return (
-    <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
+    <div className="min-h-screen bg-gray-50 paper-texture py-4 sm:py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
         {/* Back to Home Button - Mobile Optimized */}
         <div className="mb-8 sm:mb-6">
@@ -42,7 +42,7 @@ export default function MasterInventory() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
           {/* Manage Products */}
           <Link href="/inventory?direct=true">
-            <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+            <div className="sketch-card sketch-card-blue p-4 cursor-pointer h-32">
               <div className="text-center h-full flex flex-col justify-center">
                 <div className="mx-auto w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                   <Package className="h-5 w-5 text-white" />
@@ -57,7 +57,7 @@ export default function MasterInventory() {
 
           {/* Plan Weekly Stock */}
           <Link href="/weekly-stock-planning">
-            <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+            <div className="sketch-card sketch-card-green p-4 cursor-pointer h-32">
               <div className="text-center h-full flex flex-col justify-center">
                 <div className="mx-auto w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                   <Calendar className="h-5 w-5 text-white" />
@@ -72,7 +72,7 @@ export default function MasterInventory() {
 
           {/* Product Catalog */}
           <Link href="/product-catalog">
-            <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+            <div className="sketch-card sketch-card-purple p-4 cursor-pointer h-32">
               <div className="text-center h-full flex flex-col justify-center">
                 <div className="mx-auto w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                   <Search className="h-5 w-5 text-white" />
