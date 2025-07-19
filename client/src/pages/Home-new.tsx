@@ -40,10 +40,10 @@ export default function HomeNew() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p>Loading...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -51,12 +51,22 @@ export default function HomeNew() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">
-            Welcome to Sudhamrit Inventory Management
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8">
+          <img 
+            src="/assets/111_1750417572953.png" 
+            alt="Sudhamrit Logo" 
+            className="h-16 w-auto mx-auto mb-6"
+          />
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Sudhamrit
           </h1>
-          <p className="text-gray-600">Please log in to access the system.</p>
+          <h2 className="text-xl text-gray-600 mb-6">
+            Inventory Management System
+          </h2>
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <p className="text-gray-600">Please log in to access the system.</p>
+          </div>
         </div>
       </div>
     );
@@ -355,20 +365,24 @@ export default function HomeNew() {
   // Only show multi-role dashboard if user has at least one available action
   if (availableActions.length > 0) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Sudhamrit Inventory Management
+      <div className="min-h-screen bg-gray-50">
+        {/* Simple Header */}
+        <div className="bg-white border-b border-gray-200 py-8">
+          <div className="max-w-6xl mx-auto px-4 text-center">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Welcome Back
             </h1>
-            <p className="text-xl text-gray-600">
+            <p className="text-gray-600">
               {roleNames.length > 1
-                ? `${roleNames.join(", ")} Control Panel`
-                : `${roleNames[0]} Control Panel`}
+                ? `${roleNames.join(", ")} Dashboard`
+                : `${roleNames[0]} Dashboard`}
             </p>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {/* Action Cards */}
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {availableActions.map((action) => action.component)}
           </div>
         </div>
@@ -378,20 +392,22 @@ export default function HomeNew() {
 
   // If user has no roles or unrecognized configuration, show a fallback
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Sudhamrit Inventory Management
-          </h1>
-          <p className="text-xl text-gray-600">
-            No authorized access available
-          </p>
-        </div>
-        <div className="text-center">
-          <p className="text-gray-600">
-            Your account doesn't have any assigned roles. Please contact an
-            administrator.
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="max-w-md mx-auto px-4 text-center">
+        <img 
+          src="/assets/111_1750417572953.png" 
+          alt="Sudhamrit Logo" 
+          className="h-16 w-auto mx-auto mb-6"
+        />
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Access Restricted
+        </h1>
+        <p className="text-gray-600 mb-6">
+          Your account doesn't have any assigned roles.
+        </p>
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+          <p className="text-sm text-gray-500">
+            Please contact your system administrator for access.
           </p>
         </div>
       </div>
