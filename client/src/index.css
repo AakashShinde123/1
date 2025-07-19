@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -98,7 +100,7 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-poppins antialiased bg-background text-foreground;
     font-size: 16px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -222,6 +224,21 @@
     border-radius: 8px;
     font-weight: 500;
     min-height: 48px;
+  }
+  
+  /* Modern gradient text utilities */
+  .gradient-text {
+    background: linear-gradient(45deg, #3B82F6, #8B5CF6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Backdrop blur utilities for modern glass effect */
+  .glass-effect {
+    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
   
   /* Card styling with enhanced shadows */
