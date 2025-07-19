@@ -63,7 +63,7 @@ export default function Layout({ children }: LayoutProps) {
 
 
   return (
-    <div className="min-h-screen app-container webview-optimized bg-white">
+    <div className="min-h-screen app-container webview-optimized bg-white paper-texture">
       {/* Clean Navigation Bar */}
       <nav className="bg-white shadow-sm border-b border-gray-200 safe-area-top">
         <div className="max-w-7xl mx-auto px-3 sm:px-6">
