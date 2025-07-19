@@ -200,7 +200,7 @@ export default function HomeNew() {
       component: (
         <div
           key="dashboard"
-          className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32"
+          className="sketch-card sketch-card-purple p-4 cursor-pointer h-32"
           onClick={() => setShowDashboard(true)}
         >
           <div className="text-center h-full flex flex-col justify-center">
@@ -223,7 +223,7 @@ export default function HomeNew() {
       key: "master-inventory",
       component: (
         <Link key="master-inventory" href="/master-inventory">
-          <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+          <div className="sketch-card sketch-card-blue p-4 cursor-pointer h-32">
             <div className="text-center h-full flex flex-col justify-center">
               <div className="mx-auto w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <Package className="h-5 w-5 text-white" />
@@ -245,7 +245,7 @@ export default function HomeNew() {
       key: "stock-in",
       component: (
         <Link key="stock-in" href="/stock-management?tab=stock-in">
-          <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+          <div className="sketch-card sketch-card-green p-4 cursor-pointer h-32">
             <div className="text-center h-full flex flex-col justify-center">
               <div className="mx-auto w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <ArrowUp className="h-5 w-5 text-white" />
@@ -267,7 +267,7 @@ export default function HomeNew() {
       key: "stock-out",
       component: (
         <Link key="stock-out" href="/stock-management?tab=stock-out">
-          <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-red-50 to-red-100 rounded-lg border border-red-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+          <div className="sketch-card sketch-card-red p-4 cursor-pointer h-32">
             <div className="text-center h-full flex flex-col justify-center">
               <div className="mx-auto w-10 h-10 bg-red-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <ArrowDown className="h-5 w-5 text-white" />
@@ -289,7 +289,7 @@ export default function HomeNew() {
       key: "transactions",
       component: (
         <Link key="transactions" href="/transactions">
-          <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+          <div className="sketch-card sketch-card-yellow p-4 cursor-pointer h-32">
             <div className="text-center h-full flex flex-col justify-center">
               <div className="mx-auto w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <List className="h-5 w-5 text-white" />
@@ -311,7 +311,7 @@ export default function HomeNew() {
       key: "users",
       component: (
         <Link key="users" href="/users">
-          <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg border border-rose-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+          <div className="sketch-card sketch-card-red p-4 cursor-pointer h-32">
             <div className="text-center h-full flex flex-col justify-center">
               <div className="mx-auto w-10 h-10 bg-rose-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <Users className="h-5 w-5 text-white" />
@@ -338,7 +338,7 @@ export default function HomeNew() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg border border-indigo-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+          <div className="sketch-card sketch-card-indigo p-4 cursor-pointer h-32">
             <div className="text-center h-full flex flex-col justify-center">
               <div className="mx-auto w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <CalendarCheck className="h-5 w-5 text-white" />
@@ -365,7 +365,7 @@ export default function HomeNew() {
   // Only show multi-role dashboard if user has at least one available action
   if (availableActions.length > 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 paper-texture">
         {/* Simple Header */}
         <div className="bg-white border-b border-gray-200 py-8">
           <div className="max-w-6xl mx-auto px-4 text-center">
@@ -414,3 +414,4 @@ export default function HomeNew() {
     </div>
   );
 }
+ 
