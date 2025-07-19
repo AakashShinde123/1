@@ -172,6 +172,72 @@
       font-size: 16px;
     }
   }
+
+/* Sketch Card Design System */
+.sketch-card {
+  position: relative;
+  background: #ffffff;
+  border: 2px solid #2d3748;
+  border-radius: 12px;
+  transform: rotate(-0.5deg);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.sketch-card:nth-child(odd) {
+  transform: rotate(0.5deg);
+}
+
+.sketch-card:nth-child(3n) {
+  transform: rotate(-0.3deg);
+}
+
+.sketch-card:hover {
+  transform: rotate(0deg) translateY(-4px);
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.15),
+    0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  border-color: #4a5568;
+}
+
+.sketch-card-purple {
+  border-color: #805ad5;
+  background: linear-gradient(135deg, #faf5ff 0%, #e9d8fd 100%);
+}
+
+.sketch-card-blue {
+  border-color: #3182ce;
+  background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+}
+
+.sketch-card-green {
+  border-color: #38a169;
+  background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+}
+
+.sketch-card-red {
+  border-color: #e53e3e;
+  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+}
+
+.sketch-card-yellow {
+  border-color: #d69e2e;
+  background: linear-gradient(135deg, #fffff0 0%, #fefcbf 100%);
+}
+
+.sketch-card-indigo {
+  border-color: #5a67d8;
+  background: linear-gradient(135deg, #ebf4ff 0%, #c3dafe 100%);
+}
+
+/* Paper texture background */
+.paper-texture {
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(0,0,0,0.02) 1px, transparent 0);
+  background-size: 20px 20px;
+}
   
   @media (max-width: 480px) {
     /* Extra small screens - ensure cards fit even better */
