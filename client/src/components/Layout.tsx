@@ -63,39 +63,46 @@ export default function Layout({ children }: LayoutProps) {
 
 
   return (
-    <div className="min-h-screen app-container webview-optimized" style={{backgroundColor: '#F5F0F6'}}>
-      {/* Navigation Bar */}
-      <nav className="text-purple-900 shadow-lg safe-area-top" style={{backgroundColor: '#F5F0F6', borderBottom: '1px solid #E2D5F3'}}>
+    <div className="min-h-screen app-container webview-optimized bg-white">
+      {/* Clean Navigation Bar */}
+      <nav className="bg-white shadow-sm border-b border-gray-200 safe-area-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16 sm:h-20">
+          <div className="flex items-center justify-between h-16">
             <Link href="/">
-              <div className="flex items-center space-x-2 cursor-pointer rounded-lg p-2" style={{backgroundColor: '#F5F0F6'}}>
+              <div className="flex items-center space-x-3 cursor-pointer">
                 <img 
                   src="/assets/111_1750417572953.png" 
                   alt="Sudhamrit Logo" 
                   className="h-8 w-auto"
                 />
+                <div className="hidden sm:block">
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    {/* Sudhamrit */}
+                  </h1>
+                  {/* <p className="text-xs text-gray-500">Inventory Management</p> */}
+                </div>
               </div>
             </Link>
             
             <div className="flex items-center space-x-4">
               {user && (
                 <>
-                  <Badge className={`${getRoleBadgeColor((user as User)?.role || '')} border-0`}>
-                    {getRoleDisplayName((user as User)?.role || '')}
-                  </Badge>
-                  <span className="text-sm">
+                  <div className="hidden md:block">
+                    <Badge className={`${getRoleBadgeColor((user as User)?.role || '')} border-0 text-xs`}>
+                      {getRoleDisplayName((user as User)?.role || '')}
+                    </Badge>
+                  </div>
+                  <span className="text-sm text-gray-700 hidden sm:block">
                     {(user as User)?.firstName || (user as User)?.username || (user as User)?.email || 'User'}
                   </span>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleLogout}
-                    className="text-purple-700 border-purple-300 hover:bg-purple-100 hover:text-purple-900 min-h-[44px] min-w-[44px] no-zoom"
+                    className="text-gray-600 border-gray-300 hover:bg-gray-50 min-h-[44px] min-w-[44px] no-zoom"
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    <span className="mobile-hidden">Logout</span>
-                    <span className="mobile-only sr-only">Logout</span>
+                    <LogOut className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Logout</span>
                   </Button>
                 </>
               )}
@@ -104,8 +111,8 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </nav>
 
-      {/* Main Content - Full width for all users */}
-      <div className="p-4 sm:p-6 safe-area-bottom mobile-full-width">
+      {/* Main Content */}
+      <div className="safe-area-bottom mobile-full-width">
         <div className="webview-optimized">
           {children}
         </div>
