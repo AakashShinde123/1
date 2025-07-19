@@ -219,3 +219,36 @@ select {
   outline: 2px solid #E53E3E;
   outline-offset: 2px;
 }
+
+/* Improve toast notifications on mobile */
+@media (max-width: 640px) {
+  [data-radix-toast-viewport] {
+    top: 1rem !important;
+    left: 1rem !important;
+    right: 1rem !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+  
+  [data-radix-toast] {
+    max-width: none !important;
+    margin: 0 !important;
+  }
+}
+
+/* Login form mobile optimizations */
+@media (max-width: 640px) {
+  .login-form {
+    padding: 1rem;
+  }
+  
+  .login-form input {
+    font-size: 16px;
+    height: 44px;
+  }
+  
+  .login-form button {
+    font-size: 16px;
+    height: 44px;
+  }
+}
