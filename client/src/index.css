@@ -140,13 +140,28 @@
       grid-template-columns: repeat(3, 1fr);
     }
     
+    /* Reduce gaps on mobile to fit 3 cards properly */
+    .gap-4 {
+      gap: 0.5rem;
+    }
+    
+    .gap-6 {
+      gap: 0.5rem;
+    }
+    
     /* Better spacing on mobile */
     .p-6 {
-      padding: 1rem;
+      padding: 0.75rem;
     }
     
     .p-4 {
-      padding: 0.75rem;
+      padding: 0.5rem;
+    }
+    
+    /* Ensure mobile cards don't overflow */
+    .grid {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
     }
     
     /* Mobile-friendly form inputs */
@@ -157,17 +172,41 @@
   }
   
   @media (max-width: 480px) {
-    /* Extra small screens */
+    /* Extra small screens - ensure cards fit even better */
     .text-lg {
-      font-size: 1rem;
+      font-size: 0.9rem;
     }
     
     .text-xl {
-      font-size: 1.125rem;
+      font-size: 1rem;
     }
     
     .text-2xl {
-      font-size: 1.25rem;
+      font-size: 1.125rem;
+    }
+    
+    .text-base {
+      font-size: 0.8rem;
+    }
+    
+    .text-xs {
+      font-size: 0.65rem;
+    }
+    
+    /* Even smaller gaps for very small screens */
+    .gap-4, .gap-6 {
+      gap: 0.25rem;
+    }
+    
+    /* Tighter padding for very small screens */
+    .p-4, .p-6 {
+      padding: 0.25rem;
+    }
+    
+    /* Ensure grid has minimal padding on edges */
+    .grid {
+      padding-left: 0.25rem;
+      padding-right: 0.25rem;
     }
     
     /* Stack buttons vertically on very small screens */
