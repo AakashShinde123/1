@@ -255,9 +255,14 @@ export default function Inventory() {
     );
   }
 
-  // Check if user has access
-  const hasAccess = user && 
-    ['super_admin', 'master_inventory_handler', 'stock_in_manager'].includes((user as any)?.role);
+  // Check if user has access - support multiple roles
+  const userRoles = (user as any)?.roles || [(user as any)?.role].filter(Boolean);
+  const hasRole = (role: string) => userRoles.includes(role);
+  const hasAccess = user && (
+    hasRole('super_admin') || 
+    hasRole('master_inventory_handler') || 
+    hasRole('stock_in_manager')
+  );
 
   if (!hasAccess) {
     return (
