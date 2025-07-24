@@ -72,7 +72,7 @@ export default function ProductSearch({
           onChange={(e) => handleInputChange(e.target.value)}
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
-          className="pl-10 text-lg"
+          className="pl-10 text-base sm:text-lg h-12 form-input"
         />
       </div>
 
@@ -87,18 +87,18 @@ export default function ProductSearch({
               {products.map((product: Product) => (
                 <div
                   key={product.id}
-                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                  className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0 min-h-[44px] flex flex-col justify-center"
                   onClick={() => handleProductSelect(product)}
                 >
-                  <div className="font-medium">{product.name}</div>
-                  <div className="text-sm text-gray-500">
+                  <div className="font-medium text-sm sm:text-base">{product.name}</div>
+                  <div className="text-xs sm:text-sm text-gray-500 mt-1">
                     {product.unit} - Current Stock: {product.currentStock}
                   </div>
                 </div>
               ))}
             </div>
           ) : searchQuery ? (
-            <div className="p-3 text-center text-gray-500">
+            <div className="p-3 text-center text-gray-500 text-sm">
               No products found
             </div>
           ) : null}
