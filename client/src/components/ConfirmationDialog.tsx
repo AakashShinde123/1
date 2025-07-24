@@ -89,33 +89,33 @@ export default function ConfirmationDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" aria-describedby="transaction-details">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-0 w-[calc(100%-2rem)] sm:w-full" aria-describedby="transaction-details">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4" id="transaction-details">
           <div className="border-b pb-4">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
               <span className="font-medium text-gray-600">Transaction Type:</span>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 w-fit">
                 {transactionData.type}
               </Badge>
             </div>
-            <div className="flex justify-between items-center mt-2">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-2 gap-2">
               <span className="font-medium text-gray-600">Date:</span>
               <span className="text-gray-900">{transactionData.date}</span>
             </div>
             {transactionData.soNumber && (
-              <div className="flex justify-between items-center mt-2">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-2 gap-2">
                 <span className="font-medium text-gray-600">SO Number:</span>
-                <span className="text-gray-900">{transactionData.soNumber}</span>
+                <span className="text-gray-900 break-all">{transactionData.soNumber}</span>
               </div>
             )}
             {transactionData.poNumber && transactionData.type === 'Stock In' && (
-              <div className="flex justify-between items-center mt-2">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-2 gap-2">
                 <span className="font-medium text-gray-600">PO Number:</span>
-                <span className="text-gray-900">{transactionData.poNumber}</span>
+                <span className="text-gray-900 break-all">{transactionData.poNumber}</span>
               </div>
             )}
           </div>
@@ -140,14 +140,14 @@ export default function ConfirmationDialog({
                     />
                   )}
                   <div className="flex-1">
-                    <div className="font-semibold text-gray-900">{product.product}</div>
-                    <div className="grid grid-cols-3 gap-4 text-sm mt-2">
-                      <div>
-                        <span className="text-gray-600">Current:</span>
+                    <div className="font-semibold text-gray-900 mb-3">{product.product}</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                      <div className="bg-white p-2 rounded border">
+                        <span className="text-gray-600 text-xs block">Current:</span>
                         <div className="font-medium">{formatDecimal(product.currentStock)} {product.unit}</div>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Quantity:</span>
+                      <div className="bg-white p-2 rounded border">
+                        <span className="text-gray-600 text-xs block">Quantity:</span>
                         <div className="font-medium text-blue-600">
                           {product.displayQuantity ? (
                             <div>
@@ -159,8 +159,8 @@ export default function ConfirmationDialog({
                           )}
                         </div>
                       </div>
-                      <div>
-                        <span className="text-gray-600">New Stock:</span>
+                      <div className="bg-white p-2 rounded border">
+                        <span className="text-gray-600 text-xs block">New Stock:</span>
                         <div className="font-bold text-green-600">{formatDecimal(product.newStock)} {product.unit}</div>
                       </div>
                     </div>
@@ -171,52 +171,69 @@ export default function ConfirmationDialog({
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 py-3">
+        <div className="flex items-start space-x-2 py-3 border-t">
           <Checkbox
             id="confirm-checkbox"
             checked={isConfirmed}
             onCheckedChange={(checked) => setIsConfirmed(checked === true)}
+            className="mt-0.5"
           />
           <label
             htmlFor="confirm-checkbox"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            className="text-sm font-medium leading-relaxed peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             I confirm that the above details are correct
           </label>
         </div>
 
-        <DialogFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
+        <DialogFooter className="flex flex-col sm:flex-row gap-3 sm:justify-between">
+          <Button 
+            variant="outline" 
+            onClick={handleClose} 
+            disabled={isLoading}
+            className="w-full sm:w-auto order-3 sm:order-1"
+          >
             Cancel
           </Button>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 order-1 sm:order-2">
             <Button
               variant="outline"
               onClick={handleEdit}
               disabled={isLoading}
-              className="bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+              className="bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100 w-full sm:w-auto"
             >
               <Edit className="w-4 h-4 mr-2" />
-              {showEditOptions ? (
-                selectedProducts.length > 0 ? `Edit Selected (${selectedProducts.length})` : 'Select Products'
-              ) : (
-                'Edit Transaction'
-              )}
+              <span className="hidden sm:inline">
+                {showEditOptions ? (
+                  selectedProducts.length > 0 ? `Edit Selected (${selectedProducts.length})` : 'Select Products'
+                ) : (
+                  'Edit Transaction'
+                )}
+              </span>
+              <span className="sm:hidden">
+                {showEditOptions ? (
+                  selectedProducts.length > 0 ? `Edit (${selectedProducts.length})` : 'Select'
+                ) : (
+                  'Edit'
+                )}
+              </span>
             </Button>
             <Button
               onClick={handleConfirm}
               disabled={!isConfirmed || isLoading}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
             >
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Processing...
+                  <span className="hidden sm:inline">Processing...</span>
+                  <span className="sm:hidden">Wait...</span>
                 </>
               ) : (
                 <>
                   <Check className="w-4 h-4 mr-2" />
-                  Confirm Transaction
+                  <span className="hidden sm:inline">Confirm Transaction</span>
+                  <span className="sm:hidden">Confirm</span>
                 </>
               )}
             </Button>
