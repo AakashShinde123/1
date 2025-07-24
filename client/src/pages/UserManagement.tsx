@@ -136,8 +136,10 @@ export default function UserManagement() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  // Only Super Admin can access user management
-  const hasAccess = (user as any)?.role === "super_admin";
+  // Only Super Admin can access user management - support multiple roles
+  const userRoles = (user as any)?.roles || [(user as any)?.role].filter(Boolean);
+  const hasRole = (role: string) => userRoles.includes(role);
+  const hasAccess = hasRole("super_admin");
 
   const {
     data: users = [],
@@ -209,6 +211,7 @@ export default function UserManagement() {
       setEditingUser(null);
     },
     onError: (error) => {
+      console.error("Role update error:", error);
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -220,9 +223,11 @@ export default function UserManagement() {
         }, 500);
         return;
       }
+      
+      const errorMessage = (error as any)?.message || "Failed to update user roles";
       toast({
         title: "Error",
-        description: "Failed to update user roles",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -376,15 +381,25 @@ export default function UserManagement() {
     // Get user's current roles (either from roles array or fallback to single role)
     const activeRoles = (user.roles && Array.isArray(user.roles) && user.roles.length > 0) 
       ? user.roles 
-      : [user.role as UserRole];
+      : (user.role ? [user.role as UserRole] : []);
     form.setValue("roles", activeRoles);
   };
 
   const handleUpdateRole = (data: UpdateRoleFormData) => {
-    if (editingUser && data.roles) {
+    console.log("Form submitted with data:", data);
+    console.log("Editing user:", editingUser);
+    
+    if (editingUser && data.roles && data.roles.length > 0) {
+      console.log("Attempting to update roles for user:", editingUser.id, "with roles:", data.roles);
       updateRolesMutation.mutate({
         userId: editingUser.id.toString(),
         roles: data.roles,
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Please select at least one role",
+        variant: "destructive",
       });
     }
   };
@@ -741,46 +756,81 @@ export default function UserManagement() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[800px]">
                 <thead>
                   <tr className="border-b bg-gray-50/50">
-                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">User ID</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">User ID</th>
                     {showUsername && (
-                      <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Username</th>
+                      <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Username</th>
                     )}
-                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Email</th>
-                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Name</th>
-                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Role</th>
-                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Status</th>
-                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Created</th>
-                    <th className="text-left p-3 lg:p-4 font-semibold text-gray-700 text-sm lg:text-base">Actions</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Email</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Name</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Role</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Status</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Created</th>
+                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(users as User[])?.map((userItem: User) => (
-                    <tr key={userItem.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                      <td className="p-3 lg:p-4 font-mono text-sm lg:text-base text-gray-600">{userItem.id}</td>
-                      {showUsername && (
-                        <td className="p-3 lg:p-4 font-medium text-sm lg:text-base text-gray-900">{userItem.username}</td>
-                      )}
-                      <td className="p-3 lg:p-4 text-sm lg:text-base text-gray-700">{userItem.email}</td>
-                      <td className="p-3 lg:p-4 text-sm lg:text-base text-gray-700">
-                        {userItem.firstName || userItem.lastName
-                          ? `${userItem.firstName || ""} ${userItem.lastName || ""}`.trim()
-                          : "N/A"}
-                      </td>
-                      <td className="p-3 lg:p-4">
-                        <div className="flex flex-wrap gap-1">
-                          {((userItem.roles && Array.isArray(userItem.roles) && userItem.roles.length > 0) 
-                            ? userItem.roles 
-                            : [userItem.role as UserRole]
-                          ).map((role: UserRole) => (
-                            <Badge key={role} className={getRoleBadgeColor(role)} style={{ fontSize: '0.7rem' }}>
-                              {getRoleDisplayName(role)}
-                            </Badge>
-                          ))}
-                        </div>
-                      </td>
+                  {(users as User[])?.map((userItem: User) => {
+                    // Check if user needs role approval (has empty roles array)
+                    const needsApproval = (!userItem.roles || userItem.roles.length === 0);
+                    
+                    return (
+                      <tr 
+                        key={userItem.id} 
+                        className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
+                          needsApproval ? 'bg-yellow-50 hover:bg-yellow-100' : ''
+                        }`}
+                      >
+                        <td className="p-2 sm:p-3 lg:p-4 font-mono text-xs sm:text-sm lg:text-base text-gray-600">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            {needsApproval && (
+                              <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Needs role approval"></div>
+                            )}
+                            <span className="truncate">{userItem.id}</span>
+                          </div>
+                        </td>
+                        {showUsername && (
+                          <td className="p-2 sm:p-3 lg:p-4 font-medium text-xs sm:text-sm lg:text-base text-gray-900">
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <span className="truncate">{userItem.username}</span>
+                              {needsApproval && (
+                                <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
+                                  NEW
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                        <td className="p-2 sm:p-3 lg:p-4 text-xs sm:text-sm lg:text-base text-gray-700">
+                          <span className="truncate block max-w-[120px] sm:max-w-[200px]">{userItem.email}</span>
+                        </td>
+                        <td className="p-2 sm:p-3 lg:p-4 text-xs sm:text-sm lg:text-base text-gray-700">
+                          <span className="truncate block max-w-[100px] sm:max-w-[150px]">
+                            {userItem.firstName || userItem.lastName
+                              ? `${userItem.firstName || ""} ${userItem.lastName || ""}`.trim()
+                              : "N/A"}
+                          </span>
+                        </td>
+                        <td className="p-2 sm:p-3 lg:p-4">
+                          <div className="flex flex-wrap gap-1 max-w-[150px] sm:max-w-[200px]">
+                            {needsApproval ? (
+                              <Badge variant="outline" className="text-xs bg-red-100 text-red-800 border-red-300 animate-pulse">
+                                ⚠️ Awaiting Role Assignment
+                              </Badge>
+                            ) : (
+                              ((userItem.roles && Array.isArray(userItem.roles) && userItem.roles.length > 0) 
+                                ? userItem.roles 
+                                : [userItem.role as UserRole]
+                              ).map((role: UserRole) => (
+                                <Badge key={role} className={getRoleBadgeColor(role)} style={{ fontSize: '0.65rem' }}>
+                                  {getRoleDisplayName(role)}
+                                </Badge>
+                              ))
+                            )}
+                          </div>
+                        </td>
                       <td className="p-3 lg:p-4">
                         <Badge
                           variant={userItem.isActive ? "default" : "secondary"}
@@ -851,7 +901,8 @@ export default function UserManagement() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
               {(users as User[])?.length === 0 && (
