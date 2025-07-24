@@ -70,8 +70,10 @@ export default function TransactionLog() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  // Only Super Admin can access transaction log
-  const canViewTransactions = (user as any)?.role === "super_admin";
+  // Only Super Admin can access transaction log - support multiple roles
+  const userRoles = (user as any)?.roles || [(user as any)?.role].filter(Boolean);
+  const hasRole = (role: string) => userRoles.includes(role);
+  const canViewTransactions = hasRole("super_admin");
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && !canViewTransactions) {
