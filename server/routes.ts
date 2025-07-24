@@ -117,6 +117,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ message: "Invalid username or password" });
       }
 
+      // Check if user has been assigned roles by admin
+      if (!user.roles || user.roles.length === 0) {
+        return res
+          .status(403)
+          .json({ 
+            message: "Account pending approval. Please wait for an administrator to assign your role." 
+          });
+      }
+
       (req.session as any).userId = user.id;
       res.json({
         message: "Login successful",
