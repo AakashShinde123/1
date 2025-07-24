@@ -153,7 +153,7 @@ export default function Login() {
                   )}
                 />
 
-                CAPTCHA - Only show in production
+{/*                 CAPTCHA - Only show in production */}
                 {!isLocalDevelopment && (
                   <div className="flex justify-center">
                     <ReCAPTCHA
@@ -165,11 +165,11 @@ export default function Login() {
                   </div>
                 )}
                 
-                Local development notice
+{/*                 Local development notice */}
                 {isLocalDevelopment && (
                   <div className="flex justify-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p className="text-sm text-yellow-800 font-medium">
-                      🔧 Local Development Mode - CAPTCHA disabled
+{/*                       🔧 Local Development Mode - CAPTCHA disabled */}
                     </p>
                   </div>
                 )}
