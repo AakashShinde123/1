@@ -34,7 +34,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).unique(),
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
-  role: varchar("role", { length: 30 }).notNull().default("stock_in_manager"), // Legacy single role field
+  role: varchar("role", { length: 30 }), // Legacy single role field - nullable for pending users
   roles: json("roles").$type<UserRole[]>().notNull().default([]), // New multiple roles field
   isActive: integer("is_active").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow(),
@@ -298,8 +298,12 @@ export function getUserActiveRoles(user: User): UserRole[] {
   if (user.roles && Array.isArray(user.roles) && user.roles.length > 0) {
     return user.roles;
   }
-  // Fallback to legacy single role field
-  return [user.role as UserRole];
+  // Fallback to legacy single role field, but only if it exists
+  if (user.role) {
+    return [user.role as UserRole];
+  }
+  // Return empty array for users awaiting role assignment
+  return [];
 }
 
 export function hasUserRole(user: User, targetRole: UserRole): boolean {
