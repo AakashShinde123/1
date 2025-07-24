@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Link } from "wouter";
 // Removed Card imports for sketch design
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +12,19 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema } from "@shared/schema";
 import { z } from "zod";
+import ReCAPTCHA from "react-google-recaptcha";
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Check if we're in local development - disable bypass since we have proper keys now
+  const isLocalDevelopment = false; // Disabled since we have proper reCAPTCHA keys
+  const [captchaVerified, setCaptchaVerified] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -27,7 +35,7 @@ export default function Login() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (data: LoginFormData) => {
+    mutationFn: async (data: LoginFormData & { captchaToken: string }) => {
       setIsLoading(true);
       const response = await apiRequest("POST", "/api/login", data);
       return response;
@@ -51,7 +59,22 @@ export default function Login() {
   });
 
   const handleSubmit = (data: LoginFormData) => {
-    loginMutation.mutate(data);
+    // Skip CAPTCHA verification for local development
+    if (!isLocalDevelopment && (!captchaVerified || !captchaToken)) {
+      toast({
+        title: "Verification Required",
+        description: "Please complete the CAPTCHA verification",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    loginMutation.mutate({ ...data, captchaToken: captchaToken || 'localhost-bypass' });
+  };
+
+  const onCaptchaChange = (token: string | null) => {
+    setCaptchaToken(token);
+    setCaptchaVerified(!!token);
   };
 
   return (
@@ -78,7 +101,7 @@ export default function Login() {
               </div>
             </div>
             <h1 className="text-3xl font-bold text-purple-800 sketch-underline">
-{/*               Sudhamrit */}
+              Sudhamrit
             </h1>
             <p className="text-gray-600 mt-2 font-medium">Secure Access Portal</p>
             <div className="w-16 h-1 bg-gradient-to-r from-purple-600 to-blue-600 mx-auto mt-4 rounded-full"></div>
@@ -130,11 +153,32 @@ export default function Login() {
                   )}
                 />
 
+                CAPTCHA - Only show in production
+                {!isLocalDevelopment && (
+                  <div className="flex justify-center">
+                    <ReCAPTCHA
+                      ref={recaptchaRef}
+                      sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                      onChange={onCaptchaChange}
+                      theme="light"
+                    />
+                  </div>
+                )}
+                
+                Local development notice
+                {isLocalDevelopment && (
+                  <div className="flex justify-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800 font-medium">
+                      🔧 Local Development Mode - CAPTCHA disabled
+                    </p>
+                  </div>
+                )}
+
                 <Button 
                   type="submit"
                   className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                   size="lg"
-                  disabled={isLoading}
+                  disabled={isLoading || (!isLocalDevelopment && !captchaVerified)}
                 >
                   {isLoading ? (
                     <div className="flex items-center">
@@ -157,6 +201,29 @@ export default function Login() {
                 <Shield className="w-4 h-4 mr-2" />
                 <span className="font-medium">Secured with end-to-end encryption</span>
               </div>
+            </div>
+
+            {/* Registration Section */}
+            <div className="mt-6 text-center">
+              <div className="flex items-center my-4">
+                <div className="flex-1 border-t border-gray-300"></div>
+                <span className="px-4 text-gray-500 text-sm">New User?</span>
+                <div className="flex-1 border-t border-gray-300"></div>
+              </div>
+              
+              <Link href="/register">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-2 border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-300 font-semibold py-3 rounded-lg transition-all duration-200"
+                >
+                  Create New Account
+                </Button>
+              </Link>
+              
+              <p className="text-xs text-gray-500 mt-2">
+                Register now and wait for admin approval
+              </p>
             </div>
           </div>
         </div>
