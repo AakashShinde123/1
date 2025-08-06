@@ -1,10 +1,15 @@
 import { defineConfig } from "drizzle-kit";
+import fs from "fs";
+import path from "path";
 
 const databaseUrl = process.env.DATABASE_URL || process.env.DATABASE_POOL_URL;
 
 if (!databaseUrl) {
-  throw new Error("DATABASE_URL or DATABASE_URL_MIGRATION not set. Ensure the database is provisioned.");
+  throw new Error("DATABASE_URL or DATABASE_POOL_URL not set. Ensure the database is provisioned.");
 }
+
+// Read SSL Certificate
+const sslCert = fs.readFileSync(path.resolve(__dirname, './cert/prod-ca-2021 (3).crt')).toString();
 
 export default defineConfig({
   out: "./migrations",
@@ -13,7 +18,8 @@ export default defineConfig({
   dbCredentials: {
     url: databaseUrl,
     ssl: {
-      rejectUnauthorized: false,
+      ca: sslCert,                // <-- Use CA Cert Here
+      rejectUnauthorized: true,   // <-- SSL Validation Enabled
     },
   },
 });
