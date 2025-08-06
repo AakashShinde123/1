@@ -9,7 +9,7 @@ if (!databaseUrl) {
 }
 
 // Read SSL Certificate
-const sslCert = fs.readFileSync(path.resolve(__dirname, './cert/supabase-root-ca.crt.cer')).toString();
+const sslCert = fs.readFileSync(path.resolve(__dirname, './cert/supabase-root-ca.pem')).toString();
 
 export default defineConfig({
   out: "./migrations",
@@ -23,5 +23,6 @@ export default defineConfig({
     },
   },
 });
+
 
 
