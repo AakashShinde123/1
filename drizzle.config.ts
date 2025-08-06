@@ -2,10 +2,10 @@ import { defineConfig } from "drizzle-kit";
 import fs from "fs";
 import path from "path";
 
-const databaseUrl = process.env.DATABASE_URL || process.env.DATABASE_POOL_URL;
+const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  throw new Error("DATABASE_URL or DATABASE_POOL_URL not set. Ensure the database is provisioned.");
+  throw new Error("DATABASE_URL  not set. Ensure the database is provisioned.");
 }
 
 // Read SSL Certificate
@@ -23,3 +23,4 @@ export default defineConfig({
     },
   },
 });
+
