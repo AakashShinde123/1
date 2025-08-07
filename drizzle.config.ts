@@ -1,10 +1,17 @@
 import { defineConfig } from "drizzle-kit";
+import * as fs from "fs";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   throw new Error("DATABASE_URL not set.");
 }
+
+// Load self-signed cert if needed
+const sslCert = fs.readFileSync("/etc/secrets/supabase-root-ca.pem").toString();
 
 export default defineConfig({
   schema: "./shared/schema.ts",
@@ -13,7 +20,8 @@ export default defineConfig({
   dbCredentials: {
     url: databaseUrl,
     ssl: {
-      rejectUnauthorized: true, // Use trusted root CAs
+      rejectUnauthorized: true,
+      ca: sslCert,
     },
   },
 });
