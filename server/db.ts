@@ -1,47 +1,38 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "@shared/schema";
-import dotenv from 'dotenv';
-
-// Load environment variables from .env file
-dotenv.config();
 
 // PostgreSQL database connection
-const connectionString = process.env.DATABASE_URL!;
+let connectionString = process.env.DATABASE_URL!;
 
 if (!connectionString) {
   throw new Error("DATABASE_URL environment variable is required");
 }
 
-// Configure postgres connection with minimal settings
+console.log("Database connection configured:", connectionString ? "✓" : "✗");
+
+// Configure postgres connection with Supabase-compatible SSL handling
+const isSupabase = connectionString.includes('supabase.co');
+const isProduction = process.env.NODE_ENV === 'production';
+
 const sql = postgres(connectionString, {
-  max: 1,
+  max: isProduction ? 10 : 1,
   prepare: false,
+  ssl: isSupabase ? { rejectUnauthorized: false } : (isProduction ? 'require' : 'prefer'),
+  connect_timeout: 30,
+  idle_timeout: 30,
 });
 
 export const db = drizzle(sql, { schema });
 
-// import { drizzle } from "drizzle-orm/postgres-js";
-// import postgres from "postgres";
-// import * as schema from "@shared/schema";
-// import dotenv from "dotenv";
-
-// dotenv.config();
-
-// const connectionString = process.env.DATABASE_URL;
-
-// if (!connectionString) {
-//   throw new Error("DATABASE_URL environment variable is required");
-// }
-
-// // Supabase Postgres must use SSL in production
-// const sql = postgres(connectionString, {
-//   max: 1,
-//   prepare: false,
-//   ssl: 'require', // ✅ This is needed for Supabase
-// });
-
-// export const db = drizzle(sql, { schema });
-
-
-
+// Test database connection
+export async function testDatabaseConnection() {
+  try {
+    await sql`SELECT 1`;
+    console.log("Database connection successful ✓");
+    return true;
+  } catch (error) {
+    console.error("Database connection failed:", error);
+    return false;
+  }
+}
