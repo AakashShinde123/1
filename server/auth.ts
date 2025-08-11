@@ -17,11 +17,7 @@ export function getSession() {
     createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: 'sessions',
-    // Add SSL configuration for Supabase
-    ssl: isSupabase ? {
-      rejectUnauthorized: false,
-    } : undefined,
-  });
+  } as any); // TypeScript workaround - SSL is handled via connection string for Supabase
   
   return session({
     secret: process.env.SESSION_SECRET || 'inventory-management-secret-key',
