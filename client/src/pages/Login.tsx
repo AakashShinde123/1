@@ -3,11 +3,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
-// Removed Card imports for sketch design
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Shield, LogIn, Lock } from "lucide-react";
+import { Shield, LogIn, Lock, Eye, EyeOff, Package } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema } from "@shared/schema";
@@ -19,11 +18,13 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function Login() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   
-  // Check if we're in local development - disable bypass since we have proper keys now
-  const isLocalDevelopment = false; // Disabled since we have proper reCAPTCHA keys
-  const [captchaVerified, setCaptchaVerified] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  // Check if we're in local development
+  const isLocalDevelopment = import.meta.env.DEV || !import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+  const [captchaVerified, setCaptchaVerified] = useState(isLocalDevelopment);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(isLocalDevelopment ? 'localhost-bypass' : null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   const form = useForm<LoginFormData>({
@@ -78,153 +79,222 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 paper-texture flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-10 left-10 w-32 h-32 bg-purple-600 rounded-full blur-3xl"></div>
-        <div className="absolute top-32 right-20 w-40 h-40 bg-blue-600 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 left-20 w-36 h-36 bg-indigo-600 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-10 right-10 w-28 h-28 bg-purple-800 rounded-full blur-3xl"></div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-5 relative overflow-hidden">
+      <style>
+        {`
+          @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+          }
+          @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+          .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+          }
+          .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+          }
+          .logo-icon {
+            animation: float 3s ease-in-out infinite;
+          }
+          .form-input:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.15), 0 0 0 3px rgba(102, 126, 234, 0.1);
+          }
+          .login-btn {
+            position: relative;
+            overflow: hidden;
+          }
+          .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+          }
+          .login-btn:hover::before {
+            left: 100%;
+          }
+          .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+          }
+        `}
+      </style>
 
-      <div className="w-full max-w-md relative z-10">
-        <div className="sketch-card sketch-card-purple p-0 overflow-hidden">
-          <div className="text-center pb-6 pt-8 px-8">
-            <div className="mb-6">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full blur opacity-20 animate-pulse"></div>
-                <img 
-                  src="/assets/111_1750417572953.png" 
-                  alt="Sudhamrit Logo" 
-                  className="h-20 w-auto mx-auto relative z-10"
-                />
-              </div>
+      <div className="w-full max-w-md relative">
+        <div className="glass-card relative rounded-2xl shadow-2xl p-10 overflow-hidden">
+          {/* Logo and Header Section */}
+          <div className="text-center mb-10">
+            <div className="logo-icon w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">
+              <Package className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-purple-800 sketch-underline">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2 tracking-tight">
               Sudhamrit
             </h1>
-            <p className="text-gray-600 mt-2 font-medium">Secure Access Portal</p>
-            <div className="w-16 h-1 bg-gradient-to-r from-purple-600 to-blue-600 mx-auto mt-4 rounded-full"></div>
+            <p className="text-gray-600 text-base">Inventory Management System</p>
           </div>
-          <div className="px-8 pb-8">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 font-semibold flex items-center">
-                        <Shield className="w-4 h-4 mr-2 text-purple-600" />
-                        Username
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          placeholder="Enter your username"
-                          className="text-lg h-12 border-gray-300 focus:border-purple-500 focus:ring-purple-500 transition-all duration-200"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 font-semibold flex items-center">
-                        <Lock className="w-4 h-4 mr-2 text-purple-600" />
-                        Password
-                      </FormLabel>
-                      <FormControl>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+              {/* Username Field */}
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="block mb-2 text-gray-800 font-semibold text-sm">
+                      Username or Email
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        placeholder="Enter your username or email"
+                        className="form-input w-full px-5 py-4 border-2 border-gray-200 rounded-xl text-base bg-white transition-all duration-300 focus:border-indigo-500 focus:ring-0 focus:outline-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Password Field */}
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="block mb-2 text-gray-800 font-semibold text-sm">
+                      Password
+                    </FormLabel>
+                    <FormControl>
+                      <div className="relative">
                         <Input
-                          type="password"
+                          type={showPassword ? "text" : "password"}
                           placeholder="Enter your password"
-                          className="text-lg h-12 border-gray-300 focus:border-purple-500 focus:ring-purple-500 transition-all duration-200"
+                          className="form-input w-full px-5 py-4 pr-12 border-2 border-gray-200 rounded-xl text-base bg-white transition-all duration-300 focus:border-indigo-500 focus:ring-0 focus:outline-none"
                           {...field}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-{/*                 CAPTCHA - Only show in production */}
-                {!isLocalDevelopment && (
-                  <div className="flex justify-center">
-                    <ReCAPTCHA
-                      ref={recaptchaRef}
-                      sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-                      onChange={onCaptchaChange}
-                      theme="light"
-                    />
-                  </div>
-                )}
-                
-{/*                 Local development notice */}
-                {isLocalDevelopment && (
-                  <div className="flex justify-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800 font-medium">
-{/*                       🔧 Local Development Mode - CAPTCHA disabled */}
-                    </p>
-                  </div>
-                )}
-
-                <Button 
-                  type="submit"
-                  className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                  size="lg"
-                  disabled={isLoading || (!isLocalDevelopment && !captchaVerified)}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
-                      Authenticating...
+                        <button
+                          type="button"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-500 transition-colors p-1"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
+                    </FormControl>
+                    <div className="text-right mt-2">
+                      <button
+                        type="button"
+                        className="text-indigo-500 hover:text-indigo-600 text-sm font-medium transition-colors hover:underline"
+                      >
+                        Forgot Password?
+                      </button>
                     </div>
-                  ) : (
-                    <>
-                      <LogIn className="mr-2 h-5 w-5" />
-                      Secure Login
-                    </>
-                  )}
-                </Button>
-              </form>
-            </Form>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Security Notice */}
-            <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
-              <div className="flex items-center justify-center text-sm text-purple-800">
-                <Shield className="w-4 h-4 mr-2" />
-                <span className="font-medium">Secured with end-to-end encryption</span>
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center gap-3 mb-8">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <label
+                    htmlFor="rememberMe"
+                    className={`w-5 h-5 border-2 rounded cursor-pointer flex items-center justify-center transition-all ${
+                      rememberMe 
+                        ? 'bg-indigo-500 border-indigo-500' 
+                        : 'border-gray-300 hover:border-indigo-400'
+                    }`}
+                  >
+                    {rememberMe && <span className="text-white text-xs">✓</span>}
+                  </label>
+                </div>
+                <label htmlFor="rememberMe" className="text-gray-700 text-sm cursor-pointer">
+                  Remember me for 30 days
+                </label>
               </div>
-            </div>
 
-            {/* Registration Section */}
-            <div className="mt-6 text-center">
-              <div className="flex items-center my-4">
-                <div className="flex-1 border-t border-gray-300"></div>
-                <span className="px-4 text-gray-500 text-sm">New User?</span>
-                <div className="flex-1 border-t border-gray-300"></div>
-              </div>
+              {/* CAPTCHA - Only show in production */}
+              {!isLocalDevelopment && (
+                <div className="flex justify-center mb-6">
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                    onChange={onCaptchaChange}
+                    theme="light"
+                  />
+                </div>
+              )}
               
+              {/* Local development notice */}
+              {isLocalDevelopment && (
+                <div className="flex justify-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg mb-6">
+                  <p className="text-sm text-yellow-800 font-medium">
+                    🔧 Local Development Mode - CAPTCHA disabled
+                  </p>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <Button 
+                type="submit"
+                className="login-btn w-full px-4 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-none rounded-xl text-base font-semibold cursor-pointer transition-all duration-300 relative overflow-hidden"
+                disabled={isLoading || (!isLocalDevelopment && !captchaVerified)}
+              >
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
+                    Signing in...
+                  </div>
+                ) : (
+                  "Sign In to Dashboard"
+                )}
+              </Button>
+            </form>
+          </Form>
+
+          {/* Divider */}
+          <div className="relative my-8 text-center">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <span className="relative bg-white px-6 text-gray-500 text-sm">Need Help?</span>
+          </div>
+
+          {/* Footer Links */}
+          <div className="text-center">
+            <p className="text-gray-600 text-sm mb-3">
+              Don't have an account?{" "}
               <Link href="/register">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full border-2 border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-300 font-semibold py-3 rounded-lg transition-all duration-200"
-                >
-                  Create New Account
-                </Button>
+                <button className="text-indigo-500 hover:text-indigo-600 font-medium hover:underline transition-colors">
+                  Create account
+                </button>
               </Link>
-              
-              <p className="text-xs text-gray-500 mt-2">
-                Register now and wait for admin approval
-              </p>
-            </div>
+            </p>
+           {/* ? */}
           </div>
         </div>
       </div>
