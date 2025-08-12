@@ -53,14 +53,12 @@ export default function HomeNew() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-8">
-          <img 
-            src="/assets/111_1750417572953.png" 
-            alt="Sudhamrit Logo" 
+          <img
+            src="/assets/111_1750417572953.png"
+            alt="Sudhamrit Logo"
             className="h-16 w-auto mx-auto mb-6"
           />
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Sudhamrit
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Sudhamrit</h1>
           <h2 className="text-xl text-gray-600 mb-6">
             Inventory Management System
           </h2>
@@ -73,38 +71,12 @@ export default function HomeNew() {
   }
 
   // Get user's active roles (support both single role and multiple roles)
-  const userRoles = (user as any)?.roles || [(user as any)?.role].filter(Boolean);
+  const userRoles =
+    (user as any)?.roles || [(user as any)?.role].filter(Boolean);
   const hasRole = (role: string) => userRoles.includes(role);
 
-  // Handle users with no roles (awaiting approval) - they shouldn't reach here due to backend validation
-  if (!userRoles.length || userRoles.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 18.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Account Pending Approval</h2>
-          <p className="text-gray-600 mb-6">
-            Your account has been created successfully! Please wait for an administrator to assign your role and activate your account.
-          </p>
-          <button
-            onClick={() => {
-              fetch('/api/logout', { method: 'POST' })
-                .then(() => {
-                  window.location.href = '/login';
-                });
-            }}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-          >
-            Return to Login
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // For users with no roles - show only default buttons (Sudhastar and Holy Creation)
+  const hasAnyRoles = userRoles.length > 0;
 
   const isSuperAdmin = hasRole("super_admin");
   const isMasterInventoryHandler = hasRole("master_inventory_handler");
@@ -237,10 +209,10 @@ export default function HomeNew() {
             <div className="mx-auto w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center mb-2 shadow-md">
               <BarChart3 className="h-5 w-5 text-white" />
             </div>
-            <h3 className="text-base font-medium text-purple-800 mb-1">Dashboard</h3>
-            <p className="text-purple-600 text-xs">
-              View statistics
-            </p>
+            <h3 className="text-base font-medium text-purple-800 mb-1">
+              Dashboard
+            </h3>
+            <p className="text-purple-600 text-xs">View statistics</p>
           </div>
         </div>
       ),
@@ -258,10 +230,10 @@ export default function HomeNew() {
               <div className="mx-auto w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <Package className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-base font-medium text-blue-800 mb-1">Master Inventory</h3>
-              <p className="text-blue-600 text-xs">
-                Manage products
-              </p>
+              <h3 className="text-base font-medium text-blue-800 mb-1">
+                Master Inventory
+              </h3>
+              <p className="text-blue-600 text-xs">Manage products</p>
             </div>
           </div>
         </Link>
@@ -280,10 +252,10 @@ export default function HomeNew() {
               <div className="mx-auto w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <ArrowUp className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-base font-medium text-green-800 mb-1">Stock In</h3>
-              <p className="text-green-600 text-xs">
-                Add inventory
-              </p>
+              <h3 className="text-base font-medium text-green-800 mb-1">
+                Stock In
+              </h3>
+              <p className="text-green-600 text-xs">Add inventory</p>
             </div>
           </div>
         </Link>
@@ -302,10 +274,10 @@ export default function HomeNew() {
               <div className="mx-auto w-10 h-10 bg-red-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <ArrowDown className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-base font-medium text-red-800 mb-1">Stock Out</h3>
-              <p className="text-red-600 text-xs">
-                Remove inventory
-              </p>
+              <h3 className="text-base font-medium text-red-800 mb-1">
+                Stock Out
+              </h3>
+              <p className="text-red-600 text-xs">Remove inventory</p>
             </div>
           </div>
         </Link>
@@ -324,10 +296,10 @@ export default function HomeNew() {
               <div className="mx-auto w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <List className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-base font-medium text-yellow-800 mb-1">Transaction Log</h3>
-              <p className="text-yellow-600 text-xs">
-                View transactions
-              </p>
+              <h3 className="text-base font-medium text-yellow-800 mb-1">
+                Transaction Log
+              </h3>
+              <p className="text-yellow-600 text-xs">View transactions</p>
             </div>
           </div>
         </Link>
@@ -346,10 +318,10 @@ export default function HomeNew() {
               <div className="mx-auto w-10 h-10 bg-rose-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <Users className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-base font-medium text-rose-800 mb-1">User Management</h3>
-              <p className="text-rose-600 text-xs">
-                Manage users
-              </p>
+              <h3 className="text-base font-medium text-rose-800 mb-1">
+                User Management
+              </h3>
+              <p className="text-rose-600 text-xs">Manage users</p>
             </div>
           </div>
         </Link>
@@ -373,10 +345,10 @@ export default function HomeNew() {
               <div className="mx-auto w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <CalendarCheck className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-base font-medium text-indigo-800 mb-1">Attendance Portal</h3>
-              <p className="text-indigo-600 text-xs">
-                Track attendance
-              </p>
+              <h3 className="text-base font-medium text-indigo-800 mb-1">
+                Attendance Portal
+              </h3>
+              <p className="text-indigo-600 text-xs">Track attendance</p>
             </div>
           </div>
         </a>
@@ -384,9 +356,9 @@ export default function HomeNew() {
     });
   }
 
-  
-    // Weekly Planner access - for Weekly Planner role OR Super Admin
-  if (hasRole("weekly_stock_planner") || hasRole("super_admin")) { // <-- fix here
+  // Weekly Planner access - for Weekly Planner role OR Super Admin
+  if (hasRole("weekly_stock_planner") || hasRole("super_admin")) {
+    // <-- fix here
     availableActions.push({
       key: "weekly-planner",
       component: (
@@ -396,10 +368,10 @@ export default function HomeNew() {
               <div className="mx-auto w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <Calendar className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-base font-medium text-teal-800 mb-1 text-bold text-capitalize">Weekly Planner</h3>
-              <p className="text-teal-600 text-xs">
-                View & plan weekly tasks
-              </p>
+              <h3 className="text-base font-medium text-teal-800 mb-1 text-bold text-capitalize">
+                Weekly Planner
+              </h3>
+              <p className="text-teal-600 text-xs">View & plan weekly tasks</p>
             </div>
           </div>
         </Link>
@@ -418,7 +390,9 @@ export default function HomeNew() {
               <div className="mx-auto w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <BarChart3 className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-base font-medium text-orange-800 mb-1">All Reports</h3>
+              <h3 className="text-base font-medium text-orange-800 mb-1">
+                All Reports
+              </h3>
               <p className="text-orange-600 text-xs">
                 Generate & download all reports
               </p>
@@ -440,10 +414,10 @@ export default function HomeNew() {
               <div className="mx-auto w-10 h-10 bg-lime-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <List className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-base font-medium text-lime-800 mb-1">Orders</h3>
-              <p className="text-lime-600 text-xs">
-                View and manage orders
-              </p>
+              <h3 className="text-base font-medium text-lime-800 mb-1">
+                Orders
+              </h3>
+              <p className="text-lime-600 text-xs">View and manage orders</p>
             </div>
           </div>
         </Link>
@@ -462,7 +436,9 @@ export default function HomeNew() {
               <div className="mx-auto w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <Plus className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-base font-medium text-cyan-800 mb-1">Send Message</h3>
+              <h3 className="text-base font-medium text-cyan-800 mb-1">
+                Send Message
+              </h3>
               <p className="text-cyan-600 text-xs">
                 Send a message to users/admin
               </p>
@@ -473,12 +449,17 @@ export default function HomeNew() {
     });
   }
 
-    // Sudhastar button
+  // Check if user has any assigned roles (not empty roles array)
+  const hasAnyAssignedRoles = userRoles.length > 0;
+
+  // For users with NO assigned roles (pending approval), show only default buttons
+  if (!hasAnyAssignedRoles) {
+    // Sudhastar button - for users awaiting role assignment
     availableActions.push({
       key: "sudhastar",
       component: (
-       <a
-          key="attendance"
+        <a
+          key="sudhastar"
           href="https://mysudhamrit.in/"
           target="_blank"
           rel="noopener noreferrer"
@@ -488,17 +469,17 @@ export default function HomeNew() {
               <div className="mx-auto w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <Package className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-base font-medium text-pink-800 mb-1">Sudhastar</h3>
-              <p className="text-pink-600 text-xs">
-                Sudhastar section
-              </p>
+              <h3 className="text-base font-medium text-pink-800 mb-1">
+                Sudhastar
+              </h3>
+              <p className="text-pink-600 text-xs">Sudhastar section</p>
             </div>
           </div>
         </a>
       ),
     });
 
-    // Holy Creation button
+    // Holy Creation button - for users awaiting role assignment
     availableActions.push({
       key: "holy-creation",
       component: (
@@ -508,16 +489,16 @@ export default function HomeNew() {
               <div className="mx-auto w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center mb-2 shadow-md">
                 <Package className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-base font-medium text-indigo-800 mb-1">Holy Creation</h3>
-              <p className="text-indigo-600 text-xs">
-                Holy Creation section
-              </p>
+              <h3 className="text-base font-medium text-indigo-800 mb-1">
+                Holy Creation
+              </h3>
+              <p className="text-indigo-600 text-xs">Holy Creation section</p>
             </div>
           </div>
         </Link>
       ),
     });
-  
+  }
 
   // Create dynamic title based on roles
   const roleNames = [];
@@ -540,7 +521,9 @@ export default function HomeNew() {
             <p className="text-gray-600">
               {roleNames.length > 1
                 ? `${roleNames.join(", ")} Dashboard`
-                : `${roleNames[0]} Dashboard`}
+                : roleNames.length === 1
+                ? `${roleNames[0]} Dashboard`
+                : "Welcome to Sudhamrit Inventory Management"}
             </p>
           </div>
         </div>
@@ -559,9 +542,9 @@ export default function HomeNew() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="max-w-md mx-auto px-4 text-center">
-        <img 
-          src="/assets/111_1750417572953.png" 
-          alt="Sudhamrit Logo" 
+        <img
+          src="/assets/111_1750417572953.png"
+          alt="Sudhamrit Logo"
           className="h-16 w-auto mx-auto mb-6"
         />
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -579,4 +562,3 @@ export default function HomeNew() {
     </div>
   );
 }
- 
