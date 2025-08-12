@@ -118,13 +118,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user has been assigned roles by admin
-      if (!user.roles || user.roles.length === 0) {
-        return res
-          .status(403)
-          .json({ 
-            message: "Account pending approval. Please wait for an administrator to assign your role." 
-          });
-      }
+      // Allow users with no roles to log in - they'll see default buttons
+      // Remove the blocking for pending users
 
       (req.session as any).userId = user.id;
       res.json({
@@ -222,6 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email,
         firstName,
         lastName,
+        role: "stock_in_manager", // Temporary default for schema - will be ignored if roles array is empty
         roles: [], // Empty roles - awaiting admin assignment
       });
 
