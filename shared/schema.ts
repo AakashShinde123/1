@@ -11,6 +11,7 @@ import {
   pgEnum,
   date,
   boolean,
+  time, // <-- Add this
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -88,15 +89,17 @@ export const weeklyStockPlans = pgTable("weekly_stock_plans", {
   productId: integer("product_id")
     .notNull()
     .references(() => products.id),
+  name: varchar("name", { length: 255 }), // <-- Add this line
   userId: integer("user_id")
     .notNull()
     .references(() => users.id),
-  plannedQuantity: decimal("planned_quantity", { precision: 10, scale: 2 }).notNull(),
+  presentStock: decimal("present_stock", { precision: 10, scale: 2 }).notNull(),
   unit: varchar("unit", { length: 50 }).notNull(),
+  previousWeekStock: decimal("previous_week_stock", { precision: 10, scale: 2 }).notNull(),
+  plannedQuantity: decimal("planned_quantity", { precision: 10, scale: 2 }).notNull(),
   weekStartDate: date("week_start_date").notNull(),
   weekEndDate: date("week_end_date").notNull(),
   isActive: boolean("is_active").notNull().default(true),
-  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -116,6 +119,19 @@ export const lowStockAlerts = pgTable("low_stock_alerts", {
   isResolved: boolean("is_resolved").notNull().default(false),
   alertDate: timestamp("alert_date").notNull(),
   resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Orders table
+export const orders = pgTable("orders", {
+  id: serial("id").primaryKey(),
+  employeeName: varchar("employee_name", { length: 100 }),
+  customerName: varchar("customer_name", { length: 100 }),
+  customerNumber: varchar("customer_number", { length: 50 }),
+  orderNumber: varchar("order_number", { length: 50 }),
+  orderItems: text("order_items"),
+  deliveryDate: date("delivery_date"),
+  deliveryTime: time("delivery_time"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -180,8 +196,28 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
-  role: z.enum(['super_admin', 'master_inventory_handler', 'stock_in_manager', 'stock_out_manager', 'attendance_checker']).default('stock_in_manager'),
-  roles: z.array(z.enum(['super_admin', 'master_inventory_handler', 'stock_in_manager', 'stock_out_manager', 'attendance_checker'])).default([]),
+  role: z.enum([
+    "super_admin",
+    "master_inventory_handler",
+    "stock_in_manager",
+    "stock_out_manager",
+    "attendance_checker",
+    "weekly_stock_planner",
+    "orders",
+    "send_message",
+    "all_reports",
+  ]).default('stock_in_manager'),
+  roles: z.array(z.enum([
+    "super_admin",
+    "master_inventory_handler",
+    "stock_in_manager",
+    "stock_out_manager",
+    "attendance_checker",
+    "weekly_stock_planner",
+    "orders",
+    "send_message",
+    "all_reports",
+  ])).default([]),
 });
 
 export const loginSchema = z.object({
@@ -245,6 +281,11 @@ export const insertLowStockAlertSchema = createInsertSchema(lowStockAlerts).omit
   createdAt: true,
 });
 
+export const insertOrderSchema = createInsertSchema(orders).omit({
+  id: true,
+  createdAt: true,
+} as any);
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -259,6 +300,8 @@ export type WeeklyStockPlan = typeof weeklyStockPlans.$inferSelect;
 export type InsertWeeklyStockPlan = z.infer<typeof insertWeeklyStockPlanSchema>;
 export type LowStockAlert = typeof lowStockAlerts.$inferSelect;
 export type InsertLowStockAlert = z.infer<typeof insertLowStockAlertSchema>;
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = z.infer<typeof insertOrderSchema>;
 
 // Extended types with relations
 export type ProductWithTransactions = Product & {
@@ -285,7 +328,12 @@ export type UserRole =
   | "master_inventory_handler"
   | "stock_in_manager"
   | "stock_out_manager"
-  | "attendance_checker";
+  | "attendance_checker"
+  | "weekly_stock_planner"
+  | "orders"
+  | "send_message"
+  | "all_reports";
+
 
 // Helper type for multiple roles support
 export type UserWithRoles = User & {
