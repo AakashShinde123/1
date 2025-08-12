@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, products, stockTransactions, weeklyStockPlans, lowStockAlerts } from "@shared/schema";
+import { users, products, stockTransactions, weeklyStockPlans, lowStockAlerts, orders } from "@shared/schema";
 import {
   eq,
   desc,
@@ -29,6 +29,8 @@ import type {
   StockTransactionWithDetails,
   WeeklyStockPlanWithDetails,
   LowStockAlertWithDetails,
+  Order,
+  InsertOrder,
 } from "@shared/schema";
 
 // ============= USER QUERIES =============
@@ -56,7 +58,10 @@ export const userQueries = {
 
   // Create new user
   async create(userData: InsertUser): Promise<User> {
-    const result = await db.insert(users).values(userData).returning();
+    const result = await db.insert(users).values({
+      ...userData,
+      roles: userData.roles ? JSON.stringify(userData.roles) : undefined,
+    }).returning();
     return result[0];
   },
 
@@ -772,13 +777,15 @@ export const weeklyStockPlanQueries = {
       .select({
         id: weeklyStockPlans.id,
         productId: weeklyStockPlans.productId,
+        name: weeklyStockPlans.name, // <-- Add this line
         userId: weeklyStockPlans.userId,
         plannedQuantity: weeklyStockPlans.plannedQuantity,
         unit: weeklyStockPlans.unit,
         weekStartDate: weeklyStockPlans.weekStartDate,
         weekEndDate: weeklyStockPlans.weekEndDate,
+        presentStock: weeklyStockPlans.presentStock,
+        previousWeekStock: weeklyStockPlans.previousWeekStock,
         isActive: weeklyStockPlans.isActive,
-        notes: weeklyStockPlans.notes,
         createdAt: weeklyStockPlans.createdAt,
         updatedAt: weeklyStockPlans.updatedAt,
         product: {
@@ -816,13 +823,15 @@ export const weeklyStockPlanQueries = {
       .select({
         id: weeklyStockPlans.id,
         productId: weeklyStockPlans.productId,
+        name: weeklyStockPlans.name, // <-- Add this line
         userId: weeklyStockPlans.userId,
         plannedQuantity: weeklyStockPlans.plannedQuantity,
         unit: weeklyStockPlans.unit,
         weekStartDate: weeklyStockPlans.weekStartDate,
         weekEndDate: weeklyStockPlans.weekEndDate,
+        presentStock: weeklyStockPlans.presentStock,
+        previousWeekStock: weeklyStockPlans.previousWeekStock,
         isActive: weeklyStockPlans.isActive,
-        notes: weeklyStockPlans.notes,
         createdAt: weeklyStockPlans.createdAt,
         updatedAt: weeklyStockPlans.updatedAt,
         product: {
@@ -868,13 +877,15 @@ export const weeklyStockPlanQueries = {
       .select({
         id: weeklyStockPlans.id,
         productId: weeklyStockPlans.productId,
+        name: weeklyStockPlans.name, // <-- Add this line
         userId: weeklyStockPlans.userId,
         plannedQuantity: weeklyStockPlans.plannedQuantity,
         unit: weeklyStockPlans.unit,
         weekStartDate: weeklyStockPlans.weekStartDate,
         weekEndDate: weeklyStockPlans.weekEndDate,
+        presentStock: weeklyStockPlans.presentStock,
+        previousWeekStock: weeklyStockPlans.previousWeekStock,
         isActive: weeklyStockPlans.isActive,
-        notes: weeklyStockPlans.notes,
         createdAt: weeklyStockPlans.createdAt,
         updatedAt: weeklyStockPlans.updatedAt,
         product: {
@@ -914,35 +925,34 @@ export const weeklyStockPlanQueries = {
   // Create weekly stock plan
   async create(planData: InsertWeeklyStockPlan): Promise<WeeklyStockPlan> {
     try {
-      console.log("Creating weekly stock plan with data:", planData);
-      
       // Validate required fields
       if (!planData.productId || !planData.userId) {
         throw new Error("Product ID and User ID are required");
       }
-      
       if (!planData.plannedQuantity || parseFloat(planData.plannedQuantity) <= 0) {
         throw new Error("Planned quantity must be greater than 0");
       }
-      
       if (!planData.weekStartDate || !planData.weekEndDate) {
         throw new Error("Week start and end dates are required");
       }
-      
+      if (planData.presentStock === undefined) {
+        throw new Error("presentStock is required");
+      }
+      if (planData.previousWeekStock === undefined) {
+        throw new Error("previousWeekStock is required");
+      }
+
       const result = await db
         .insert(weeklyStockPlans)
         .values(planData)
         .returning();
-      
+
       if (!result[0]) {
         throw new Error("Failed to create weekly stock plan - no result returned");
       }
-      
-      console.log("Successfully created weekly stock plan:", result[0]);
       return result[0];
     } catch (error) {
       console.error("Error in weeklyStockPlanQueries.create:", error);
-      console.error("Plan data that caused error:", planData);
       throw error;
     }
   },
@@ -1107,4 +1117,17 @@ export const lowStockAlertQueries = {
 
     return newAlerts;
   },
+};
+
+// ============= ORDER QUERIES =============
+
+export const orderQueries = {
+  async create(orderData: InsertOrder): Promise<Order> {
+    const result = await db.insert(orders).values(orderData).returning();
+    return result[0];
+  },
+  async getAll(): Promise<Order[]> {
+    return await db.select().from(orders).orderBy(desc(orders.createdAt));
+  },
+  // Add more as needed (getById, update, delete, etc.)
 };
