@@ -38,8 +38,11 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [captchaVerified, setCaptchaVerified] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  
+  // Check if we're in local development
+  const isLocalDevelopment = import.meta.env.DEV || !import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+  const [captchaVerified, setCaptchaVerified] = useState(isLocalDevelopment);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(isLocalDevelopment ? 'localhost-bypass' : null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   const form = useForm<RegistrationFormData>({
@@ -90,7 +93,8 @@ export default function Register() {
   });
 
   const handleSubmit = (data: RegistrationFormData) => {
-    if (!captchaVerified || !captchaToken) {
+    // Skip CAPTCHA verification for local development
+    if (!isLocalDevelopment && (!captchaVerified || !captchaToken)) {
       toast({
         title: "Verification Required",
         description: "Please complete the CAPTCHA verification",
@@ -99,7 +103,7 @@ export default function Register() {
       return;
     }
 
-    registerMutation.mutate({ ...data, captchaToken });
+    registerMutation.mutate({ ...data, captchaToken: captchaToken || 'localhost-bypass' });
   };
 
   const onCaptchaChange = (token: string | null) => {
@@ -285,19 +289,30 @@ export default function Register() {
                   )}
                 />
 
-                {/* CAPTCHA */}
-                <div className="flex justify-center pt-2">
-                  <ReCAPTCHA
-                    ref={recaptchaRef}
-                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-                    onChange={onCaptchaChange}
-                    theme="light"
-                  />
-                </div>
+                {/* CAPTCHA - Only show in production */}
+                {!isLocalDevelopment && (
+                  <div className="flex justify-center pt-2">
+                    <ReCAPTCHA
+                      ref={recaptchaRef}
+                      sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                      onChange={onCaptchaChange}
+                      theme="light"
+                    />
+                  </div>
+                )}
+                
+                {/* Local development notice */}
+                {isLocalDevelopment && (
+                  <div className="flex justify-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800 font-medium">
+                      🔧 Local Development Mode - CAPTCHA disabled
+                    </p>
+                  </div>
+                )}
 
                 <Button
                   type="submit"
-                  disabled={isLoading || !captchaVerified}
+                  disabled={isLoading || (!isLocalDevelopment && !captchaVerified)}
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 sketch-button"
                 >
                   {isLoading ? (
