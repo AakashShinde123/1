@@ -1,605 +1,548 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell, AreaChart, Area
-} from 'recharts';
-import { 
-  FileBarChart, 
-  Download, 
-  TrendingUp,
-  TrendingDown,
-  Package,
-  AlertTriangle,
-  Activity,
-  DollarSign,
-  Users,
-  Calendar,
-  Filter
-} from "lucide-react";
-import { format, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Search, RotateCcw, FileText, Calendar, Download } from "lucide-react";
+import { Link } from "wouter";
 
-interface ReportData {
-  inventoryOverview: {
-    totalProducts: number;
-    totalStockValue: number;
-    lowStockProducts: number;
-    outOfStockProducts: number;
-    topProducts: Array<{
-      name: string;
-      currentStock: string;
-      unit: string;
-      value: number;
-    }>;
-  };
-  stockMovement: {
-    daily: Array<{
-      date: string;
-      stockIn: number;
-      stockOut: number;
-      net: number;
-    }>;
-    monthly: Array<{
-      month: string;
-      stockIn: number;
-      stockOut: number;
-      net: number;
-    }>;
-  };
-  productAnalysis: Array<{
-    category: string;
-    count: number;
-    totalStock: number;
-  }>;
-  recentActivity: Array<{
-    id: number;
-    type: string;
-    productName: string;
-    quantity: string;
-    user: string;
-    date: string;
-    soNumber?: string;
-    poNumber?: string;
-  }>;
-  lowStockAlerts: Array<{
-    id: number;
-    name: string;
-    currentStock: string;
-    unit: string;
-    status: 'critical' | 'low' | 'warning';
-  }>;
-  dashboardStats: {
-    totalProducts: number;
-    totalStock: number;
-    todayStockIn: number;
-    todayStockOut: number;
-    activeProducts: number;
-    lowStockProducts: number;
-  };
-}
+type ReportType = "transactions" | "weekly-plans";
 
-const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#ff0000'];
+export default function ReportsPage() {
+  const [activeReport, setActiveReport] = useState<ReportType>("transactions");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateRange, setDateRange] = useState<"week" | "month" | "year" | "custom">("week");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedWeek, setSelectedWeek] = useState(1);
+  const [hasSearched, setHasSearched] = useState(false);
 
-export default function Reports() {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const { toast } = useToast();
-  const [dateRange, setDateRange] = useState({
-    from: subDays(new Date(), 30),
-    to: new Date()
-  });
-  const [selectedPeriod, setSelectedPeriod] = useState("30days");
-
-
-
-  // Check access permissions
-  const hasAccess = (user as any)?.role === 'super_admin' || (user as any)?.role === 'master_inventory_handler';
-
-  const { data: reportData, isLoading: reportLoading, error } = useQuery({
-    queryKey: ["/api/reports/comprehensive", dateRange.from, dateRange.to],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        fromDate: dateRange.from.toISOString(),
-        toDate: dateRange.to.toISOString()
-      });
-      const response = await fetch(`/api/reports/comprehensive?${params}`, {
-        credentials: "include",
-        headers: {
-          "Accept": "application/json"
-        }
-      });
-      
-      if (response.status === 401) {
-        throw new Error("Authentication required");
-      }
-      
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Failed to load reports: ${response.status}`);
-      }
-      
-      const text = await response.text();
-      try {
-        return JSON.parse(text) as ReportData;
-      } catch (parseError) {
-        console.error("Failed to parse response:", text);
-        throw new Error(`Invalid JSON response: ${text.substring(0, 100)}...`);
-      }
-    },
-    enabled: isAuthenticated && hasAccess,
-    retry: false,
-  });
-
-  if (error && isUnauthorizedError(error as Error)) {
-    toast({
-      title: "Unauthorized",
-      description: "You are logged out. Logging in again...",
-      variant: "destructive",
-    });
-    setTimeout(() => {
-      window.location.href = "/";
-    }, 500);
-    return null;
-  }
-
-  if (isLoading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!hasAccess) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6 text-center">
-            <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
-            <p className="text-gray-600">You don't have permission to access reports.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const handlePeriodChange = (period: string) => {
-    setSelectedPeriod(period);
-    const now = new Date();
+  // Get weeks in month
+  const getWeeksInMonth = (month: number, year: number) => {
+    const weeks = [];
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
     
-    switch (period) {
-      case "7days":
-        setDateRange({ from: subDays(now, 7), to: now });
+    let currentWeek = 1;
+    let currentDate = new Date(firstDay);
+    
+    while (currentDate <= lastDay) {
+      const weekStart = new Date(currentDate);
+      const weekEnd = new Date(currentDate);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      if (weekEnd > lastDay) {
+        weekEnd.setDate(lastDay.getDate());
+      }
+      
+      weeks.push({
+        number: currentWeek,
+        start: weekStart.toISOString().split('T')[0],
+        end: weekEnd.toISOString().split('T')[0]
+      });
+      
+      currentDate.setDate(currentDate.getDate() + 7);
+      currentWeek++;
+    }
+    
+    return weeks;
+  };
+
+  // Get weeks in year
+  const getWeeksInYear = (year: number) => {
+    const weeks = [];
+    const firstDay = new Date(year, 0, 1);
+    const lastDay = new Date(year, 11, 31);
+    
+    let currentWeek = 1;
+    let currentDate = new Date(firstDay);
+    
+    // Adjust to start on Monday
+    const day = firstDay.getDay();
+    if (day !== 1) {
+      const diff = day === 0 ? 6 : day - 1;
+      currentDate.setDate(currentDate.getDate() - diff);
+    }
+    
+    while (currentDate <= lastDay) {
+      const weekStart = new Date(currentDate);
+      const weekEnd = new Date(currentDate);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      if (weekEnd > lastDay) {
+        weekEnd.setDate(lastDay.getDate());
+      }
+      
+      weeks.push({
+        number: currentWeek,
+        start: weekStart.toISOString().split('T')[0],
+        end: weekEnd.toISOString().split('T')[0]
+      });
+      
+      currentDate.setDate(currentDate.getDate() + 7);
+      currentWeek++;
+    }
+    
+    return weeks;
+  };
+
+  const buildQueryParams = () => {
+    const params = new URLSearchParams();
+    if (searchTerm) params.append("search", searchTerm);
+    
+    switch (dateRange) {
+      case "week":
+        const weeksInYear = getWeeksInYear(selectedYear);
+        const selectedWeekData = weeksInYear.find(w => w.number === selectedWeek);
+        if (selectedWeekData) {
+          params.append("startDate", selectedWeekData.start);
+          params.append("endDate", selectedWeekData.end);
+        }
         break;
-      case "30days":
-        setDateRange({ from: subDays(now, 30), to: now });
+      case "month":
+        const weeksInMonth = getWeeksInMonth(selectedMonth, selectedYear);
+        if (weeksInMonth.length > 0) {
+          params.append("startDate", weeksInMonth[0].start);
+          params.append("endDate", weeksInMonth[weeksInMonth.length - 1].end);
+        }
         break;
-      case "90days":
-        setDateRange({ from: subDays(now, 90), to: now });
+      case "year":
+        params.append("startDate", `${selectedYear}-01-01`);
+        params.append("endDate", `${selectedYear}-12-31`);
         break;
-      case "thisMonth":
-        setDateRange({ from: startOfMonth(now), to: endOfMonth(now) });
-        break;
-      case "lastMonth":
-        const lastMonth = subMonths(now, 1);
-        setDateRange({ from: startOfMonth(lastMonth), to: endOfMonth(lastMonth) });
+      case "custom":
+        if (customStartDate) params.append("startDate", customStartDate);
+        if (customEndDate) params.append("endDate", customEndDate);
         break;
     }
+    return params.toString();
   };
 
-  const exportReport = () => {
-    if (!reportData) return;
-    
-    const csvData = [
-      ['Report Type', 'Generated Date', format(new Date(), 'yyyy-MM-dd HH:mm:ss')],
-      ['Period', `${format(dateRange.from, 'yyyy-MM-dd')} to ${format(dateRange.to, 'yyyy-MM-dd')}`],
-      [],
-      ['Inventory Overview'],
-      ['Total Products', reportData.inventoryOverview.totalProducts],
-      ['Total Stock Value', reportData.inventoryOverview.totalStockValue],
-      ['Low Stock Products', reportData.inventoryOverview.lowStockProducts],
-      ['Out of Stock Products', reportData.inventoryOverview.outOfStockProducts],
-      [],
-      ['Recent Activity'],
-      ['Date', 'Type', 'Product', 'Quantity', 'User', 'Order Number'],
-      ...reportData.recentActivity.map(activity => [
-        format(new Date(activity.date), 'yyyy-MM-dd HH:mm'),
-        activity.type,
-        activity.productName,
-        activity.quantity,
-        activity.user,
-        activity.soNumber || activity.poNumber || 'N/A'
-      ])
-    ];
+  // Transaction data query - matches your TransactionLog component
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
+    queryKey: ["/api/transactions", buildQueryParams()],
+    queryFn: async () => {
+      const queryString = buildQueryParams();
+      const url = queryString ? `/api/transactions?${queryString}` : "/api/transactions";
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch transactions");
+      return response.json();
+    },
+    enabled: hasSearched && activeReport === "transactions",
+  });
 
-    const csvContent = csvData.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+  // Weekly plans data query - matches your WeeklyStockPlanning component
+  const { data: weeklyPlans = [], isLoading: weeklyPlansLoading } = useQuery({
+    queryKey: ["/api/weekly-stock-plans", buildQueryParams()],
+    queryFn: async () => {
+      const queryString = buildQueryParams();
+      const url = queryString ? `/api/weekly-stock-plans?${queryString}` : "/api/weekly-stock-plans";
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch weekly plans");
+      return response.json();
+    },
+    enabled: hasSearched && activeReport === "weekly-plans",
+  });
+
+  const handleSearch = () => {
+    setHasSearched(true);
+  };
+
+  const handleReset = () => {
+    setSearchTerm("");
+    setDateRange("week");
+    setCustomStartDate("");
+    setCustomEndDate("");
+    setSelectedMonth(new Date().getMonth() + 1);
+    setSelectedYear(new Date().getFullYear());
+    setSelectedWeek(1);
+    setHasSearched(false);
+  };
+
+  const downloadReport = () => {
+    let csvContent = "";
+    let fileName = "";
+
+    if (activeReport === "transactions") {
+      fileName = `transactions-report-${new Date().toISOString().split('T')[0]}.csv`;
+      csvContent = "Date,Product,Type,Quantity,Unit,User,Reference\n";
+      transactions.forEach((tx: any) => {
+        csvContent += `${new Date(tx.transactionDate).toLocaleString()},"${tx.product?.name || 'N/A'}","${tx.type === 'stock_in' ? 'Stock In' : 'Stock Out'}","${tx.quantity}","${tx.product?.unit || 'N/A'}","${tx.user?.username || 'System'}","${tx.poNumber || tx.soNumber || 'N/A'}"\n`;
+      });
+    } else {
+      fileName = `weekly-plans-report-${new Date().toISOString().split('T')[0]}.csv`;
+      csvContent = "Product,Week Start,Week End,Planned Qty,Actual Qty,Variance,Unit\n";
+      weeklyPlans.forEach((plan: any) => {
+        const variance = parseFloat(plan.plannedQuantity) - parseFloat(plan.actualUsage || 0);
+        csvContent += `${plan.product?.name || 'N/A'},"${new Date(plan.weekStartDate).toLocaleDateString()}","${new Date(plan.weekEndDate).toLocaleDateString()}","${plan.plannedQuantity}","${plan.actualUsage || 0}","${variance.toFixed(2)}","${plan.unit}"\n`;
+      });
+    }
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `inventory-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-
-    toast({
-      title: "Report Exported",
-      description: "Your report has been downloaded as CSV.",
-    });
+    URL.revokeObjectURL(url);
   };
 
-  if (reportLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-8 w-48" />
-          <div className="flex gap-4">
-            <Skeleton className="h-10 w-32" />
-            <Skeleton className="h-10 w-32" />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <Skeleton className="h-4 w-24 mb-2" />
-                <Skeleton className="h-8 w-16" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6 text-center">
-            <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Error Loading Reports</h3>
-            <p className="text-gray-600 text-sm">{error.message}</p>
-            <Button 
-              onClick={() => window.location.reload()} 
-              className="mt-4"
-              variant="outline"
-            >
-              Refresh Page
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!reportData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6 text-center">
-            <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Data Available</h3>
-            <p className="text-gray-600">No report data available for the selected period.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const getBadgeColor = (status: string) => {
-    switch (status) {
-      case 'critical': return 'bg-red-100 text-red-800';
-      case 'low': return 'bg-yellow-100 text-yellow-800';
-      case 'warning': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+  // Get weeks for the selected month/year
+  const getCurrentWeeks = () => {
+    if (dateRange === "month") {
+      return getWeeksInMonth(selectedMonth, selectedYear);
+    } else if (dateRange === "week") {
+      return getWeeksInYear(selectedYear);
     }
+    return [];
   };
+
+  const currentWeeks = getCurrentWeeks();
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Comprehensive Reports</h1>
-          <p className="text-gray-600 mt-2">Complete inventory analytics and insights</p>
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-indigo-50 to-blue-100 py-10 px-2">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+          <div>
+            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-pink-500 to-purple-600 mb-1 drop-shadow-lg">
+              Reports Dashboard
+            </h1>
+            <p className="text-indigo-700 font-medium tracking-wide">
+              View and analyze inventory data
+            </p>
+          </div>
+          <Link href="/">
+            <Button variant="outline" className="border-indigo-300 shadow hover:bg-indigo-50 transition">
+              Back to Dashboard
+            </Button>
+          </Link>
         </div>
-        <div className="flex items-center gap-4">
-          <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7days">Last 7 days</SelectItem>
-              <SelectItem value="30days">Last 30 days</SelectItem>
-              <SelectItem value="90days">Last 90 days</SelectItem>
-              <SelectItem value="thisMonth">This month</SelectItem>
-              <SelectItem value="lastMonth">Last month</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={exportReport} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
+
+        <div className="flex gap-3 mb-8 justify-center">
+          <Button
+            variant={activeReport === "transactions" ? "default" : "outline"}
+            onClick={() => {
+              setActiveReport("transactions");
+              setHasSearched(false);
+            }}
+            className={`gap-2 rounded-full px-6 py-2 shadow ${activeReport === "transactions" ? "bg-indigo-600 text-white" : "bg-white text-indigo-700 border-indigo-200"}`}
+          >
+            <FileText className="h-5 w-5" />
+            Transaction Report
+          </Button>
+          <Button
+            variant={activeReport === "weekly-plans" ? "default" : "outline"}
+            onClick={() => {
+              setActiveReport("weekly-plans");
+              setHasSearched(false);
+            }}
+            className={`gap-2 rounded-full px-6 py-2 shadow ${activeReport === "weekly-plans" ? "bg-pink-500 text-white" : "bg-white text-pink-700 border-pink-200"}`}
+          >
+            <Calendar className="h-5 w-5" />
+            Weekly Plans Report
           </Button>
         </div>
-      </div>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+        {/* Filter Section */}
+        <Card className="mb-8 shadow-lg border-0 bg-white/90">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-indigo-700">
+              <Search className="h-5 w-5" />
+              Filter Reports
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Product Search */}
               <div>
-                <p className="text-sm text-gray-600">Total Products</p>
-                <p className="text-2xl font-bold">{reportData.inventoryOverview.totalProducts}</p>
+                <label className="block text-sm font-semibold mb-1 text-indigo-700">Search Product</label>
+                <Input
+                  placeholder="Enter product name"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full border-indigo-200 focus:border-indigo-400"
+                />
               </div>
-              <Package className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+              {/* Date Range Selector */}
               <div>
-                <p className="text-sm text-gray-600">Total Stock Value</p>
-                <p className="text-2xl font-bold">{reportData.inventoryOverview.totalStockValue.toFixed(2)}</p>
+                <label className="block text-sm font-semibold mb-1 text-indigo-700">Date Range</label>
+                <Select 
+                  value={dateRange} 
+                  onValueChange={(value) => {
+                    setDateRange(value as any);
+                    setHasSearched(false);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select date range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">By Week</SelectItem>
+                    <SelectItem value="month">By Month</SelectItem>
+                    <SelectItem value="year">By Year</SelectItem>
+                    <SelectItem value="custom">Custom Range</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <DollarSign className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Today's Stock In</p>
-                <p className="text-2xl font-bold text-green-600">{reportData.dashboardStats.todayStockIn}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Today's Stock Out</p>
-                <p className="text-2xl font-bold text-red-600">{reportData.dashboardStats.todayStockOut}</p>
-              </div>
-              <TrendingDown className="h-8 w-8 text-red-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Report Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="movement">Stock Movement</TabsTrigger>
-          <TabsTrigger value="analysis">Product Analysis</TabsTrigger>
-          <TabsTrigger value="activity">Recent Activity</TabsTrigger>
-          <TabsTrigger value="alerts">Stock Alerts</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Products by Stock</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {reportData.inventoryOverview.topProducts.map((product, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-gray-600">{product.unit}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold">{product.currentStock}</p>
-                        <p className="text-sm text-gray-600">units</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Categories Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={reportData.productAnalysis}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ category, count }) => `${category} (${count})`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
+              {/* Dynamic Filters */}
+              <div className="flex flex-col">
+                <label className="block text-sm font-semibold mb-1 text-indigo-700">Filter By</label>
+                {/* Year selector */}
+                {dateRange !== "custom" && (
+                  <div className="mb-2">
+                    <Select
+                      value={selectedYear.toString()}
+                      onValueChange={(value) => {
+                        setSelectedYear(parseInt(value));
+                        setHasSearched(false);
+                      }}
                     >
-                      {reportData.productAnalysis.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="movement" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Daily Stock Movement (Last 14 Days)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={400}>
-                  <AreaChart data={reportData.stockMovement.daily}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Area type="monotone" dataKey="stockIn" stackId="1" stroke="#82ca9d" fill="#82ca9d" name="Stock In" />
-                    <Area type="monotone" dataKey="stockOut" stackId="2" stroke="#ffc658" fill="#ffc658" name="Stock Out" />
-                    <Line type="monotone" dataKey="net" stroke="#ff7300" strokeWidth={2} name="Net Movement" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Monthly Stock Movement (Last 6 Months)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={reportData.stockMovement.monthly}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="stockIn" fill="#82ca9d" name="Stock In" />
-                    <Bar dataKey="stockOut" fill="#ffc658" name="Stock Out" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="analysis" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Product Analysis by Category</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-4">Category</th>
-                      <th className="text-left p-4">Product Count</th>
-                      <th className="text-left p-4">Total Stock</th>
-                      <th className="text-left p-4">Average Stock</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.productAnalysis.map((category, index) => (
-                      <tr key={index} className="border-b hover:bg-gray-50">
-                        <td className="p-4 font-medium">{category.category}</td>
-                        <td className="p-4">{category.count}</td>
-                        <td className="p-4">{category.totalStock.toFixed(2)}</td>
-                        <td className="p-4">{(category.totalStock / category.count).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="activity" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Transactions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {reportData.recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-full ${activity.type === 'stock_in' ? 'bg-green-100' : 'bg-red-100'}`}>
-                        {activity.type === 'stock_in' ? (
-                          <TrendingUp className={`h-4 w-4 ${activity.type === 'stock_in' ? 'text-green-600' : 'text-red-600'}`} />
-                        ) : (
-                          <TrendingDown className={`h-4 w-4 ${activity.type === 'stock_in' ? 'text-green-600' : 'text-red-600'}`} />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium">{activity.productName}</p>
-                        <p className="text-sm text-gray-600">
-                          {activity.type === 'stock_in' ? 'Stock In' : 'Stock Out'} • {activity.quantity} units • by {activity.user}
-                        </p>
-                        {(activity.soNumber || activity.poNumber) && (
-                          <p className="text-xs text-gray-500">
-                            {activity.soNumber ? `SO: ${activity.soNumber}` : `PO: ${activity.poNumber}`}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-600">{format(new Date(activity.date), 'MMM dd, HH:mm')}</p>
-                    </div>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[new Date().getFullYear() - 1, new Date().getFullYear(), new Date().getFullYear() + 1].map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="alerts" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Low Stock Alerts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {reportData.lowStockAlerts.map((alert) => (
-                  <div key={alert.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <AlertTriangle className={`h-5 w-5 ${
-                        alert.status === 'critical' ? 'text-red-500' : 
-                        alert.status === 'low' ? 'text-yellow-500' : 'text-orange-500'
-                      }`} />
-                      <div>
-                        <p className="font-medium">{alert.name}</p>
-                        <p className="text-sm text-gray-600">{alert.currentStock} {alert.unit} remaining</p>
-                      </div>
-                    </div>
-                    <Badge className={getBadgeColor(alert.status)}>
-                      {alert.status.toUpperCase()}
-                    </Badge>
+                )}
+                {/* Month selector */}
+                {dateRange === "month" && (
+                  <div className="mb-2">
+                    <Select
+                      value={selectedMonth.toString()}
+                      onValueChange={(value) => {
+                        setSelectedMonth(parseInt(value));
+                        setHasSearched(false);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 12 }, (_, i) => (
+                          <SelectItem key={i+1} value={(i+1).toString()}>
+                            {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                ))}
-                {reportData.lowStockAlerts.length === 0 && (
-                  <div className="text-center py-8">
-                    <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No low stock alerts at this time</p>
+                )}
+                {/* Week selector */}
+                {dateRange === "week" && currentWeeks.length > 0 && (
+                  <div>
+                    <Select
+                      value={selectedWeek.toString()}
+                      onValueChange={(value) => {
+                        setSelectedWeek(parseInt(value));
+                        setHasSearched(false);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select week" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currentWeeks.map((week) => (
+                          <SelectItem key={week.number} value={week.number.toString()}>
+                            Week {week.number} ({new Date(week.start).toLocaleDateString()} - {new Date(week.end).toLocaleDateString()})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {/* Custom date range inputs */}
+                {dateRange === "custom" && (
+                  <div className="flex gap-2">
+                    <Input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => {
+                        setCustomStartDate(e.target.value);
+                        setHasSearched(false);
+                      }}
+                      placeholder="Start date"
+                    />
+                    <Input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => {
+                        setCustomEndDate(e.target.value);
+                        setHasSearched(false);
+                      }}
+                      placeholder="End date"
+                    />
                   </div>
                 )}
               </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={handleReset} className="gap-2 border-indigo-200 hover:bg-indigo-50">
+                <RotateCcw className="h-4 w-4" />
+                Reset All
+              </Button>
+              <Button onClick={handleSearch} className="gap-2 bg-indigo-600 text-white hover:bg-indigo-700 shadow">
+                <Search className="h-4 w-4" />
+                Search
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Results Section - Only shown after search */}
+        {hasSearched && (
+          <Card className="shadow-xl border-0 bg-white/95">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center gap-2 text-indigo-700">
+                  {activeReport === "transactions" ? (
+                    <>
+                      <FileText className="h-5 w-5" />
+                      Transaction Report Results
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="h-5 w-5" />
+                      Weekly Plan Report Results
+                    </>
+                  )}
+                </CardTitle>
+                <Button onClick={downloadReport} variant="outline" className="gap-2 border-indigo-200 hover:bg-indigo-50">
+                  <Download className="h-4 w-4" />
+                  Download Report
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {activeReport === "transactions" ? (
+                <div className="overflow-x-auto rounded-lg border border-indigo-100 bg-white/90 shadow">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Product</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Quantity</TableHead>
+                        <TableHead>Unit</TableHead>
+                        <TableHead>User</TableHead>
+                        <TableHead>Reference</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {transactionsLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            Loading transactions...
+                          </TableCell>
+                        </TableRow>
+                      ) : transactions.length > 0 ? (
+                        transactions.map((tx: any) => (
+                          <TableRow key={tx.id} className="hover:bg-indigo-50/60 transition">
+                            <TableCell>{new Date(tx.transactionDate).toLocaleString()}</TableCell>
+                            <TableCell>{tx.product?.name || "N/A"}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={tx.type === "stock_in" ? "default" : "secondary"}
+                                className={
+                                  tx.type === "stock_in"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                                }
+                              >
+                                {tx.type === "stock_in" ? "Stock In" : "Stock Out"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{parseFloat(tx.quantity).toFixed(2)}</TableCell>
+                            <TableCell>{tx.product?.unit || "N/A"}</TableCell>
+                            <TableCell>{tx.user?.username || "System"}</TableCell>
+                            <TableCell>
+                              {tx.poNumber || tx.soNumber || "N/A"}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                            No transactions found matching your criteria
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-pink-100 bg-white/90 shadow">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead>Week Start</TableHead>
+                        <TableHead>Week End</TableHead>
+                        <TableHead>Planned Qty</TableHead>
+                        <TableHead>Actual Qty</TableHead>
+                        <TableHead>Variance</TableHead>
+                        <TableHead>Unit</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {weeklyPlansLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8">
+                            Loading weekly plans...
+                          </TableCell>
+                        </TableRow>
+                      ) : weeklyPlans.length > 0 ? (
+                        weeklyPlans.map((plan: any) => {
+                          const variance = parseFloat(plan.plannedQuantity) - parseFloat(plan.actualUsage || 0);
+                          return (
+                            <TableRow key={`${plan.productId}-${plan.weekStartDate}`} className="hover:bg-pink-50/60 transition">
+                              <TableCell>{plan.product?.name || "N/A"}</TableCell>
+                              <TableCell>{new Date(plan.weekStartDate).toLocaleDateString()}</TableCell>
+                              <TableCell>{new Date(plan.weekEndDate).toLocaleDateString()}</TableCell>
+                              <TableCell>{parseFloat(plan.plannedQuantity).toFixed(2)}</TableCell>
+                              <TableCell>{parseFloat(plan.actualUsage || 0).toFixed(2)}</TableCell>
+                              <TableCell>
+                                <Badge variant={variance >= 0 ? "default" : "destructive"}>
+                                  {variance.toFixed(2)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{plan.unit}</TableCell>
+                            </TableRow>
+                          );
+                        })
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                            No weekly plans found matching your criteria
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </div>
   );
 }
