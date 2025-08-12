@@ -17,9 +17,12 @@ import TransactionLog from "@/pages/TransactionLog";
 import UserManagement from "@/pages/UserManagement";
 import WeeklyStockPlanning from "@/pages/WeeklyStockPlanning";
 import ProductCatalog from "@/pages/ProductCatalog";
+import Reports from "@/pages/Reports";
+import OrderDetails from "@/pages/OrderDetails";
 
 import Layout from "@/components/Layout";
 import SplashScreen from "@/components/SplashScreen";
+import OrderReport from "@/pages/OrderReport";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -117,6 +120,9 @@ function Router() {
               component={WeeklyStockPlanning}
             />
             <Route path="/product-catalog" component={() => <ProductCatalog />} />
+            <Route path="/reports" component={Reports} />
+            <Route path="/order-details" component={OrderDetails} />
+            <Route path="/order-report" component={OrderReport} />
             <Route component={NotFound} />
           </Switch>
         </Layout>
