@@ -36,8 +36,16 @@ export default function Layout({ children }: LayoutProps) {
         return 'bg-green-100 text-green-800';
       case 'stock_out_manager':
         return 'bg-yellow-100 text-yellow-800';
-      case 'attendance_checker':
+     case 'attendance_checker':
         return 'bg-blue-100 text-blue-800';
+      case 'weekly_stock_planner':
+        return 'bg-pink-100 text-pink-800'; // <-- Add this
+      case 'orders':
+        return 'bg-orange-100 text-orange-800';
+      case 'send_message':
+        return 'bg-purple-100 text-purple-800';
+      case 'all_reports':
+        return 'bg-teal-100 text-teal-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -55,6 +63,14 @@ export default function Layout({ children }: LayoutProps) {
         return '📤 Stock Out Manager';
       case 'attendance_checker':
         return '📅 Attendance Checker';
+      case 'weekly_stock_planner':
+        return '📊 Weekly Stock Planner'; // <-- Add this
+      case 'orders':
+        return '🛒 Orders';
+      case 'send_message':
+        return '✉️ Send Message';
+      case 'all_reports':
+        return '📑 All Reports';
       default:
         return role;
     }
