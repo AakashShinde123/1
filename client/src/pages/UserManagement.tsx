@@ -47,7 +47,19 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { User, UserRole, getUserActiveRoles } from "@shared/schema";
+import type { User, getUserActiveRoles } from "@shared/schema";
+
+// Extend UserRole type locally to include new roles
+export type UserRole =
+  | "super_admin"
+  | "master_inventory_handler"
+  | "stock_in_manager"
+  | "stock_out_manager"
+  | "attendance_checker"
+  | "weekly_stock_planner"
+  | "orders"
+  | "send_message"
+  | "all_reports";
 import { Link } from "wouter";
 
 const updateRoleSchema = z.object({
@@ -57,6 +69,10 @@ const updateRoleSchema = z.object({
     "stock_in_manager",
     "stock_out_manager",
     "attendance_checker",
+    "weekly_stock_planner",
+    "orders",
+    "send_message",
+    "all_reports",
   ]).optional(),
   roles: z.array(z.enum([
     "super_admin",
@@ -64,6 +80,10 @@ const updateRoleSchema = z.object({
     "stock_in_manager",
     "stock_out_manager",
     "attendance_checker",
+    "weekly_stock_planner",
+    "orders",
+    "send_message",
+    "all_reports",
   ])).min(1, "At least one role must be selected"),
 });
 
@@ -95,6 +115,10 @@ const createUserSchema = z
       "stock_in_manager",
       "stock_out_manager",
       "attendance_checker",
+      "weekly_stock_planner",
+      "orders",
+      "send_message",
+      "all_reports",
     ]).optional(),
     roles: z.array(z.enum([
       "super_admin",
@@ -102,6 +126,10 @@ const createUserSchema = z
       "stock_in_manager",
       "stock_out_manager",
       "attendance_checker",
+      "weekly_stock_planner",
+      "orders",
+      "send_message",
+      "all_reports",
     ])).min(1, "At least one role must be selected"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -471,14 +499,14 @@ export default function UserManagement() {
   // Show dashboard with button first
   if (showDashboard) {
     return (
-      <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-indigo-50 to-blue-100 py-10 px-2">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
-          {/* Back to Home Button - Mobile Optimized */}
+          {/* Back to Home Button */}
           <div className="mb-8 sm:mb-6">
             <Link href="/">
               <Button
                 variant="outline"
-                className="flex items-center gap-2 min-h-[44px] no-zoom"
+                className="flex items-center gap-2 min-h-[44px] no-zoom border-indigo-200 shadow hover:bg-indigo-50 transition"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span className="text-sm sm:text-base">Back to Home</span>
@@ -486,29 +514,27 @@ export default function UserManagement() {
             </Link>
           </div>
 
-          <div className="text-center mb-8 sm:mb-12 mt-4 sm:mt-0">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">
+          <div className="text-center mb-10 mt-4 sm:mt-0">
+            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-pink-500 to-purple-600 mb-2 drop-shadow-lg">
               User Management Dashboard
             </h1>
-            <p className="text-lg sm:text-xl text-gray-600">Super Admin</p>
+            <p className="text-lg sm:text-xl text-indigo-700 font-medium">Super Admin</p>
             <p className="text-sm sm:text-base text-gray-500 mt-2 px-2">
               Click the button below to manage system users
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 justify-center">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 justify-center">
             <div
-              className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg border border-rose-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32"
+              className="bg-gradient-to-br from-pink-100 via-rose-100 to-indigo-100 rounded-xl border border-pink-200 p-5 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer h-36"
               onClick={() => setShowDashboard(false)}
             >
               <div className="text-center h-full flex flex-col justify-center">
-                <div className="mx-auto w-10 h-10 bg-rose-500 rounded-full flex items-center justify-center mb-2 shadow-md">
-                  <Users className="h-5 w-5 text-white" />
+                <div className="mx-auto w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center mb-3 shadow-lg">
+                  <Users className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-base font-medium text-rose-800 mb-1">User Management</h3>
-                <p className="text-rose-600 text-xs">
-                  Manage users
-                </p>
+                <h3 className="text-lg font-semibold text-pink-800 mb-1">User Management</h3>
+                <p className="text-pink-600 text-xs">Manage users</p>
               </div>
             </div>
           </div>
@@ -518,13 +544,13 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-indigo-50 to-blue-100 py-10 px-2">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        {/* Back button - properly aligned */}
-        <div className="mb-6 lg:mb-8">
+        {/* Back button */}
+        <div className="mb-8">
           <Button
             variant="outline"
-            className="flex items-center gap-2 min-h-[44px] no-zoom"
+            className="flex items-center gap-2 min-h-[44px] no-zoom border-indigo-200 shadow hover:bg-indigo-50 transition"
             onClick={() => setShowDashboard(true)}
           >
             <ArrowLeft className="h-4 w-4" />
@@ -532,28 +558,28 @@ export default function UserManagement() {
           </Button>
         </div>
 
-        {/* Header section - improved alignment */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 lg:p-8 mb-6 lg:mb-8">
+        {/* Header section */}
+        <div className="bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-8 mb-10">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <Users className="h-5 w-5 lg:h-6 lg:w-6 text-red-600" />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center shadow">
+                <Users className="h-6 w-6 text-pink-600" />
               </div>
-              <h1 className="text-xl lg:text-2xl font-bold text-gray-900">User Management</h1>
+              <h1 className="text-2xl lg:text-3xl font-extrabold text-indigo-700">User Management</h1>
             </div>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 lg:gap-4">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowUsername(!showUsername)}
-                className="flex items-center space-x-2 min-h-[44px] lg:min-h-[48px] px-4 lg:px-6"
+                className="flex items-center space-x-2 min-h-[44px] lg:min-h-[48px] px-4 lg:px-6 border-indigo-200"
               >
                 <Eye className="h-4 w-4" />
                 <span>{showUsername ? "Hide" : "Show"} Usernames</span>
               </Button>
               <Dialog open={showCreateUser} onOpenChange={setShowCreateUser}>
                 <DialogTrigger asChild>
-                  <Button className="min-h-[44px] lg:min-h-[48px] px-4 lg:px-6 bg-red-600 hover:bg-red-700 text-white">
+                  <Button className="min-h-[44px] lg:min-h-[48px] px-4 lg:px-6 bg-pink-600 hover:bg-pink-700 text-white shadow">
                     <UserPlus className="mr-2 h-4 w-4" />
                     Add New User
                   </Button>
@@ -642,7 +668,11 @@ export default function UserManagement() {
                               { value: "master_inventory_handler", label: "🧑‍🔧 Master Inventory Handler" },
                               { value: "stock_in_manager", label: "📥 Stock In Manager" },
                               { value: "stock_out_manager", label: "📤 Stock Out Manager" },
-                              { value: "attendance_checker", label: "📅 Attendance Checker" }
+                              { value: "attendance_checker", label: "📅 Attendance Checker" },
+                              { value: "weekly_stock_planner", label: "📊 Weekly Stock Planner" },
+                              { value: "orders", label: "📦 Orders" },
+                              { value: "send_message", label: "✉️ Send Message" },
+                              { value: "all_reports", label: "📑 All Reports" },
                             ].map((role) => (
                               <div key={role.value} className="flex items-center space-x-2">
                                 <Checkbox
@@ -653,7 +683,7 @@ export default function UserManagement() {
                                     if (checked) {
                                       field.onChange([...currentRoles, role.value as UserRole]);
                                     } else {
-                                      field.onChange(currentRoles.filter((r: UserRole) => r !== role.value));
+                                      field.onChange(currentRoles.filter(r => r !== role.value));
                                     }
                                   }}
                                 />
@@ -734,10 +764,10 @@ export default function UserManagement() {
         </div>
       </div>
 
-      <Card className="shadow-lg border-0">
-        <CardHeader className="bg-white border-b border-gray-200 px-6 py-4">
-          <CardTitle className="text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="h-5 w-5 lg:h-6 lg:w-6 text-red-600" />
+      <Card className="shadow-xl border-0 bg-white/95">
+        <CardHeader className="bg-white border-b border-indigo-100 px-6 py-4">
+          <CardTitle className="text-xl lg:text-2xl font-bold text-indigo-700 flex items-center gap-2">
+            <Users className="h-5 w-5 lg:h-6 lg:w-6 text-pink-600" />
             System Users
           </CardTitle>
         </CardHeader>
@@ -756,35 +786,33 @@ export default function UserManagement() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px]">
+              <table className="w-full min-w-[900px]">
                 <thead>
-                  <tr className="border-b bg-gray-50/50">
-                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">User ID</th>
+                  <tr className="border-b bg-indigo-50/50">
+                    <th className="text-left p-3 font-semibold text-indigo-700 text-xs sm:text-sm lg:text-base">User ID</th>
                     {showUsername && (
-                      <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Username</th>
+                      <th className="text-left p-3 font-semibold text-indigo-700 text-xs sm:text-sm lg:text-base">Username</th>
                     )}
-                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Email</th>
-                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Name</th>
-                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Role</th>
-                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Status</th>
-                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Created</th>
-                    <th className="text-left p-2 sm:p-3 lg:p-4 font-semibold text-gray-700 text-xs sm:text-sm lg:text-base">Actions</th>
+                    <th className="text-left p-3 font-semibold text-indigo-700 text-xs sm:text-sm lg:text-base">Email</th>
+                    <th className="text-left p-3 font-semibold text-indigo-700 text-xs sm:text-sm lg:text-base">Name</th>
+                    <th className="text-left p-3 font-semibold text-indigo-700 text-xs sm:text-sm lg:text-base">Role</th>
+                    <th className="text-left p-3 font-semibold text-indigo-700 text-xs sm:text-sm lg:text-base">Status</th>
+                    <th className="text-left p-3 font-semibold text-indigo-700 text-xs sm:text-sm lg:text-base">Created</th>
+                    <th className="text-left p-3 font-semibold text-indigo-700 text-xs sm:text-sm lg:text-base">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(users as User[])?.map((userItem: User) => {
-                    // Check if user needs role approval (has empty roles array)
                     const needsApproval = (!userItem.roles || userItem.roles.length === 0);
-                    
                     return (
-                      <tr 
-                        key={userItem.id} 
-                        className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${
+                      <tr
+                        key={userItem.id}
+                        className={`border-b border-indigo-100 hover:bg-pink-50/60 transition-colors ${
                           needsApproval ? 'bg-yellow-50 hover:bg-yellow-100' : ''
                         }`}
                       >
-                        <td className="p-2 sm:p-3 lg:p-4 font-mono text-xs sm:text-sm lg:text-base text-gray-600">
-                          <div className="flex items-center gap-1 sm:gap-2">
+                        <td className="p-3 font-mono text-xs sm:text-sm lg:text-base text-gray-600">
+                          <div className="flex items-center gap-2">
                             {needsApproval && (
                               <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Needs role approval"></div>
                             )}
@@ -792,8 +820,8 @@ export default function UserManagement() {
                           </div>
                         </td>
                         {showUsername && (
-                          <td className="p-2 sm:p-3 lg:p-4 font-medium text-xs sm:text-sm lg:text-base text-gray-900">
-                            <div className="flex items-center gap-1 sm:gap-2">
+                          <td className="p-3 font-medium text-xs sm:text-sm lg:text-base text-gray-900">
+                            <div className="flex items-center gap-2">
                               <span className="truncate">{userItem.username}</span>
                               {needsApproval && (
                                 <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
@@ -803,103 +831,103 @@ export default function UserManagement() {
                             </div>
                           </td>
                         )}
-                        <td className="p-2 sm:p-3 lg:p-4 text-xs sm:text-sm lg:text-base text-gray-700">
-                          <span className="truncate block max-w-[120px] sm:max-w-[200px]">{userItem.email}</span>
+                        <td className="p-3 text-xs sm:text-sm lg:text-base text-gray-700">
+                          <span className="truncate block max-w-[160px]">{userItem.email}</span>
                         </td>
-                        <td className="p-2 sm:p-3 lg:p-4 text-xs sm:text-sm lg:text-base text-gray-700">
-                          <span className="truncate block max-w-[100px] sm:max-w-[150px]">
+                        <td className="p-3 text-xs sm:text-sm lg:text-base text-gray-700">
+                          <span className="truncate block max-w-[120px]">
                             {userItem.firstName || userItem.lastName
                               ? `${userItem.firstName || ""} ${userItem.lastName || ""}`.trim()
                               : "N/A"}
                           </span>
                         </td>
-                        <td className="p-2 sm:p-3 lg:p-4">
-                          <div className="flex flex-wrap gap-1 max-w-[150px] sm:max-w-[200px]">
+                        <td className="p-3">
+                          <div className="flex flex-wrap gap-1 max-w-[180px]">
                             {needsApproval ? (
                               <Badge variant="outline" className="text-xs bg-red-100 text-red-800 border-red-300 animate-pulse">
                                 ⚠️ Awaiting Role Assignment
                               </Badge>
                             ) : (
-                              ((userItem.roles && Array.isArray(userItem.roles) && userItem.roles.length > 0) 
-                                ? userItem.roles 
+                              ((userItem.roles && Array.isArray(userItem.roles) && userItem.roles.length > 0)
+                                ? userItem.roles
                                 : [userItem.role as UserRole]
                               ).map((role: UserRole) => (
-                                <Badge key={role} className={getRoleBadgeColor(role)} style={{ fontSize: '0.65rem' }}>
+                                <Badge key={role} className={getRoleBadgeColor(role)} style={{ fontSize: '0.7rem' }}>
                                   {getRoleDisplayName(role)}
                                 </Badge>
                               ))
                             )}
                           </div>
                         </td>
-                      <td className="p-3 lg:p-4">
-                        <Badge
-                          variant={userItem.isActive ? "default" : "secondary"}
-                          className="text-xs lg:text-sm"
-                        >
-                          {userItem.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </td>
-                      <td className="p-3 lg:p-4 text-sm lg:text-base text-gray-600">
-                        {userItem.createdAt
-                          ? formatDate(userItem.createdAt.toString())
-                          : "N/A"}
-                      </td>
-                      <td className="p-3 lg:p-4">
-                        <div className="flex space-x-1 lg:space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditRole(userItem)}
-                            disabled={userItem.id === (user as any)?.id}
-                            title="Edit Role"
-                            className="h-8 w-8 lg:h-9 lg:w-9 p-0"
+                        <td className="p-3">
+                          <Badge
+                            variant={userItem.isActive ? "default" : "secondary"}
+                            className="text-xs lg:text-sm"
                           >
-                            <Edit className="h-3 w-3 lg:h-4 lg:w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditPassword(userItem)}
-                            title="Change Password"
-                            className="h-8 w-8 lg:h-9 lg:w-9 p-0"
-                          >
-                            <Key className="h-3 w-3 lg:h-4 lg:w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              handleToggleUserStatus(
-                                userItem.id,
-                                Boolean(userItem.isActive),
-                              )
-                            }
-                            disabled={userItem.id === (user as any)?.id}
-                            title={
-                              userItem.isActive
-                                ? "Deactivate User"
-                                : "Activate User"
-                            }
-                            className="h-8 w-8 lg:h-9 lg:w-9 p-0"
-                          >
-                            {userItem.isActive ? (
-                              <UserX className="h-3 w-3 lg:h-4 lg:w-4 text-red-600" />
-                            ) : (
-                              <UserCheck className="h-3 w-3 lg:h-4 lg:w-4 text-green-600" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteUser(userItem)}
-                            disabled={userItem.id === (user as any)?.id}
-                            title="Delete User"
-                            className="h-8 w-8 lg:h-9 lg:w-9 p-0"
-                          >
-                            <Trash2 className="h-3 w-3 lg:h-4 lg:w-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </td>
+                            {userItem.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </td>
+                        <td className="p-3 text-sm lg:text-base text-gray-600">
+                          {userItem.createdAt
+                            ? formatDate(userItem.createdAt.toString())
+                            : "N/A"}
+                        </td>
+                        <td className="p-3">
+                          <div className="flex space-x-1 lg:space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditRole(userItem)}
+                              disabled={userItem.id === (user as any)?.id}
+                              title="Edit Role"
+                              className="h-8 w-8 lg:h-9 lg:w-9 p-0 border-indigo-200"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditPassword(userItem)}
+                              title="Change Password"
+                              className="h-8 w-8 lg:h-9 lg:w-9 p-0 border-indigo-200"
+                            >
+                              <Key className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                handleToggleUserStatus(
+                                  userItem.id,
+                                  Boolean(userItem.isActive),
+                                )
+                              }
+                              disabled={userItem.id === (user as any)?.id}
+                              title={
+                                userItem.isActive
+                                  ? "Deactivate User"
+                                  : "Activate User"
+                              }
+                              className="h-8 w-8 lg:h-9 lg:w-9 p-0 border-indigo-200"
+                            >
+                              {userItem.isActive ? (
+                                <UserX className="h-4 w-4 text-red-600" />
+                              ) : (
+                                <UserCheck className="h-4 w-4 text-green-600" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteUser(userItem)}
+                              disabled={userItem.id === (user as any)?.id}
+                              title="Delete User"
+                              className="h-8 w-8 lg:h-9 lg:w-9 p-0 border-indigo-200"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </td>
                     </tr>
                     );
                   })}
@@ -940,7 +968,11 @@ export default function UserManagement() {
                         { value: "master_inventory_handler", label: "🧑‍🔧 Master Inventory Handler" },
                         { value: "stock_in_manager", label: "📥 Stock In Manager" },
                         { value: "stock_out_manager", label: "📤 Stock Out Manager" },
-                        { value: "attendance_checker", label: "📅 Attendance Checker" }
+                        { value: "attendance_checker", label: "📅 Attendance Checker" },
+                        { value: "weekly_stock_planner", label: "📊 Weekly Stock Planner" },
+                        { value: "orders", label: "📦 Orders" },
+                        { value: "send_message", label: "✉️ Send Message" },
+                        { value: "all_reports", label: "📑 All Reports" },
                       ].map((role) => (
                         <div key={role.value} className="flex items-center space-x-2">
                           <Checkbox
@@ -1069,6 +1101,14 @@ function getRoleDisplayName(role: string): string {
       return "📤 Stock Out Manager";
     case "attendance_checker":
       return "📅 Attendance Checker";
+    case "weekly_stock_planner":
+      return "📊 Weekly Stock Planner";
+    case "orders":
+      return "📦 Orders";
+    case "send_message":
+      return "✉️ Send Message";
+    case "all_reports":
+      return "📑 All Reports";
     default:
       return role;
   }
@@ -1084,8 +1124,10 @@ function getRoleBadgeColor(role: string): string {
       return "bg-green-100 text-green-800 border-green-200";
     case "stock_out_manager":
       return "bg-orange-100 text-orange-800 border-orange-200";
-    case "attendance_checker":
+     case "attendance_checker":
       return "bg-blue-100 text-blue-800 border-blue-200";
+    case "weekly_stock_planner":
+      return "bg-pink-100 text-pink-800 border-pink-200"; // <-- Add here
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
   }
