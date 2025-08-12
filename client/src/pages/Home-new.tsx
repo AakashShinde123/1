@@ -384,6 +384,141 @@ export default function HomeNew() {
     });
   }
 
+  
+    // Weekly Planner access - for Weekly Planner role OR Super Admin
+  if (hasRole("weekly_stock_planner") || hasRole("super_admin")) { // <-- fix here
+    availableActions.push({
+      key: "weekly-planner",
+      component: (
+        <Link key="weekly-planner" href="/weekly-stock-planning">
+          <div className="ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg border border-teal-200 p-4 hover:shadow-md hover:scale-105 transition-all duration-300 cursor-pointer h-32">
+            <div className="text-center h-full flex flex-col justify-center">
+              <div className="mx-auto w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+                <Calendar className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-base font-medium text-teal-800 mb-1 text-bold text-capitalize">Weekly Planner</h3>
+              <p className="text-teal-600 text-xs">
+                View & plan weekly tasks
+              </p>
+            </div>
+          </div>
+        </Link>
+      ),
+    });
+  }
+
+  // All Reports Generate access
+  if (hasRole("all_reports") || hasRole("super_admin")) {
+    availableActions.push({
+      key: "all-reports",
+      component: (
+        <Link key="all-reports" href="/reports">
+          <div className="sketch-card sketch-card-orange p-4 cursor-pointer h-32">
+            <div className="text-center h-full flex flex-col justify-center">
+              <div className="mx-auto w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+                <BarChart3 className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-base font-medium text-orange-800 mb-1">All Reports</h3>
+              <p className="text-orange-600 text-xs">
+                Generate & download all reports
+              </p>
+            </div>
+          </div>
+        </Link>
+      ),
+    });
+  }
+
+  // Orders button
+  if (hasRole("orders") || hasRole("super_admin")) {
+    availableActions.push({
+      key: "orders",
+      component: (
+        <Link key="orders" href="/order-details">
+          <div className="sketch-card sketch-card-lime p-4 cursor-pointer h-32">
+            <div className="text-center h-full flex flex-col justify-center">
+              <div className="mx-auto w-10 h-10 bg-lime-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+                <List className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-base font-medium text-lime-800 mb-1">Orders</h3>
+              <p className="text-lime-600 text-xs">
+                View and manage orders
+              </p>
+            </div>
+          </div>
+        </Link>
+      ),
+    });
+  }
+
+  // "Send Message" access
+  if (hasRole("send_message") || hasRole("super_admin")) {
+    availableActions.push({
+      key: "send-message",
+      component: (
+        <Link key="send-message" href="/send-message">
+          <div className="sketch-card sketch-card-cyan p-4 cursor-pointer h-32">
+            <div className="text-center h-full flex flex-col justify-center">
+              <div className="mx-auto w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+                <Plus className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-base font-medium text-cyan-800 mb-1">Send Message</h3>
+              <p className="text-cyan-600 text-xs">
+                Send a message to users/admin
+              </p>
+            </div>
+          </div>
+        </Link>
+      ),
+    });
+  }
+
+    // Sudhastar button
+    availableActions.push({
+      key: "sudhastar",
+      component: (
+       <a
+          key="attendance"
+          href="https://mysudhamrit.in/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <div className="sketch-card sketch-card-pink p-4 cursor-pointer h-32">
+            <div className="text-center h-full flex flex-col justify-center">
+              <div className="mx-auto w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+                <Package className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-base font-medium text-pink-800 mb-1">Sudhastar</h3>
+              <p className="text-pink-600 text-xs">
+                Sudhastar section
+              </p>
+            </div>
+          </div>
+        </a>
+      ),
+    });
+
+    // Holy Creation button
+    availableActions.push({
+      key: "holy-creation",
+      component: (
+        <Link key="holy-creation" href="/holy-creation">
+          <div className="sketch-card sketch-card-indigo p-4 cursor-pointer h-32">
+            <div className="text-center h-full flex flex-col justify-center">
+              <div className="mx-auto w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center mb-2 shadow-md">
+                <Package className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-base font-medium text-indigo-800 mb-1">Holy Creation</h3>
+              <p className="text-indigo-600 text-xs">
+                Holy Creation section
+              </p>
+            </div>
+          </div>
+        </Link>
+      ),
+    });
+  
+
   // Create dynamic title based on roles
   const roleNames = [];
   if (isSuperAdmin) roleNames.push("Super Admin");
