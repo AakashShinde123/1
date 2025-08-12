@@ -8,6 +8,8 @@ import {
   type InsertStockTransaction,
   type StockTransactionWithDetails,
   type UserRole,
+  type Order,
+  type InsertOrder,
 } from "@shared/schema";
 import {
   userQueries,
@@ -15,6 +17,7 @@ import {
   stockTransactionQueries,
   dashboardQueries,
   transactionHelpers,
+  orderQueries,
 } from "./queries";
 
 export interface IStorage {
@@ -55,6 +58,10 @@ export interface IStorage {
     todayStockIn: number;
     todayStockOut: number;
   }>;
+
+  // Order operations
+  createOrder(order: InsertOrder): Promise<Order>;
+  getAllOrders(): Promise<Order[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -262,6 +269,21 @@ export class DatabaseStorage implements IStorage {
       todayStockIn: stats.todayStockIn,
       todayStockOut: stats.todayStockOut,
     };
+  }
+
+  /**
+   * Create an order. The orderItems field can be:
+   * - a string (custom text input by user)
+   * - an array (selected from dropdown)
+   * The backend will store whatever is sent from the frontend.
+   */
+  async createOrder(order: InsertOrder): Promise<Order> {
+    // order.orderItems can be string or array
+    return await orderQueries.create(order);
+  }
+
+  async getAllOrders(): Promise<Order[]> {
+    return await orderQueries.getAll();
   }
 }
 
