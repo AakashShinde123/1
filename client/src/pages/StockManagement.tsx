@@ -740,8 +740,7 @@ export default function StockManagement() {
       type: "Stock Out",
     });
   };
-
-  const handleEdit = (selectedProducts?: number[]) => {
+ const handleEdit = (selectedProducts?: number[]) => {
     if (
       !transactionPreview ||
       !selectedProducts ||
@@ -1228,23 +1227,17 @@ export default function StockManagement() {
                         <input
                           type="text"
                           inputMode="decimal"
-                          placeholder="Enter quantity..."
+                          placeholder="Enter quantity (e.g. 20,200,30)..."
                           value={
-                            editingQueue[currentEditIndex].quantity ||
-                            editingQueue[currentEditIndex].quantityOut ||
-                            ""
+                            transactionPreview?.type === "Stock In"
+                              ? editingQueue[currentEditIndex].quantity
+                              : editingQueue[currentEditIndex].quantityOut || ""
                           }
                           onChange={(e) => {
-                            // Allow only numbers and decimal points
-                            const value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              "",
-                            );
+                            // Allow numbers, commas, and dots
+                            const value = e.target.value.replace(/[^0-9.,]/g, "");
                             const newQueue = [...editingQueue];
-                            if (
-                              editingQueue[currentEditIndex].quantity !==
-                              undefined
-                            ) {
+                            if (transactionPreview?.type === "Stock In") {
                               newQueue[currentEditIndex].quantity = value;
                             } else {
                               newQueue[currentEditIndex].quantityOut = value;
