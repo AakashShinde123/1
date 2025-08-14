@@ -12,75 +12,57 @@ export default function MasterInventory() {
   console.log("MasterInventory page - User role:", (user as any)?.role);
   
   return (
-    <div className="min-h-screen bg-gray-50 paper-texture py-4 sm:py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
-        {/* Back to Home Button - Mobile Optimized */}
-        <div className="mb-8 sm:mb-6">
+    <div className="page-container">
+      <div className="max-w-4xl mx-auto">
+        {/* Back to Home Button */}
+        <div className="mb-8">
           <Link href="/">
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-2 min-h-[44px] no-zoom"
-            >
+            <Button className="btn-primary flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              <span className="text-sm sm:text-base">Back to Home</span>
+              Back to Home
             </Button>
           </Link>
         </div>
 
-        <div className="text-center mb-8 sm:mb-12 mt-4 sm:mt-0">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">
+        {/* Header Card */}
+        <div className="modern-card p-8 text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-3">
             Master Inventory Selection
           </h1>
-          <p className="text-base sm:text-lg lg:text-xl text-gray-600 px-2">
+          <p className="text-lg text-gray-600 mb-4">
             Manage products, plan weekly stock, or browse catalog
           </p>
-          <p className="text-xs sm:text-sm text-green-600 mt-2 font-medium">
-            ✓ You are on the Master Inventory page - Role: {(user as any)?.role}
-          </p>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 inline-block">
+            <p className="text-green-800 font-medium">
+              ✓ Master Inventory Access - Role: {(user as any)?.role}
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
+        {/* Action Cards Grid */}
+        <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
           {/* Manage Products */}
           <Link href="/inventory?direct=true">
-            <div className="sketch-card sketch-card-blue p-4 cursor-pointer h-32">
-              <div className="text-center h-full flex flex-col justify-center">
-                <div className="mx-auto w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mb-2 shadow-md">
-                  <Package className="h-5 w-5 text-white" />
+            <div className="modern-card cursor-pointer group">
+              <div className="text-center">
+                <div className="gradient-blue p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center">
+                  <Package className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-base font-medium text-blue-800 mb-1">Manage Products</h3>
-                <p className="text-blue-600 text-xs">
-                  Create products
-                </p>
-              </div>
-            </div>
-          </Link>
-
-          {/* Plan Weekly Stock */}
-          <Link href="/weekly-stock-planning">
-            <div className="sketch-card sketch-card-green p-4 cursor-pointer h-32">
-              <div className="text-center h-full flex flex-col justify-center">
-                <div className="mx-auto w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mb-2 shadow-md">
-                  <Calendar className="h-5 w-5 text-white" />
-                </div>
-                <h3 className="text-base font-medium text-green-800 mb-1">Plan Weekly Stock</h3>
-                <p className="text-green-600 text-xs">
-                  Set weekly plans
-                </p>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Manage Products</h3>
+                <p className="text-gray-600">Create and manage products</p>
               </div>
             </div>
           </Link>
 
           {/* Product Catalog */}
           <Link href="/product-catalog">
-            <div className="sketch-card sketch-card-purple p-4 cursor-pointer h-32">
-              <div className="text-center h-full flex flex-col justify-center">
-                <div className="mx-auto w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center mb-2 shadow-md">
-                  <Search className="h-5 w-5 text-white" />
+            <div className="modern-card cursor-pointer group">
+              <div className="text-center">
+                <div className="gradient-purple p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center">
+                  <Search className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-base font-medium text-purple-800 mb-1">Product Catalog</h3>
-                <p className="text-purple-600 text-xs">
-                  Browse catalog
-                </p>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Product Catalog</h3>
+                <p className="text-gray-600">Browse product catalog</p>
               </div>
             </div>
           </Link>
@@ -89,4 +71,3 @@ export default function MasterInventory() {
     </div>
   );
 }
-
