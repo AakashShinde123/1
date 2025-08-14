@@ -113,77 +113,98 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
       <div className="max-w-6xl mx-auto">
         {/* Header - Mobile Optimized */}
         <div className="mb-6 sm:mb-8">
-          <div className="mb-4 sm:mb-6">
+          {/* Back Button - Enhanced Visibility */}
+          <div className="mb-6 sm:mb-8">
             <Link href="/master-inventory">
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-2 min-h-[44px] no-zoom"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span className="text-sm sm:text-base">Back to Master Inventory</span>
-              </Button>
+              <button className="group flex items-center gap-3 px-6 py-3 bg-white text-gray-700 hover:text-blue-600 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 font-medium text-sm sm:text-base min-h-[48px] w-full sm:w-auto justify-center sm:justify-start">
+                <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
+                <span>Back to Master Inventory</span>
+              </button>
             </Link>
           </div>
           
+          {/* Title Section */}
           <div className="text-center sm:text-left">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
               Product Catalog
             </h1>
-            <p className="text-sm sm:text-base text-gray-600 px-2 sm:px-0">
-              Browse and search all {products?.length || 0} products in inventory
+            <p className="text-sm sm:text-base lg:text-lg text-gray-600 px-2 sm:px-0 max-w-2xl">
+              Browse and search all <span className="font-semibold text-blue-600">{products?.length || 0}</span> products in your inventory system
             </p>
           </div>
         </div>
 
-        {/* Search and Filter Controls */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          <div className="space-y-2">
-            <Label htmlFor="search">Search Products</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <input
-                id="search"
-                type="text"
-                placeholder="Search by product name..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base min-h-[44px]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+        {/* Search and Filter Controls - Enhanced Card Design */}
+        <Card className="mb-6 sm:mb-8 bg-white shadow-lg border-0">
+          <CardContent className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="search" className="text-sm font-medium text-gray-700">Search Products</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    id="search"
+                    type="text"
+                    placeholder="Search by product name..."
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base min-h-[48px] bg-white transition-all duration-200"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Filter by Unit</Label>
+                <Select value={unitFilter} onValueChange={setUnitFilter}>
+                  <SelectTrigger className="min-h-[48px] border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <SelectValue placeholder="All Units" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Units</SelectItem>
+                    {availableUnits.map((unit) => (
+                      <SelectItem key={unit} value={unit}>
+                        {unit}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Filter by Stock Level</Label>
+                <Select value={stockFilter} onValueChange={setStockFilter}>
+                  <SelectTrigger className="min-h-[48px] border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <SelectValue placeholder="All Stock Levels" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Stock Levels</SelectItem>
+                    <SelectItem value="in-stock">In Stock</SelectItem>
+                    <SelectItem value="low-stock">Low Stock</SelectItem>
+                    <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>Filter by Unit</Label>
-            <Select value={unitFilter} onValueChange={setUnitFilter}>
-              <SelectTrigger className="min-h-[44px]">
-                <SelectValue placeholder="All Units" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Units</SelectItem>
-                {availableUnits.map((unit) => (
-                  <SelectItem key={unit} value={unit}>
-                    {unit}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>Filter by Stock Level</Label>
-            <Select value={stockFilter} onValueChange={setStockFilter}>
-              <SelectTrigger className="min-h-[44px]">
-                <SelectValue placeholder="All Stock Levels" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Stock Levels</SelectItem>
-                <SelectItem value="in-stock">In Stock</SelectItem>
-                <SelectItem value="low-stock">Low Stock</SelectItem>
-                <SelectItem value="out-of-stock">Out of Stock</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+
+            {/* Clear Filters */}
+            {(searchQuery || unitFilter !== "all" || stockFilter !== "all") && (
+              <div className="flex justify-center pt-4 border-t border-gray-100">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setUnitFilter("all");
+                    setStockFilter("all");
+                  }}
+                  className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                >
+                  Clear all filters
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Results Summary */}
         <div className="mb-6">
