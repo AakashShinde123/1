@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Package, Search, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import type { Product } from "@shared/schema";
 
 interface ProductCatalogProps {
@@ -24,6 +25,9 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [unitFilter, setUnitFilter] = useState<string>("all");
   const [stockFilter, setStockFilter] = useState<string>("all");
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
+  const [editForm, setEditForm] = useState<{ name: string; unit: string; currentStock: string; openingStock: string }>({ name: "", unit: "", currentStock: "", openingStock: "" });
+  const queryClient = useQueryClient();
 
   const {
     data: products,
@@ -31,6 +35,23 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
     error,
   } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+  });
+
+  // Mutation for updating product
+  const updateProductMutation = useMutation({
+    mutationFn: async (updated: { name: string; unit: string; openingStock: string; currentStock: string }) => {
+      const res = await fetch(`/api/products/${editProduct?.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updated),
+      });
+      if (!res.ok) throw new Error("Failed to update product");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      setEditProduct(null);
+    },
   });
 
   // Filter and sort products based on search and filters with priority
@@ -275,6 +296,23 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                           {product.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </div>
+                      <div className="flex justify-end pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditProduct(product);
+                            setEditForm({
+                              name: product.name,
+                              unit: product.unit,
+                              currentStock: product.currentStock,
+                              openingStock: product.openingStock,
+                            });
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -282,6 +320,63 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
             })}
           </div>
         )}
+
+        {/* Edit Modal */}
+        <Dialog open={!!editProduct} onOpenChange={() => setEditProduct(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Product</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={editForm.name}
+                onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+              />
+              <Label htmlFor="edit-unit">Unit</Label>
+              <Input
+                id="edit-unit"
+                value={editForm.unit}
+                onChange={e => setEditForm(f => ({ ...f, unit: e.target.value }))}
+              />
+              <Label htmlFor="edit-currentStock">Current Stock</Label>
+              <Input
+                id="edit-currentStock"
+                type="number"
+                value={editForm.currentStock}
+                onChange={e => setEditForm(f => ({ ...f, currentStock: e.target.value }))}
+              />
+              <Label htmlFor="edit-openingStock">Opening Stock</Label>
+              <Input
+                id="edit-openingStock"
+                type="number"
+                value={editForm.openingStock}
+                onChange={e => setEditForm(f => ({ ...f, openingStock: e.target.value }))}
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => {
+                  if (editProduct) {
+                    updateProductMutation.mutate({
+                      name: editForm.name,
+                      unit: editForm.unit,
+                      openingStock: editForm.openingStock,
+                      currentStock: editForm.currentStock, // <-- Add this line
+                    });
+                  }
+                }}
+                disabled={updateProductMutation.isPending}
+              >
+                Save
+              </Button>
+              <Button variant="ghost" onClick={() => setEditProduct(null)}>
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
