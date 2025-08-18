@@ -67,6 +67,21 @@ export default function Inventory() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [lastUsedUnit, setLastUsedUnit] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("lastUsedUnit") || "Pieces";
+    }
+    return "Pieces";
+  });
+
+    const addForm = useForm<z.infer<typeof productFormSchema>>({
+    resolver: zodResolver(productFormSchema),
+    defaultValues: {
+      name: "",
+      unit: "",
+      openingStock: "",
+    },
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -79,14 +94,15 @@ export default function Inventory() {
     }
   }, [isLoading, isAuthenticated, toast]);
 
-  const addForm = useForm<z.infer<typeof productFormSchema>>({
-    resolver: zodResolver(productFormSchema),
-    defaultValues: {
-      name: "",
-      unit: "",
-      openingStock: "",
-    },
-  });
+    // Load last used unit from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedUnit = localStorage.getItem("lastUsedUnit");
+      if (storedUnit) {
+        addForm.setValue("unit", storedUnit);
+      }
+    }
+  }, []);
 
   const editForm = useForm<z.infer<typeof updateFormSchema>>({
     resolver: zodResolver(updateFormSchema),
@@ -110,9 +126,15 @@ export default function Inventory() {
     mutationFn: async (data: z.infer<typeof productFormSchema>) => {
       await apiRequest("POST", "/api/products", data);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      localStorage.setItem("lastUsedUnit", variables.unit);
+      setLastUsedUnit(variables.unit);
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-      addForm.reset();
+      addForm.reset({
+        name: "",
+        unit: variables.unit, // Keep the last used unit
+        openingStock: "",
+      });
       setIsAddDialogOpen(false);
       toast({
         title: "Success",
@@ -336,98 +358,122 @@ export default function Inventory() {
           </h1>
           <p className="text-sm sm:text-base text-gray-600">Create new inventory items</p>
         </div>
+<Card>
+  <CardContent className="p-6">
+    <Form {...addForm}>
+      <form
+        onSubmit={addForm.handleSubmit(async (data) => {
+          // 1. Check for duplicate products
+          const isDuplicate = (Array.isArray(products) ? products : []).some(
+            (product: Product) =>
+              product.name.toLowerCase() === data.name.toLowerCase()
+          );
+          
+          if (isDuplicate) {
+            addForm.setError("name", {
+              type: "manual",
+              message: "This product already exists!",
+            });
+            return;
+          }
 
-        <Card>
-          <CardContent className="p-6">
-            <Form {...addForm}>
-              <form
-                onSubmit={addForm.handleSubmit((data) =>
-                  createProductMutation.mutate(data),
-                )}
-                className="space-y-6"
-              >
-                <FormField
-                  control={addForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-lg">Product Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter product name"
-                          {...field}
-                          className="h-12 text-lg"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+          // 2. Ensure unit is never empty (fallback to "Pieces")
+          if (!data.unit) data.unit = "Pieces";
+          
+          // 3. Submit if valid
+          createProductMutation.mutate(data);
+        })}
+        className="space-y-6"
+      >
+        {/* Product Name Field */}
+        <FormField
+          control={addForm.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-lg">Product Name</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Enter product name"
+                  {...field}
+                  className="h-12 text-lg"
                 />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Unit Field with Persistent Selection */}
                 <FormField
                   control={addForm.control}
                   name="unit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-lg">
-                        Unit of Measurement
-                      </FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="h-12 text-lg">
-                            <SelectValue placeholder="Select unit" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="KG">KG</SelectItem>
-                          <SelectItem value="Grams">Grams</SelectItem>
-                          <SelectItem value="Litre">Litre</SelectItem>
-                          <SelectItem value="Millilitre">
-                            Millilitre
-                          </SelectItem>
-                          <SelectItem value="Pieces">Pieces</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={addForm.control}
-                  name="openingStock"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-lg">Opening Quantity</FormLabel>
+                      <FormLabel className="text-lg">Unit</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          step="0.001"
-                          placeholder="Enter opening quantity"
-                          {...field}
-                          className="h-12 text-lg"
-                        />
+                        <Select
+                          value={field.value || lastUsedUnit}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            setLastUsedUnit(value);
+                            localStorage.setItem("lastUsedUnit", value);
+                          }}
+                          defaultValue={lastUsedUnit}
+                        >
+                          <SelectTrigger className="h-12 text-lg">
+                            <SelectValue placeholder={lastUsedUnit} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="KG">KG</SelectItem>
+                            <SelectItem value="Grams">Grams</SelectItem>
+                            <SelectItem value="Litre">Litre</SelectItem>
+                            <SelectItem value="Millilitre">Millilitre</SelectItem>
+                            <SelectItem value="Pieces">Pieces</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <div className="flex justify-end space-x-4">
-                  <Button
-                    type="submit"
-                    disabled={createProductMutation.isPending}
-                    className="h-12 px-8 text-lg"
-                  >
-                    {createProductMutation.isPending
-                      ? "Adding..."
-                      : "Add Product"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+
+
+        {/* Opening Quantity Field */}
+        <FormField
+          control={addForm.control}
+          name="openingStock"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-lg">Opening Quantity</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  step="0.001"
+                  placeholder="Enter opening quantity"
+                  {...field}
+                  className="h-12 text-lg"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Submit Button */}
+        <div className="flex justify-end space-x-4">
+          <Button
+            type="submit"
+            disabled={createProductMutation.isPending}
+            className="h-12 px-8 text-lg"
+          >
+            {createProductMutation.isPending ? "Adding..." : "Add Product"}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  </CardContent>
+</Card>
       </div>
     </div>
   );
