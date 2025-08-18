@@ -260,7 +260,6 @@ export const stockOutSchema = insertStockTransactionSchema
 
 export const updateProductSchema = createInsertSchema(products)
   .omit({
-    currentStock: true,
     isActive: true,
     createdAt: true,
     updatedAt: true,
@@ -363,3 +362,4 @@ export function hasUserAnyRole(user: User, targetRoles: UserRole[]): boolean {
   const activeRoles = getUserActiveRoles(user);
   return targetRoles.some(role => activeRoles.includes(role));
 }
+
