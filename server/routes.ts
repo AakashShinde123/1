@@ -397,6 +397,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     },
   );
+  // Add this with your other product routes
+app.get('/api/products/last-unit', isAuthenticated, async (req, res) => {
+  try {
+    const products = await storage.getProducts();
+    // Get the most recently added product
+    const lastProduct = products.sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    })[0];
+    
+    res.json({
+      lastUnit: lastProduct?.unit || "Pieces" // Default fallback
+    });
+  } catch (error) {
+    console.error("Error fetching last unit:", error);
+    res.status(500).json({ message: "Failed to fetch last unit" });
+  }
+});
 
   // Stock transaction routes - add both endpoint patterns for compatibility
   app.post(
@@ -1229,3 +1248,4 @@ app.get(
   const httpServer = createServer(app);
   return httpServer;
 }
+
