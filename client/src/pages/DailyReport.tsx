@@ -1,9 +1,7 @@
-
-
 import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { parseExcelFile } from "@/utils/excelUtils";
+import { parseExcelFile } from "../utils/excelUtils";
 import { Customer, SalesOrder } from "@/types";
 import { Printer, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
@@ -39,6 +37,14 @@ export default function DailyReport() {
 
   const getCustomerOrders = (customerId: string) => {
     return salesOrders.filter(order => order.customerId === customerId);
+  };
+
+  const handleReset = () => {
+    setCustomers([]);
+    setSalesOrders([]);
+    setCustomerFile(null);
+    setOrderFile(null);
+    setError("");
   };
 
   const handlePrint = () => {
@@ -193,13 +199,22 @@ export default function DailyReport() {
                   </span>
                 </div>
               </div>
-              <Button
-                onClick={handleUpload}
-                disabled={loading}
-                className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-lg px-6 py-5 md:py-2 rounded-xl"
-              >
-                {loading ? "Loading..." : "Upload & Show Report"}
-              </Button>
+              <div className="flex items-stretch gap-3">
+                <Button
+                  onClick={handleUpload}
+                  disabled={loading}
+                  className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-lg px-6 py-5 md:py-2 rounded-xl"
+                >
+                  {loading ? "Loading..." : "Upload & Show Report"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={handleReset}
+                  className="bg-gray-100 text-gray-800 hover:bg-gray-200 shadow px-6 py-5 md:py-2 rounded-xl"
+                >
+                  Reset
+                </Button>
+              </div>
             </div>
 
             {error && (
