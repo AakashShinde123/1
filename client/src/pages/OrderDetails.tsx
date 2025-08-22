@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Plus, FileText } from "lucide-react";
+import { ArrowLeft, Plus, FileText, CalendarDays } from "lucide-react";
 import { useLocation, Link } from "wouter";
 
 export default function OrderDetails() {
@@ -83,13 +83,15 @@ export default function OrderDetails() {
         {!showForm && (
           <>
             <div className="modern-card p-8 text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Order Management</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Order Management
+              </h1>
               <p className="text-gray-600">Manage your orders and view reports</p>
             </div>
 
             <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-              {/* Create New Order Card */}
-              <div 
+              {/* Create New Order */}
+              <div
                 className="modern-card cursor-pointer group"
                 onClick={() => setShowForm(true)}
               >
@@ -97,13 +99,15 @@ export default function OrderDetails() {
                   <div className="gradient-purple p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center">
                     <Plus className="text-white h-8 w-8" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Create New Order</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    Create New Order
+                  </h3>
                   <p className="text-gray-600">Add new order details</p>
                 </div>
               </div>
 
-              {/* Orders Report Card */}
-              <div 
+              {/* Orders Report */}
+              <div
                 className="modern-card cursor-pointer group"
                 onClick={() => navigate("/order-report")}
               >
@@ -111,12 +115,28 @@ export default function OrderDetails() {
                   <div className="gradient-blue p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center">
                     <FileText className="text-white h-8 w-8" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Orders Report</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    Orders Report
+                  </h3>
                   <p className="text-gray-600">View order history</p>
                 </div>
               </div>
 
-
+              {/* Daily Report */}
+              <div
+                className="modern-card cursor-pointer group"
+                onClick={() => navigate("/daily-report")}
+              >
+                <div className="text-center">
+                  <div className="gradient-green p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center">
+                    <CalendarDays className="text-white h-8 w-8" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    Daily Report
+                  </h3>
+                  <p className="text-gray-600">View today’s summary</p>
+                </div>
+              </div>
             </div>
           </>
         )}
@@ -138,7 +158,9 @@ export default function OrderDetails() {
         {showForm && (
           <Card className="max-w-2xl mx-auto">
             <CardHeader>
-              <CardTitle className="text-2xl font-bold text-center">Order Details</CardTitle>
+              <CardTitle className="text-2xl font-bold text-center">
+                Order Details
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
