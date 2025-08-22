@@ -56,7 +56,7 @@ export const products = pgTable("products", {
   isActive: integer("is_active").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [index("idx_products_name").on(table.name), index("idx_products_active").on(table.isActive)]);
 
 // Stock transactions table
 export const stockTransactions = pgTable("stock_transactions", {
@@ -81,7 +81,15 @@ export const stockTransactions = pgTable("stock_transactions", {
   soNumber: varchar("so_number", { length: 100 }),
   poNumber: varchar("po_number", { length: 100 }),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_stock_transactions_product_id").on(table.productId),
+  index("idx_stock_transactions_user_id").on(table.userId),
+  index("idx_stock_transactions_type").on(table.type),
+  index("idx_stock_transactions_date").on(table.transactionDate),
+  index("idx_stock_transactions_created_at").on(table.createdAt),
+  index("idx_stock_transactions_product_type").on(table.productId, table.type),
+  index("idx_stock_transactions_date_type").on(table.transactionDate, table.type)
+]);
 
 // Weekly stock plans table
 export const weeklyStockPlans = pgTable("weekly_stock_plans", {
@@ -260,6 +268,7 @@ export const stockOutSchema = insertStockTransactionSchema
 
 export const updateProductSchema = createInsertSchema(products)
   .omit({
+    currentStock: true,
     isActive: true,
     createdAt: true,
     updatedAt: true,
@@ -362,4 +371,3 @@ export function hasUserAnyRole(user: User, targetRoles: UserRole[]): boolean {
   const activeRoles = getUserActiveRoles(user);
   return targetRoles.some(role => activeRoles.includes(role));
 }
-
