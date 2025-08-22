@@ -130,7 +130,7 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header - Mobile Optimized */}
         <div className="mb-6 sm:mb-8">
@@ -156,7 +156,7 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
         </div>
 
         {/* Search and Filter Controls - Enhanced Card Design */}
-        <Card className="mb-6 sm:mb-8 bg-white shadow-lg border-0">
+        <Card className="mb-6 sm:mb-8 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/70 shadow-xl border-0 rounded-2xl">
           <CardContent className="p-4 sm:p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               <div className="space-y-2">
@@ -234,9 +234,9 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
           </p>
         </div>
 
-        {/* Products Grid */}
+        {/* Products Table */}
         {filteredProducts.length === 0 ? (
-          <Card>
+          <Card className="rounded-2xl">
             <CardContent className="pt-6 text-center">
               <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -248,55 +248,39 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredProducts.map((product: Product) => {
-              const stockStatus = getStockStatus(product.currentStock);
-              
-              return (
-                <Card key={product.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg sm:text-xl text-gray-900 mb-2">
-                        {product.name}
-                      </CardTitle>
-                      <Badge 
-                        variant="secondary" 
-                        className={`${stockStatus.color} text-white text-xs`}
-                      >
-                        {stockStatus.label}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Current Stock:</span>
-                        <span className="font-medium">
-                          {formatStock(product.currentStock)} {product.unit}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Opening Stock:</span>
-                        <span className="text-sm text-gray-500">
-                          {formatStock(product.openingStock)} {product.unit}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Unit:</span>
-                        <Badge variant="outline" className="text-xs">
-                          {product.unit}
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-xl bg-white">
+            <table className="w-full text-left">
+              <thead className="sticky top-0 bg-gray-50/90 backdrop-blur z-10">
+                <tr className="text-gray-700 text-xs uppercase tracking-wide">
+                  <th className="p-3 md:p-4 border-b border-gray-200">Name</th>
+                  <th className="p-3 md:p-4 border-b border-gray-200">Unit</th>
+                  <th className="p-3 md:p-4 border-b border-gray-200">Current Stock</th>
+                  <th className="p-3 md:p-4 border-b border-gray-200">Opening Stock</th>
+                  <th className="p-3 md:p-4 border-b border-gray-200">Status</th>
+                  <th className="p-3 md:p-4 border-b border-gray-200 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProducts.map((product: Product) => {
+                  const stockStatus = getStockStatus(product.currentStock);
+                  return (
+                    <tr key={product.id} className="odd:bg-white even:bg-gray-50 hover:bg-indigo-50/60 transition-colors">
+                      <td className="p-3 md:p-4 border-b border-gray-100 text-gray-900 font-medium">{product.name}</td>
+                      <td className="p-3 md:p-4 border-b border-gray-100">
+                        <Badge variant="outline" className="text-xs">{product.unit}</Badge>
+                      </td>
+                      <td className="p-3 md:p-4 border-b border-gray-100">
+                        {formatStock(product.currentStock)} {product.unit}
+                      </td>
+                      <td className="p-3 md:p-4 border-b border-gray-100 text-gray-500">
+                        {formatStock(product.openingStock)} {product.unit}
+                      </td>
+                      <td className="p-3 md:p-4 border-b border-gray-100">
+                        <Badge variant="secondary" className={`${stockStatus.color} text-white text-xs`}>
+                          {stockStatus.label}
                         </Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Status:</span>
-                        <Badge 
-                          variant={product.isActive ? "default" : "secondary"}
-                          className="text-xs"
-                        >
-                          {product.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
-                      <div className="flex justify-end pt-2">
+                      </td>
+                      <td className="p-3 md:p-4 border-b border-gray-100 text-right">
                         <Button
                           variant="outline"
                           size="sm"
@@ -312,12 +296,12 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                         >
                           Edit
                         </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
 
