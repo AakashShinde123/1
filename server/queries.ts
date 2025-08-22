@@ -1,5 +1,12 @@
 import { db } from "./db";
-import { users, products, stockTransactions, weeklyStockPlans, lowStockAlerts, orders } from "@shared/schema";
+import {
+  users,
+  products,
+  stockTransactions,
+  weeklyStockPlans,
+  lowStockAlerts,
+  orders,
+} from "@shared/schema";
 import {
   eq,
   desc,
@@ -58,10 +65,13 @@ export const userQueries = {
 
   // Create new user
   async create(userData: InsertUser): Promise<User> {
-    const result = await db.insert(users).values({
-      ...userData,
-      roles: userData.roles ? JSON.stringify(userData.roles) : undefined,
-    }).returning();
+    const result = await db
+      .insert(users)
+      .values({
+        ...userData,
+        roles: userData.roles || [],
+      })
+      .returning();
     return result[0];
   },
 
@@ -79,10 +89,10 @@ export const userQueries = {
   async updateRoles(userId: number, roles: UserRole[]): Promise<User> {
     const result = await db
       .update(users)
-      .set({ 
+      .set({
         roles: roles, // Store as JSON array directly
-        role: roles[0] || 'stock_in_manager', // Keep legacy field for compatibility
-        updatedAt: sql`now()` 
+        role: roles[0] || "stock_in_manager", // Keep legacy field for compatibility
+        updatedAt: sql`now()`,
       })
       .where(eq(users.id, userId))
       .returning();
@@ -197,22 +207,18 @@ export const productQueries = {
     return result[0];
   },
 
-  // Search products by name
+  // Search products by name - optimized for speed
   async search(query: string): Promise<Product[]> {
     return await db
-      .select({
-        ...products,
-        priority: sql<number>`
-          CASE 
-            WHEN LOWER(${products.name}) LIKE LOWER(${query + '%'}) THEN 1
-            WHEN LOWER(${products.name}) LIKE LOWER(${'%' + query + '%'}) THEN 2
-            ELSE 3
-          END
-        `.as('priority')
-      })
+      .select()
       .from(products)
-      .where(and(ilike(products.name, `%${query}%`), eq(products.isActive, 1)))
-      .orderBy(sql`priority ASC`, asc(products.name))
+      .where(
+        and(
+          eq(products.isActive, 1),
+          ilike(products.name, `%${query}%`)
+        )
+      )
+      .orderBy(asc(products.name))
       .limit(20);
   },
 
@@ -253,7 +259,7 @@ export const stockTransactionQueries = {
   ): Promise<StockTransaction> {
     const result = await db
       .insert(stockTransactions)
-      .values([transactionData])
+      .values(transactionData)
       .returning();
     return result[0];
   },
@@ -324,13 +330,14 @@ export const stockTransactionQueries = {
         },
       })
       .from(stockTransactions)
-      .leftJoin(products, eq(stockTransactions.productId, products.id))
-      .leftJoin(users, eq(stockTransactions.userId, users.id));
+      .innerJoin(products, eq(stockTransactions.productId, products.id))
+      .innerJoin(users, eq(stockTransactions.userId, users.id));
 
     const finalQuery =
       conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
 
-    return await finalQuery.orderBy(desc(stockTransactions.transactionDate));
+    const results = await finalQuery.orderBy(desc(stockTransactions.transactionDate));
+    return results.filter((row: any) => row.product && row.user);
   },
 
   // Get transactions by product ID
@@ -811,14 +818,17 @@ export const weeklyStockPlanQueries = {
         },
       })
       .from(weeklyStockPlans)
-      .leftJoin(products, eq(weeklyStockPlans.productId, products.id))
-      .leftJoin(users, eq(weeklyStockPlans.userId, users.id))
+      .innerJoin(products, eq(weeklyStockPlans.productId, products.id))
+      .innerJoin(users, eq(weeklyStockPlans.userId, users.id))
       .where(eq(weeklyStockPlans.isActive, true))
       .orderBy(desc(weeklyStockPlans.weekStartDate));
   },
 
   // Get weekly plans by date range
-  async getByWeekRange(startDate: Date, endDate: Date): Promise<WeeklyStockPlanWithDetails[]> {
+  async getByWeekRange(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<WeeklyStockPlanWithDetails[]> {
     return await db
       .select({
         id: weeklyStockPlans.id,
@@ -857,22 +867,28 @@ export const weeklyStockPlanQueries = {
         },
       })
       .from(weeklyStockPlans)
-      .leftJoin(products, eq(weeklyStockPlans.productId, products.id))
-      .leftJoin(users, eq(weeklyStockPlans.userId, users.id))
+      .innerJoin(products, eq(weeklyStockPlans.productId, products.id))
+      .innerJoin(users, eq(weeklyStockPlans.userId, users.id))
       .where(
         and(
           eq(weeklyStockPlans.isActive, true),
-          gte(weeklyStockPlans.weekStartDate, startDate.toISOString().split('T')[0]),
-          lte(weeklyStockPlans.weekEndDate, endDate.toISOString().split('T')[0])
-        )
+          gte(
+            weeklyStockPlans.weekStartDate,
+            startDate.toISOString().split("T")[0],
+          ),
+          lte(
+            weeklyStockPlans.weekEndDate,
+            endDate.toISOString().split("T")[0],
+          ),
+        ),
       );
   },
 
   // Get current week plans
   async getCurrentWeekPlans(): Promise<WeeklyStockPlanWithDetails[]> {
     const now = new Date();
-    const currentDateString = now.toISOString().split('T')[0];
-    
+    const currentDateString = now.toISOString().split("T")[0];
+
     return await db
       .select({
         id: weeklyStockPlans.id,
@@ -911,25 +927,30 @@ export const weeklyStockPlanQueries = {
         },
       })
       .from(weeklyStockPlans)
-      .leftJoin(products, eq(weeklyStockPlans.productId, products.id))
-      .leftJoin(users, eq(weeklyStockPlans.userId, users.id))
+      .innerJoin(products, eq(weeklyStockPlans.productId, products.id))
+      .innerJoin(users, eq(weeklyStockPlans.userId, users.id))
       .where(
         and(
           eq(weeklyStockPlans.isActive, true),
           lte(weeklyStockPlans.weekStartDate, currentDateString),
-          gte(weeklyStockPlans.weekEndDate, currentDateString)
-        )
+          gte(weeklyStockPlans.weekEndDate, currentDateString),
+        ),
       );
   },
 
   // Create weekly stock plan
   async create(planData: InsertWeeklyStockPlan): Promise<WeeklyStockPlan> {
     try {
+      console.log("Creating weekly stock plan with data:", JSON.stringify(planData, null, 2));
+      
       // Validate required fields
       if (!planData.productId || !planData.userId) {
         throw new Error("Product ID and User ID are required");
       }
-      if (!planData.plannedQuantity || parseFloat(planData.plannedQuantity) <= 0) {
+      if (
+        !planData.plannedQuantity ||
+        parseFloat(planData.plannedQuantity) <= 0
+      ) {
         throw new Error("Planned quantity must be greater than 0");
       }
       if (!planData.weekStartDate || !planData.weekEndDate) {
@@ -942,14 +963,36 @@ export const weeklyStockPlanQueries = {
         throw new Error("previousWeekStock is required");
       }
 
+      // Double-check user exists just before insert
+      const userCheck = await db.select({ id: users.id }).from(users).where(eq(users.id, planData.userId)).limit(1);
+      console.log("Final user check before insert:", userCheck);
+      
+      if (userCheck.length === 0) {
+        throw new Error(`User with ID ${planData.userId} not found in database`);
+      }
+
+      // Double-check product exists
+      const productCheck = await db.select({ id: products.id }).from(products).where(eq(products.id, planData.productId)).limit(1);
+      console.log("Product check before insert:", productCheck);
+      
+      if (productCheck.length === 0) {
+        throw new Error(`Product with ID ${planData.productId} not found in database`);
+      }
+
+      console.log("Both user and product exist, proceeding with insert...");
+
       const result = await db
         .insert(weeklyStockPlans)
         .values(planData)
         .returning();
 
       if (!result[0]) {
-        throw new Error("Failed to create weekly stock plan - no result returned");
+        throw new Error(
+          "Failed to create weekly stock plan - no result returned",
+        );
       }
+      
+      console.log("Successfully created weekly stock plan:", result[0]);
       return result[0];
     } catch (error) {
       console.error("Error in weeklyStockPlanQueries.create:", error);
@@ -958,13 +1001,16 @@ export const weeklyStockPlanQueries = {
   },
 
   // Update weekly stock plan
-  async update(id: number, planData: Partial<InsertWeeklyStockPlan>): Promise<WeeklyStockPlan> {
+  async update(
+    id: number,
+    planData: Partial<InsertWeeklyStockPlan>,
+  ): Promise<WeeklyStockPlan> {
     const result = await db
       .update(weeklyStockPlans)
       .set({ ...planData, updatedAt: sql`now()` })
       .where(eq(weeklyStockPlans.id, id))
       .returning();
-    
+
     if (!result[0]) {
       throw new Error("Weekly stock plan not found");
     }
@@ -980,14 +1026,16 @@ export const weeklyStockPlanQueries = {
   },
 
   // Check for low stock alerts based on current week plans
-  async checkLowStockAlerts(): Promise<Array<{
-    productId: number;
-    productName: string;
-    currentStock: number;
-    plannedQuantity: number;
-    weeklyPlanId: number;
-    unit: string;
-  }>> {
+  async checkLowStockAlerts(): Promise<
+    Array<{
+      productId: number;
+      productName: string;
+      currentStock: number;
+      plannedQuantity: number;
+      weeklyPlanId: number;
+      unit: string;
+    }>
+  > {
     const currentWeekPlans = await this.getCurrentWeekPlans();
     const lowStockItems = [];
 
@@ -1016,47 +1064,55 @@ export const weeklyStockPlanQueries = {
 export const lowStockAlertQueries = {
   // Get all unresolved alerts
   async getUnresolvedAlerts(): Promise<LowStockAlertWithDetails[]> {
-    return await db
-      .select({
-        id: lowStockAlerts.id,
-        productId: lowStockAlerts.productId,
-        weeklyPlanId: lowStockAlerts.weeklyPlanId,
-        currentStock: lowStockAlerts.currentStock,
-        plannedQuantity: lowStockAlerts.plannedQuantity,
-        alertLevel: lowStockAlerts.alertLevel,
-        isResolved: lowStockAlerts.isResolved,
-        alertDate: lowStockAlerts.alertDate,
-        resolvedAt: lowStockAlerts.resolvedAt,
-        createdAt: lowStockAlerts.createdAt,
-        product: {
-          id: products.id,
-          name: products.name,
-          unit: products.unit,
-          openingStock: products.openingStock,
-          currentStock: products.currentStock,
-          isActive: products.isActive,
-          createdAt: products.createdAt,
-          updatedAt: products.updatedAt,
-        },
-        weeklyPlan: {
-          id: weeklyStockPlans.id,
-          productId: weeklyStockPlans.productId,
-          userId: weeklyStockPlans.userId,
-          plannedQuantity: weeklyStockPlans.plannedQuantity,
-          unit: weeklyStockPlans.unit,
-          weekStartDate: weeklyStockPlans.weekStartDate,
-          weekEndDate: weeklyStockPlans.weekEndDate,
-          isActive: weeklyStockPlans.isActive,
-          notes: weeklyStockPlans.notes,
-          createdAt: weeklyStockPlans.createdAt,
-          updatedAt: weeklyStockPlans.updatedAt,
-        },
-      })
+    const results = await db
+      .select()
       .from(lowStockAlerts)
-      .leftJoin(products, eq(lowStockAlerts.productId, products.id))
-      .leftJoin(weeklyStockPlans, eq(lowStockAlerts.weeklyPlanId, weeklyStockPlans.id))
+      .innerJoin(products, eq(lowStockAlerts.productId, products.id))
+      .innerJoin(
+        weeklyStockPlans,
+        eq(lowStockAlerts.weeklyPlanId, weeklyStockPlans.id),
+      )
       .where(eq(lowStockAlerts.isResolved, false))
       .orderBy(desc(lowStockAlerts.alertDate));
+
+    // Transform results to match expected format
+    return results.map((row) => ({
+      id: row.low_stock_alerts.id,
+      productId: row.low_stock_alerts.productId,
+      weeklyPlanId: row.low_stock_alerts.weeklyPlanId,
+      currentStock: row.low_stock_alerts.currentStock,
+      plannedQuantity: row.low_stock_alerts.plannedQuantity,
+      alertLevel: row.low_stock_alerts.alertLevel,
+      isResolved: row.low_stock_alerts.isResolved,
+      alertDate: row.low_stock_alerts.alertDate,
+      resolvedAt: row.low_stock_alerts.resolvedAt,
+      createdAt: row.low_stock_alerts.createdAt,
+      product: {
+        id: row.products.id,
+        name: row.products.name,
+        unit: row.products.unit,
+        openingStock: row.products.openingStock,
+        currentStock: row.products.currentStock,
+        isActive: row.products.isActive,
+        createdAt: row.products.createdAt,
+        updatedAt: row.products.updatedAt,
+      },
+      weeklyPlan: {
+        id: row.weekly_stock_plans.id,
+        productId: row.weekly_stock_plans.productId,
+        userId: row.weekly_stock_plans.userId,
+        plannedQuantity: row.weekly_stock_plans.plannedQuantity,
+        unit: row.weekly_stock_plans.unit,
+        weekStartDate: row.weekly_stock_plans.weekStartDate,
+        weekEndDate: row.weekly_stock_plans.weekEndDate,
+        isActive: row.weekly_stock_plans.isActive,
+        name: row.weekly_stock_plans.name,
+        presentStock: row.weekly_stock_plans.presentStock,
+        previousWeekStock: row.weekly_stock_plans.previousWeekStock,
+        createdAt: row.weekly_stock_plans.createdAt,
+        updatedAt: row.weekly_stock_plans.updatedAt,
+      },
+    }));
   },
 
   // Create low stock alert
@@ -1075,7 +1131,7 @@ export const lowStockAlertQueries = {
       .set({ isResolved: true, resolvedAt: sql`now()` })
       .where(eq(lowStockAlerts.id, id))
       .returning();
-    
+
     if (!result[0]) {
       throw new Error("Alert not found");
     }
@@ -1096,8 +1152,8 @@ export const lowStockAlertQueries = {
           and(
             eq(lowStockAlerts.productId, item.productId),
             eq(lowStockAlerts.weeklyPlanId, item.weeklyPlanId),
-            eq(lowStockAlerts.isResolved, false)
-          )
+            eq(lowStockAlerts.isResolved, false),
+          ),
         )
         .limit(1);
 
@@ -1108,7 +1164,10 @@ export const lowStockAlertQueries = {
           weeklyPlanId: item.weeklyPlanId,
           currentStock: item.currentStock.toString(),
           plannedQuantity: item.plannedQuantity.toString(),
-          alertLevel: item.currentStock <= (item.plannedQuantity * 0.5) ? "critical" : "low",
+          alertLevel:
+            item.currentStock <= item.plannedQuantity * 0.5
+              ? "critical"
+              : "low",
           alertDate: new Date(),
         });
         newAlerts.push(alert);
