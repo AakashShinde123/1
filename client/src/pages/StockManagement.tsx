@@ -205,6 +205,11 @@ export default function StockManagement() {
 
   // Unit conversion utilities
   const getAvailableUnits = (product: Product) => {
+    // Handle empty or invalid units
+    if (!product.unit || product.unit.trim() === '') {
+      return [{ value: 'Pieces', label: 'Pieces' }];
+    }
+    
     const baseUnit = product.unit.toLowerCase();
     const units = [{ value: product.unit, label: product.unit }];
 
@@ -233,6 +238,11 @@ export default function StockManagement() {
     selectedUnit: string,
     product: Product,
   ) => {
+    // Handle empty or invalid units
+    if (!product.unit || product.unit.trim() === '') {
+      return quantity; // No conversion needed for pieces
+    }
+    
     const baseUnit = product.unit.toLowerCase();
     const qty = parseFloat(quantity);
 
@@ -282,7 +292,7 @@ export default function StockManagement() {
   }, [isAuthenticated, isLoading, toast]);
 
   // Get user's active roles (support both single role and multiple roles)
-  const userRoles = (user as any)?.roles || [(user as any)?.role];
+  const userRoles = (user as any)?.roles || [(user as any)?.role].filter(Boolean);
   const hasRole = (role: string) => userRoles.includes(role);
   
   const isSuperAdmin = hasRole("super_admin");
@@ -740,7 +750,8 @@ export default function StockManagement() {
       type: "Stock Out",
     });
   };
- const handleEdit = (selectedProducts?: number[]) => {
+
+  const handleEdit = (selectedProducts?: number[]) => {
     if (
       !transactionPreview ||
       !selectedProducts ||
@@ -1227,17 +1238,23 @@ export default function StockManagement() {
                         <input
                           type="text"
                           inputMode="decimal"
-                          placeholder="Enter quantity (e.g. 20,200,30)..."
+                          placeholder="Enter quantity..."
                           value={
-                            transactionPreview?.type === "Stock In"
-                              ? editingQueue[currentEditIndex].quantity
-                              : editingQueue[currentEditIndex].quantityOut || ""
+                            editingQueue[currentEditIndex].quantity ||
+                            editingQueue[currentEditIndex].quantityOut ||
+                            ""
                           }
                           onChange={(e) => {
-                            // Allow numbers, commas, and dots
-                            const value = e.target.value.replace(/[^0-9.,]/g, "");
+                            // Allow only numbers and decimal points
+                            const value = e.target.value.replace(
+                              /[^0-9.]/g,
+                              "",
+                            );
                             const newQueue = [...editingQueue];
-                            if (transactionPreview?.type === "Stock In") {
+                            if (
+                              editingQueue[currentEditIndex].quantity !==
+                              undefined
+                            ) {
                               newQueue[currentEditIndex].quantity = value;
                             } else {
                               newQueue[currentEditIndex].quantityOut = value;
