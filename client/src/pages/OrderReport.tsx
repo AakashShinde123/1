@@ -19,10 +19,9 @@ const OrderReport: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  
-  // Filter states
+
+  // Filter states (vertical step-by-step form)
   const [filters, setFilters] = useState({
     employeeName: "",
     orderNumber: "",
@@ -30,7 +29,6 @@ const OrderReport: React.FC = () => {
     endDate: ""
   });
   const [filteredResults, setFilteredResults] = useState<Order[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
   const [isFiltered, setIsFiltered] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
@@ -51,7 +49,6 @@ const OrderReport: React.FC = () => {
       .then(data => {
         const orderData = data.orders || data;
         setOrders(orderData);
-        // Don't set filteredResults by default - only after search
         setLoading(false);
       })
       .catch(() => {
@@ -60,22 +57,12 @@ const OrderReport: React.FC = () => {
       });
   }, []);
 
-  // Handle filter search
+  // Handle filter search (no generic text search anymore)
   const handleFilterSearch = () => {
     let filtered = [...orders];
     let hasActiveFilters = false;
 
-    // Apply text search filter
-    if (searchTerm.trim()) {
-      filtered = filtered.filter(order =>
-        order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.employeeName.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      hasActiveFilters = true;
-    }
-
-    // Apply employee name filter
+    // 1) Employee
     if (filters.employeeName.trim()) {
       filtered = filtered.filter(order =>
         order.employeeName.toLowerCase().includes(filters.employeeName.toLowerCase())
@@ -83,7 +70,7 @@ const OrderReport: React.FC = () => {
       hasActiveFilters = true;
     }
 
-    // Apply order number filter
+    // 2) Order number
     if (filters.orderNumber.trim()) {
       filtered = filtered.filter(order =>
         order.orderNumber.toLowerCase().includes(filters.orderNumber.toLowerCase())
@@ -91,7 +78,7 @@ const OrderReport: React.FC = () => {
       hasActiveFilters = true;
     }
 
-    // Apply date range filter
+    // 3) Start date
     if (filters.startDate) {
       const startDate = new Date(filters.startDate);
       filtered = filtered.filter(order => {
@@ -101,9 +88,10 @@ const OrderReport: React.FC = () => {
       hasActiveFilters = true;
     }
 
+    // 4) End date
     if (filters.endDate) {
       const endDate = new Date(filters.endDate);
-      endDate.setHours(23, 59, 59, 999); // Include the entire end date
+      endDate.setHours(23, 59, 59, 999);
       filtered = filtered.filter(order => {
         const orderDate = new Date(order.createdAt);
         return orderDate <= endDate;
@@ -124,23 +112,22 @@ const OrderReport: React.FC = () => {
       startDate: "",
       endDate: ""
     });
-    setSearchTerm("");
     setFilteredResults([]);
     setIsFiltered(false);
     setHasSearched(false);
   };
 
-  // Get unique employee names for dropdown
+  // Unique employees for dropdown
   const uniqueEmployees = Array.from(new Set(orders.map(order => order.employeeName))).sort();
 
-  // Use filteredResults instead of filteredOrders
+  // Use filteredResults for the list
   const filteredOrders = filteredResults;
 
-  // CSV download handler for regular export (filtered results if available, otherwise all orders)
+  // CSV download handler (filtered if applied, else all)
   const handleDownload = () => {
     const dataToExport = isFiltered ? filteredOrders : orders;
     if (!dataToExport.length) return;
-    
+
     const header = [
       "Order #",
       "Employee",
@@ -151,7 +138,7 @@ const OrderReport: React.FC = () => {
       "Delivery Time",
       "Created At"
     ];
-    
+
     const rows = dataToExport.map(order => [
       order.orderNumber,
       order.employeeName,
@@ -162,18 +149,18 @@ const OrderReport: React.FC = () => {
       order.deliveryTime,
       order.createdAt ? new Date(order.createdAt).toLocaleString() : ""
     ]);
-    
+
     const csvContent = [header, ...rows]
       .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(","))
       .join("\r\n");
-      
+
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    
-    // Generate filename based on export type
-    let filename = `order-report-${new Date().toISOString().slice(0,10)}`;
+
+    // Filename based on current filters
+    let filename = `order-report-${new Date().toISOString().slice(0, 10)}`;
     if (isFiltered) {
       if (filters.startDate && filters.endDate) {
         filename = `order-report-${filters.startDate}-to-${filters.endDate}`;
@@ -182,10 +169,10 @@ const OrderReport: React.FC = () => {
       } else if (filters.endDate) {
         filename = `order-report-until-${filters.endDate}`;
       } else {
-        filename = `order-report-filtered-${new Date().toISOString().slice(0,10)}`;
+        filename = `order-report-filtered-${new Date().toISOString().slice(0, 10)}`;
       }
     }
-    
+
     a.download = `${filename}.csv`;
     document.body.appendChild(a);
     a.click();
@@ -193,33 +180,26 @@ const OrderReport: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Separate CSV export handler with custom date range
+  // Export with custom date range (separate)
   const handleDateExport = () => {
     let dataToExport = [...orders];
-    
-    // Apply export date filters
+
     if (exportFilters.startDate) {
       const startDate = new Date(exportFilters.startDate);
-      dataToExport = dataToExport.filter(order => {
-        const orderDate = new Date(order.createdAt);
-        return orderDate >= startDate;
-      });
+      dataToExport = dataToExport.filter(order => new Date(order.createdAt) >= startDate);
     }
 
     if (exportFilters.endDate) {
       const endDate = new Date(exportFilters.endDate);
-      endDate.setHours(23, 59, 59, 999); // Include the entire end date
-      dataToExport = dataToExport.filter(order => {
-        const orderDate = new Date(order.createdAt);
-        return orderDate <= endDate;
-      });
+      endDate.setHours(23, 59, 59, 999);
+      dataToExport = dataToExport.filter(order => new Date(order.createdAt) <= endDate);
     }
-    
+
     if (!dataToExport.length) {
       setShowNoDataModal(true);
       return;
     }
-    
+
     const header = [
       "Order #",
       "Employee",
@@ -230,7 +210,7 @@ const OrderReport: React.FC = () => {
       "Delivery Time",
       "Created At"
     ];
-    
+
     const rows = dataToExport.map(order => [
       order.orderNumber,
       order.employeeName,
@@ -241,18 +221,17 @@ const OrderReport: React.FC = () => {
       order.deliveryTime,
       order.createdAt ? new Date(order.createdAt).toLocaleString() : ""
     ]);
-    
+
     const csvContent = [header, ...rows]
       .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(","))
       .join("\r\n");
-      
+
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    
-    // Generate filename with export date range
-    let filename = `order-report-${new Date().toISOString().slice(0,10)}`;
+
+    let filename = `order-report-${new Date().toISOString().slice(0, 10)}`;
     if (exportFilters.startDate && exportFilters.endDate) {
       filename = `order-report-${exportFilters.startDate}-to-${exportFilters.endDate}`;
     } else if (exportFilters.startDate) {
@@ -260,7 +239,7 @@ const OrderReport: React.FC = () => {
     } else if (exportFilters.endDate) {
       filename = `order-report-until-${exportFilters.endDate}`;
     }
-    
+
     a.download = `${filename}.csv`;
     document.body.appendChild(a);
     a.click();
@@ -268,7 +247,7 @@ const OrderReport: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Download receipt handler
+  // Download receipt
   const handleDownloadReceipt = (order: Order) => {
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -281,135 +260,29 @@ const OrderReport: React.FC = () => {
       body { background: #fff !important; }
       .print-btn { display: none !important; }
     }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f8fafc;
-    }
-    .receipt-container {
-      max-width: 800px;
-      margin: 20px auto;
-      background: #fff;
-      border-radius: 20px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      overflow: hidden;
-    }
-    .receipt-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 30px 20px;
-      text-align: center;
-    }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f8fafc; }
+    .receipt-container { max-width: 800px; margin: 20px auto; background: #fff; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden; }
+    .receipt-header { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: white; padding: 30px 20px; text-align: center; }
+    .receipt-title { font-size: 1.2rem; opacity: 0.9; font-weight: 300; }
+    .receipt-content { padding: 40px; }
+    .order-info { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px; }
+    .info-section { background: #f8fafc; padding: 25px; border-radius: 15px; border-left: 5px solid #667eea; }
+    .info-title { font-size: 1.1rem; font-weight: 700; color: #374151; margin-bottom: 15px; display: flex; align-items: center; }
+    .info-item { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .info-label { font-weight: 600; color: #6b7280; }
+    .info-value { color: #374151; font-weight: 500; }
+    .items-section { background: #fff; border: 2px solid #e5e7eb; border-radius: 15px; padding: 30px; margin-bottom: 30px; }
+    .items-title { font-size: 1.3rem; font-weight: 700; color: #374151; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #e5e7eb; }
+    .items-content { background: #f8fafc; padding: 20px; border-radius: 10px; font-size: 1rem; line-height: 1.6; color: #374151; }
+    .receipt-footer { text-align: center; padding: 30px; background: #f8fafc; border-top: 1px solid #e5e7eb; }
+    .print-btn { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+    .print-btn:hover { transform: translateY(-2px); }
     @media (max-width: 768px) {
-      .receipt-container {
-        margin: 10px;
-        border-radius: 15px;
-      }
-      .receipt-header {
-        padding: 20px 15px;
-      }
-      .receipt-content {
-        padding: 15px !important;
-      }
-      .order-info {
-        grid-template-columns: 1fr !important;
-        gap: 15px !important;
-      }
-      .info-section {
-        margin-bottom: 15px !important;
-      }
-    }
-    .company-name {
-      font-size: 2.5rem;
-      font-weight: 800;
-      margin-bottom: 8px;
-      letter-spacing: 1px;
-    }
-    .receipt-title {
-      font-size: 1.2rem;
-      opacity: 0.9;
-      font-weight: 300;
-    }
-    .receipt-content {
-      padding: 40px;
-    }
-    .order-info {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 30px;
-      margin-bottom: 40px;
-    }
-    .info-section {
-      background: #f8fafc;
-      padding: 25px;
-      border-radius: 15px;
-      border-left: 5px solid #667eea;
-    }
-    .info-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #374151;
-      margin-bottom: 15px;
-      display: flex;
-      align-items: center;
-    }
-    .info-item {
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .info-label {
-      font-weight: 600;
-      color: #6b7280;
-    }
-    .info-value {
-      color: #374151;
-      font-weight: 500;
-    }
-    .items-section {
-      background: #fff;
-      border: 2px solid #e5e7eb;
-      border-radius: 15px;
-      padding: 30px;
-      margin-bottom: 30px;
-    }
-    .items-title {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: #374151;
-      margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid #e5e7eb;
-    }
-    .items-content {
-      background: #f8fafc;
-      padding: 20px;
-      border-radius: 10px;
-      font-size: 1rem;
-      line-height: 1.6;
-      color: #374151;
-    }
-    .receipt-footer {
-      text-align: center;
-      padding: 30px;
-      background: #f8fafc;
-      border-top: 1px solid #e5e7eb;
-    }
-    .print-btn {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      padding: 15px 30px;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    .print-btn:hover {
-      transform: translateY(-2px);
+      .receipt-container { margin: 10px; border-radius: 15px; }
+      .receipt-header { padding: 20px 15px; }
+      .receipt-content { padding: 15px !important; }
+      .order-info { grid-template-columns: 1fr !important; gap: 15px !important; }
+      .info-section { margin-bottom: 15px !important; }
     }
   </style>
 </head>
@@ -419,58 +292,30 @@ const OrderReport: React.FC = () => {
       <img src="/assets/111_1750417572953.png" alt="Company Logo" style="height: 60px; width: auto; margin: 0 auto 10px;" />
       <div class="receipt-title">Order Receipt</div>
     </div>
-    
     <div class="receipt-content">
       <div class="order-info">
         <div class="info-section">
           <div class="info-title">📋 Order Information</div>
-          <div class="info-item">
-            <span class="info-label">Order Number:</span>
-            <span class="info-value">#${order.orderNumber}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Employee:</span>
-            <span class="info-value">${order.employeeName}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Order Date:</span>
-            <span class="info-value">${new Date(order.createdAt).toLocaleDateString()}</span>
-          </div>
+          <div class="info-item"><span class="info-label">Order Number:</span><span class="info-value">#${order.orderNumber}</span></div>
+          <div class="info-item"><span class="info-label">Employee:</span><span class="info-value">${order.employeeName}</span></div>
+          <div class="info-item"><span class="info-label">Order Date:</span><span class="info-value">${new Date(order.createdAt).toLocaleDateString()}</span></div>
         </div>
-        
         <div class="info-section">
           <div class="info-title">👤 Customer Details</div>
-          <div class="info-item">
-            <span class="info-label">Name:</span>
-            <span class="info-value">${order.customerName}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Phone:</span>
-            <span class="info-value">${order.customerNumber}</span>
-          </div>
+          <div class="info-item"><span class="info-label">Name:</span><span class="info-value">${order.customerName}</span></div>
+          <div class="info-item"><span class="info-label">Phone:</span><span class="info-value">${order.customerNumber}</span></div>
         </div>
       </div>
-      
       <div class="info-section" style="margin-bottom: 30px;">
         <div class="info-title">🚚 Delivery Information</div>
-        <div class="info-item">
-          <span class="info-label">Delivery Date:</span>
-          <span class="info-value">${new Date(order.deliveryDate).toLocaleDateString()}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Delivery Time:</span>
-          <span class="info-value">${order.deliveryTime}</span>
-        </div>
+        <div class="info-item"><span class="info-label">Delivery Date:</span><span class="info-value">${new Date(order.deliveryDate).toLocaleDateString()}</span></div>
+        <div class="info-item"><span class="info-label">Delivery Time:</span><span class="info-value">${order.deliveryTime}</span></div>
       </div>
-
       <div class="items-section">
         <div class="items-title">📦 Order Items</div>
-        <div class="items-content">
-          ${order.orderItems}
-        </div>
+        <div class="items-content">${order.orderItems}</div>
       </div>
     </div>
-
     <div class="receipt-footer">
       <button class="print-btn" onclick="window.print()">🖨️ Print Receipt</button>
     </div>
@@ -478,7 +323,7 @@ const OrderReport: React.FC = () => {
 </body>
 </html>`;
 
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (printWindow) {
       printWindow.document.write(html);
       printWindow.document.close();
@@ -516,8 +361,8 @@ const OrderReport: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2 sm:p-4">
       <div className="max-w-7xl mx-auto">
-        
-        {/* Back Button - Mobile Optimized */}
+
+        {/* Back Button */}
         <div className="mb-4 sm:mb-6">
           <Link href="/order-details">
             <Button className="flex items-center gap-2 text-sm sm:text-base px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg">
@@ -528,45 +373,21 @@ const OrderReport: React.FC = () => {
           </Link>
         </div>
 
-        {/* Header - Mobile Optimized */}
+        {/* Header */}
         <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 text-center mb-4 sm:mb-6 border border-gray-100">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-            📊 Orders Report
-          </h1>
-          <p className="text-sm sm:text-base text-gray-600 px-2">
-            View and manage all orders
-          </p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">📊 Orders Report</h1>
+          <p className="text-sm sm:text-base text-gray-600 px-2">View and manage all orders</p>
         </div>
 
-        {/* Controls Bar - Mobile First */}
+        {/* Controls Bar */}
         <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6 border border-gray-100">
-          <div className="space-y-3 sm:space-y-4">
-            
-            {/* Show filter toggle only when not filtered */}
-            {!isFiltered && (
-              <div className="flex justify-center">
-                {/* Filter Toggle Button */}
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center justify-center px-6 py-3 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base transition-all ${
-                    showFilters 
-                      ? 'bg-blue-600 text-white shadow-lg' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"></path>
-                  </svg>
-                  {showFilters ? 'Hide Filters' : 'Show Filters & Search'}
-                </button>
-              </div>
-            )}
+          <div className="space-y-4">
 
-            {/* When filtered, show clear filters button */}
+            {/* When filtered, show info + clear */}
             {isFiltered && (
               <div className="flex justify-between items-center bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <div className="flex items-center">
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"></path>
                   </svg>
                   <span className="text-blue-800 font-medium text-sm sm:text-base">
@@ -585,106 +406,99 @@ const OrderReport: React.FC = () => {
               </div>
             )}
 
-            {/* Advanced Filters - Collapsible - Only show when not filtered */}
-            {!isFiltered && showFilters && (
-              <div className="bg-gray-50 rounded-lg p-4 space-y-4 border border-gray-200">
-                <h3 className="text-sm sm:text-base font-semibold text-gray-700 mb-3">Search & Filter Orders</h3>
-                <p className="text-xs sm:text-sm text-gray-600 mb-3 bg-blue-50 p-2 rounded-lg border border-blue-200">
-                  💡 Set date filters below to export CSV files for specific date ranges
-                </p>
-                
-                {/* Search Bar */}
-                <div className="relative">
-                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            {/* Step-by-step vertical filters (always visible) */}
+            <div className="bg-gray-50 rounded-lg p-4 space-y-4 border border-gray-200">
+              <h3 className="text-sm sm:text-base font-semibold text-gray-700">Filter Orders</h3>
+              <p className="text-xs sm:text-sm text-gray-600 bg-blue-50 p-2 rounded-lg border border-blue-200">
+                Set filters below (Employee → Order Number → Start Date → End Date) and click <b>Search</b>.
+              </p>
+
+              {/* Step 1: Employee */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full "></div>
+                  <label className="text-xs sm:text-sm font-medium text-gray-700">Employee</label>
+                </div>
+                <select
+                  value={filters.employeeName}
+                  onChange={(e) => setFilters({ ...filters, employeeName: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">All Employees</option>
+                  {uniqueEmployees.map(employee => (
+                    <option key={employee} value={employee}>{employee}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Step 2: Order Number */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full text-white text-xs flex items-center justify-center"></div>
+                  <label className="text-xs sm:text-sm font-medium text-gray-700">Order Number</label>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Enter order number"
+                  value={filters.orderNumber}
+                  onChange={(e) => setFilters({ ...filters, orderNumber: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Step 3: Start Date */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full  text-white text-xs flex items-center justify-center"></div>
+                  <label className="text-xs sm:text-sm font-medium text-gray-700">Start Date</label>
+                </div>
+                <input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Step 4: End Date */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full  text-white text-xs flex items-center justify-center"></div>
+                  <label className="text-xs sm:text-sm font-medium text-gray-700">End Date</label>
+                </div>
+                <input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
+                <button
+                  onClick={handleFilterSearch}
+                  className="flex items-center justify-center bg-blue-600  text-white font-semibold py-2 px-4 rounded-lg transition-all text-sm sm:text-base"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                   </svg>
-                  <input
-                    type="text"
-                    placeholder="Search orders by customer name, order number, or items..."
-                    className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  {/* Employee Filter */}
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Employee</label>
-                    <select
-                      value={filters.employeeName}
-                      onChange={(e) => setFilters({...filters, employeeName: e.target.value})}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">All Employees</option>
-                      {uniqueEmployees.map(employee => (
-                        <option key={employee} value={employee}>{employee}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Order Number Filter */}
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Order Number</label>
-                    <input
-                      type="text"
-                      placeholder="Enter order number"
-                      value={filters.orderNumber}
-                      onChange={(e) => setFilters({...filters, orderNumber: e.target.value})}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  {/* Start Date Filter */}
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                    <input
-                      type="date"
-                      value={filters.startDate}
-                      onChange={(e) => setFilters({...filters, startDate: e.target.value})}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  {/* End Date Filter */}
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">End Date</label>
-                    <input
-                      type="date"
-                      value={filters.endDate}
-                      onChange={(e) => setFilters({...filters, endDate: e.target.value})}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                {/* Filter Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 border-t border-gray-200">
-                  <button
-                    onClick={handleFilterSearch}
-                    className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-all text-sm sm:text-base"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                    Search
-                  </button>
-                  <button
-                    onClick={handleClearFilters}
-                    className="flex items-center justify-center bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-all text-sm sm:text-base"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H9a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                    Clear
-                  </button>
-                </div>
+                  Search
+                </button>
+                <button
+                  onClick={handleClearFilters}
+                  className="flex items-center justify-center bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-all text-sm sm:text-base"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H9a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
+                  Clear
+                </button>
               </div>
-            )}
+            </div>
 
-            {/* Export Section - Always visible */}
+            {/* Export Section */}
             <div className="space-y-3">
-              {/* Quick Export */}
               <button
                 onClick={handleDownload}
                 className="w-full sm:w-auto flex items-center justify-center bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-lg sm:rounded-xl transition-all text-sm sm:text-base"
@@ -699,51 +513,41 @@ const OrderReport: React.FC = () => {
                 )}
               </button>
 
-              {/* Date Export Toggle */}
               <button
                 onClick={() => setShowExportOptions(!showExportOptions)}
                 className={`w-full sm:w-auto flex items-center justify-center font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-lg sm:rounded-xl transition-all text-sm sm:text-base ${
-                  showExportOptions 
-                    ? 'bg-purple-600 text-white shadow-lg' 
-                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                  showExportOptions ? "bg-purple-600 text-white shadow-lg" : "bg-purple-100 text-purple-700 hover:bg-purple-200"
                 }`}
               >
                 <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
-                {showExportOptions ? 'Hide Date Export' : 'Export by Date Range'}
+                {showExportOptions ? "Hide Date Export" : "Export by Date Range"}
               </button>
 
-              {/* Date Export Options */}
               {showExportOptions && (
                 <div className="bg-purple-50 rounded-lg p-4 space-y-4 border border-purple-200">
-                  <h4 className="text-sm sm:text-base font-semibold text-purple-800 mb-3">Export by Custom Date Range</h4>
-                  
+                  <h4 className="text-sm sm:text-base font-semibold text-purple-800">Export by Custom Date Range</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Export Start Date */}
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-purple-700 mb-1">From Date</label>
                       <input
                         type="date"
                         value={exportFilters.startDate}
-                        onChange={(e) => setExportFilters({...exportFilters, startDate: e.target.value})}
+                        onChange={(e) => setExportFilters({ ...exportFilters, startDate: e.target.value })}
                         className="w-full px-3 py-2 text-sm border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
                     </div>
-
-                    {/* Export End Date */}
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-purple-700 mb-1">To Date</label>
                       <input
                         type="date"
                         value={exportFilters.endDate}
-                        onChange={(e) => setExportFilters({...exportFilters, endDate: e.target.value})}
+                        onChange={(e) => setExportFilters({ ...exportFilters, endDate: e.target.value })}
                         className="w-full px-3 py-2 text-sm border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
                     </div>
                   </div>
-
-                  {/* Export Date Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 border-t border-purple-200">
                     <button
                       onClick={handleDateExport}
@@ -767,44 +571,43 @@ const OrderReport: React.FC = () => {
                 </div>
               )}
             </div>
-          </div>
-          
-          {/* Stats - Only show when not filtered */}
-          {!isFiltered && (
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
-              <div className="text-center">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600">{orders.length}</div>
-                <div className="text-xs sm:text-sm text-gray-600">Total</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-emerald-600">{filteredOrders.length}</div>
-                <div className="text-xs sm:text-sm text-gray-600">Showing</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-600">
-                  {orders.filter(order => new Date(order.deliveryDate) >= new Date()).length}
+
+            {/* Stats */}
+            {!isFiltered && (
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
+                <div className="text-center">
+                  <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600">{orders.length}</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Total</div>
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600">Upcoming</div>
+                <div className="text-center">
+                  <div className="text-lg sm:text-xl lg:text-2xl font-bold text-emerald-600">{filteredOrders.length}</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Showing</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-600">
+                    {orders.filter(order => new Date(order.deliveryDate) >= new Date()).length}
+                  </div>
+                  <div className="text-xs sm:text-sm text-gray-600">Upcoming</div>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
+        {/* Content messages / results */}
         {!hasSearched ? (
-          /* Show message when no search has been performed */
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-6 sm:p-8 lg:p-12 text-center">
             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 sm:w-10 sm:h-10 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
               </svg>
             </div>
-            <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">Search for Orders</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">Filter Orders</h3>
             <p className="text-sm sm:text-base text-gray-600">
-              Use the filters above and press the Search button to view order reports
+              Use the step-by-step filters above and press <b>Search</b> to view order reports.
             </p>
           </div>
         ) : filteredOrders.length === 0 ? (
-          /* Show message when search returned no results */
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-6 sm:p-8 lg:p-12 text-center">
             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -813,110 +616,82 @@ const OrderReport: React.FC = () => {
             </div>
             <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">No Orders Found</h3>
             <p className="text-sm sm:text-base text-gray-600">
-              No orders match your search criteria. Try adjusting your filters.
+              No orders match your filters. Try adjusting them and search again.
             </p>
           </div>
         ) : (
-          /* Show filtered results */
-          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
-            {filteredOrders.map((order) => (
-              <div
-                key={order.id}
-                className="bg-white rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 overflow-hidden"
-              >
-                {/* Ultra Compact Header */}
-                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 sm:p-3">
-                  <div className="flex justify-between items-center">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-xs sm:text-sm font-bold text-white truncate">
-                        #{order.orderNumber}
-                      </h3>
-                      <p className="text-blue-100 text-xs hidden sm:block">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="bg-white/20 backdrop-blur-sm rounded px-1.5 py-0.5">
-                      <span className="text-white text-xs">Active</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Ultra Compact Content */}
-                <div className="p-2 sm:p-3 space-y-2">
-                  
-                  {/* Customer - Ultra Compact */}
-                  <div>
-                    <div className="flex items-center mb-1">
-                      <svg className="w-3 h-3 mr-1 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                      </svg>
-                      <span className="text-xs font-semibold text-gray-700">Customer</span>
-                    </div>
-                    <p className="text-xs sm:text-sm text-gray-800 font-medium truncate">{order.customerName}</p>
-                    <p className="text-xs text-gray-500 truncate">{order.customerNumber}</p>
-                  </div>
-
-                  {/* Employee & Delivery - Inline on Mobile */}
-                  <div className="flex flex-col space-y-2 sm:space-y-1">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center min-w-0 flex-1">
-                        <svg className="w-3 h-3 mr-1 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0H8m8 0v2a2 2 0 002 2M8 6V4H6a2 2 0 00-2 2v2m0 0v.5A1.5 1.5 0 005.5 10h.5"></path>
-                        </svg>
-                        <span className="text-xs text-gray-800 truncate">{order.employeeName}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center">
-                      <svg className="w-3 h-3 mr-1 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                      <span className="text-xs text-gray-800">
-                        {new Date(order.deliveryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
-                      <span className="text-xs text-gray-600 ml-1">{order.deliveryTime}</span>
-                    </div>
-                  </div>
-
-                  {/* Items - Very Compact */}
-                  <div>
-                    <div className="flex items-center mb-1">
-                      <svg className="w-3 h-3 mr-1 text-orange-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path d="M9 5H7a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                      </svg>
-                      <span className="text-xs font-semibold text-gray-700">Items</span>
-                    </div>
-                    <p className="text-xs text-gray-700 bg-gray-50 p-1.5 rounded text-center line-clamp-2 leading-tight">
-                      {order.orderItems}
-                    </p>
-                  </div>
-
-                </div>
-
-                {/* Ultra Compact Footer */}
-                <div className="px-2 sm:px-3 pb-2 sm:pb-3">
-                  <button
-                    onClick={() => handleDownloadReceipt(order)}
-                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-1.5 sm:py-2 px-2 rounded transition-all flex items-center justify-center text-xs"
-                  >
-                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H9.5a1 1 0 01-1-1V8a2 2 0 012-2h11m-6 0V6a2 2 0 00-2-2H4a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2V9"></path>
-                    </svg>
-                    <span className="hidden sm:inline">Receipt</span>
-                    <span className="sm:hidden">↓</span>
-                  </button>
-                </div>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-white text-sm sm:text-base font-semibold">Results ({filteredOrders.length})</h3>
+                <span className="text-blue-100 text-xs">Filtered view</span>
               </div>
-            ))}
+            </div>
+            <div className="p-2 sm:p-3">
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs sm:text-sm">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="px-2 sm:px-3 py-2 text-left font-semibold text-gray-700">Order #</th>
+                      <th className="px-2 sm:px-3 py-2 text-left font-semibold text-gray-700">Employee</th>
+                      <th className="px-2 sm:px-3 py-2 text-left font-semibold text-gray-700">Customer</th>
+                      <th className="px-2 sm:px-3 py-2 text-left font-semibold text-gray-700">Phone</th>
+                      <th className="px-2 sm:px-3 py-2 text-left font-semibold text-gray-700">Items</th>
+                      <th className="px-2 sm:px-3 py-2 text-left font-semibold text-gray-700">Delivery</th>
+                      <th className="px-2 sm:px-3 py-2 text-left font-semibold text-gray-700">Time</th>
+                      <th className="px-2 sm:px-3 py-2 text-left font-semibold text-gray-700">Created</th>
+                      <th className="px-2 sm:px-3 py-2 text-right font-semibold text-gray-700">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredOrders.map((order, idx) => (
+                      <tr key={order.id} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                        <td className="px-2 sm:px-3 py-2">
+                          <div className="font-semibold text-gray-800">#{order.orderNumber}</div>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 text-gray-700">{order.employeeName}</td>
+                        <td className="px-2 sm:px-3 py-2">
+                          <div className="text-gray-800 font-medium truncate max-w-[10rem] sm:max-w-[14rem]">{order.customerName}</div>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 text-gray-600 truncate max-w-[8rem] sm:max-w-[12rem]">{order.customerNumber}</td>
+                        <td className="px-2 sm:px-3 py-2">
+                          <div className="text-gray-700 bg-gray-50 border border-gray-100 px-2 py-1 rounded md:max-w-xs lg:max-w-sm xl:max-w-md truncate">
+                            {order.orderItems}
+                          </div>
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 text-gray-800">
+                          {new Date(order.deliveryDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 text-gray-600">{order.deliveryTime}</td>
+                        <td className="px-2 sm:px-3 py-2 text-gray-600">
+                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ""}
+                        </td>
+                        <td className="px-2 sm:px-3 py-2 text-right">
+                          <button
+                            onClick={() => handleDownloadReceipt(order)}
+                            className="inline-flex items-center gap-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-1.5 px-3 rounded shadow-sm"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H9.5a1 1 0 01-1-1V8a2 2 0 012-2h11m-6 0V6a2 2 0 00-2-2H4a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2V9"></path>
+                            </svg>
+                            <span className="hidden sm:inline">Receipt</span>
+                            <span className="sm:hidden">↓</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Attractive No Data Modal */}
+      {/* No Data Modal */}
       {showNoDataModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
-            {/* Modal Header */}
             <div className="bg-gradient-to-r from-orange-400 to-red-500 p-6 rounded-t-2xl text-center">
               <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -924,12 +699,9 @@ const OrderReport: React.FC = () => {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-white mb-2">No Orders Found</h3>
-              <p className="text-orange-100 text-sm">
-                We couldn't find any orders for your selected date range
-              </p>
+              <p className="text-orange-100 text-sm">We couldn't find any orders for your selected date range</p>
             </div>
 
-            {/* Modal Content */}
             <div className="p-6 text-center">
               <div className="mb-6">
                 <div className="inline-flex items-center justify-center w-12 h-12 bg-orange-100 rounded-full mb-4">
@@ -942,8 +714,10 @@ const OrderReport: React.FC = () => {
                     <>
                       No orders were created between <br />
                       <span className="font-semibold text-gray-800">
-                        {new Date(exportFilters.startDate).toLocaleDateString()} 
-                      </span> and <span className="font-semibold text-gray-800">
+                        {new Date(exportFilters.startDate).toLocaleDateString()}
+                      </span>{" "}
+                      and{" "}
+                      <span className="font-semibold text-gray-800">
                         {new Date(exportFilters.endDate).toLocaleDateString()}
                       </span>
                     </>
@@ -952,7 +726,8 @@ const OrderReport: React.FC = () => {
                       No orders were created from <br />
                       <span className="font-semibold text-gray-800">
                         {new Date(exportFilters.startDate).toLocaleDateString()}
-                      </span> onwards
+                      </span>{" "}
+                      onwards
                     </>
                   ) : exportFilters.endDate ? (
                     <>
@@ -968,9 +743,7 @@ const OrderReport: React.FC = () => {
               </div>
 
               <div className="space-y-3">
-                <p className="text-xs text-gray-500">💡 Try adjusting your date range or check if orders exist for other dates</p>
-                
-                {/* Action Buttons */}
+                <p className="text-xs text-gray-500">💡 Try adjusting your date range or check other dates</p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => {
