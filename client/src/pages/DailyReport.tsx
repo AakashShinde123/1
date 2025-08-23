@@ -168,15 +168,28 @@ export default function DailyReport() {
               <div className="flex-1 min-w-[260px]">
                 <label className="font-semibold text-sm text-gray-700">Customer File</label>
                 <div className="mt-2 flex items-center gap-3">
-                  <label className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm hover:shadow transition">
+                  <div className="relative">
                     <input
                       type="file"
-                      accept=".xlsx,.xls"
+                      accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                       onChange={e => setCustomerFile(e.target.files?.[0] || null)}
-                      className="sr-only"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      id="customer-file-upload"
+                      style={{ fontSize: '16px' }}
                     />
-                    <span className="text-sm font-medium text-indigo-700">Choose file</span>
-                  </label>
+                    <label
+                      htmlFor="customer-file-upload"
+                      className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm hover:shadow transition touch-manipulation min-h-12"
+                      style={{ 
+                        WebkitTapHighlightColor: 'transparent',
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
+                        touchAction: 'manipulation'
+                      }}
+                    >
+                      <span className="text-sm font-medium text-indigo-700">Choose file</span>
+                    </label>
+                  </div>
                   <span className="text-sm text-gray-600 truncate max-w-[240px]">
                     {customerFile ? customerFile.name : "No file chosen"}
                   </span>
@@ -185,15 +198,28 @@ export default function DailyReport() {
               <div className="flex-1 min-w-[260px]">
                 <label className="font-semibold text-sm text-gray-700">Sales Order File</label>
                 <div className="mt-2 flex items-center gap-3">
-                  <label className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm hover:shadow transition">
+                  <div className="relative">
                     <input
                       type="file"
-                      accept=".xlsx,.xls"
+                      accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                       onChange={e => setOrderFile(e.target.files?.[0] || null)}
-                      className="sr-only"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      id="order-file-upload"
+                      style={{ fontSize: '16px' }}
                     />
-                    <span className="text-sm font-medium text-indigo-700">Choose file</span>
-                  </label>
+                    <label
+                      htmlFor="order-file-upload"
+                      className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm hover:shadow transition touch-manipulation min-h-12"
+                      style={{ 
+                        WebkitTapHighlightColor: 'transparent',
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
+                        touchAction: 'manipulation'
+                      }}
+                    >
+                      <span className="text-sm font-medium text-indigo-700">Choose file</span>
+                    </label>
+                  </div>
                   <span className="text-sm text-gray-600 truncate max-w-[240px]">
                     {orderFile ? orderFile.name : "No file chosen"}
                   </span>
