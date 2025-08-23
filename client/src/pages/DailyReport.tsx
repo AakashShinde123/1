@@ -234,15 +234,15 @@ export default function DailyReport() {
                 <table className="w-full text-left">
                   <thead className="sticky top-0 z-10 bg-gray-50/90 backdrop-blur">
                     <tr className="text-gray-700 text-xs uppercase tracking-wide">
-                      <th className="p-3 md:p-4 border-b border-gray-200">Customer Code</th>
-                      <th className="p-3 md:p-4 border-b border-gray-200">Customer Name</th>
-                      <th className="p-3 md:p-4 border-b border-gray-200">SO Date</th>
-                      <th className="p-3 md:p-4 border-b border-gray-200">Item Name</th>
-                      <th className="p-3 md:p-4 border-b border-gray-200">SO NO</th>
-                      <th className="p-3 md:p-4 border-b border-gray-200">SO Quantity</th>
-                      <th className="p-3 md:p-4 border-b border-gray-200">Address 1</th>
-                      <th className="p-3 md:p-4 border-b border-gray-200">Address 2</th>
-                      <th className="p-3 md:p-4 border-b border-gray-200">Phone</th>
+                      <th className="p-2 text-xs border-b border-gray-200">Customer Code</th>
+                      <th className="p-2 text-xs border-b border-gray-200">Customer Name</th>
+                      <th className="p-2 text-xs border-b border-gray-200">SO Date</th>
+                      <th className="p-2 text-xs border-b border-gray-200">Item Name</th>
+                      <th className="p-2 text-xs border-b border-gray-200">SO NO</th>
+                      <th className="p-2 text-xs border-b border-gray-200">SO Quantity</th>
+                      <th className="p-2 text-xs border-b border-gray-200">Address 1</th>
+                      <th className="p-2 text-xs border-b border-gray-200">Address 2</th>
+                      <th className="p-2 text-xs border-b border-gray-200">Phone</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -251,30 +251,68 @@ export default function DailyReport() {
                       if (orders.length === 0) {
                         return (
                           <tr key={customer.id} className="odd:bg-white even:bg-gray-50 hover:bg-indigo-50/60 transition-colors">
-                            <td className="p-3 md:p-4 border-b border-gray-100">{customer.id}</td>
-                            <td className="p-3 md:p-4 border-b border-gray-100">{customer.name}</td>
-                            <td colSpan={7} className="p-3 md:p-4 text-gray-500 border-b border-gray-100 text-center">
+                            <td className="p-2 text-sm border-b border-gray-100">{customer.id}</td>
+                            <td className="p-2 text-sm border-b border-gray-100">{customer.name}</td>
+                            <td colSpan={7} className="p-2 text-sm text-gray-500 border-b border-gray-100 text-center">
                               <span className="inline-block rounded-full bg-yellow-50 text-yellow-700 px-3 py-1 text-xs font-medium">No orders found</span>
                             </td>
                           </tr>
                         );
                       }
-                      return orders.map((order, idx) => (
-                        <tr
-                          key={customer.id + "-" + order.id + "-" + idx}
-                          className="odd:bg-white even:bg-gray-50 hover:bg-indigo-50/60 transition-colors"
-                        >
-                          <td className="p-3 md:p-4 border-b border-gray-100">{customer.id}</td>
-                          <td className="p-3 md:p-4 border-b border-gray-100">{customer.name}</td>
-                          <td className="p-3 md:p-4 border-b border-gray-100">{order.deliveryDate}</td>
-                          <td className="p-3 md:p-4 border-b border-gray-100">{order.items[0]}</td>
-                          <td className="p-3 md:p-4 border-b border-gray-100">{order.orderNumber}</td>
-                          <td className="p-3 md:p-4 border-b border-gray-100">{order.quantity}</td>
-                          <td className="p-3 md:p-4 border-b border-gray-100">{customer.address1 || ""}</td>
-                          <td className="p-3 md:p-4 border-b border-gray-100">{customer.address2 || ""}</td>
-                          <td className="p-3 md:p-4 border-b border-gray-100">{customer.phone || ""}</td>
-                        </tr>
-                      ));
+                      return orders.flatMap((order, orderIdx) => 
+                        order.items.map((item, itemIdx) => {
+                          // Calculate quantity per item (divide total by number of items)
+                          const quantityPerItem = Math.ceil(order.quantity / order.items.length);
+                          // Check if this is the last item of the order
+                          const isLastItemOfOrder = itemIdx === order.items.length - 1;
+                          
+                          // Format date properly
+                          const formatDate = (dateValue: any) => {
+                            if (!dateValue) return "";
+                            
+                            // If it's already a readable date string, return it
+                            if (typeof dateValue === 'string' && dateValue.includes('/')) {
+                              return dateValue;
+                            }
+                            
+                            // If it's an Excel serial number, convert it
+                            if (typeof dateValue === 'number') {
+                              const excelEpoch = new Date(1899, 11, 30); // Excel epoch
+                              const jsDate = new Date(excelEpoch.getTime() + dateValue * 24 * 60 * 60 * 1000);
+                              return jsDate.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+                            }
+                            
+                            // Try to parse as date
+                            try {
+                              const date = new Date(dateValue);
+                              if (!isNaN(date.getTime())) {
+                                return date.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+                              }
+                            } catch (e) {
+                              // If parsing fails, return original value
+                            }
+                            
+                            return String(dateValue);
+                          };
+                          
+                          return (
+                            <tr
+                              key={`${customer.id}-${order.id}-${orderIdx}-${itemIdx}`}
+                              className="odd:bg-white even:bg-gray-50 hover:bg-indigo-50/60 transition-colors"
+                            >
+                              <td className={`p-2 text-sm border-b border-gray-100 ${isLastItemOfOrder ? 'border-b-2 border-b-indigo-400' : ''}`}>{customer.id}</td>
+                              <td className={`p-2 text-sm border-b border-gray-100 ${isLastItemOfOrder ? 'border-b-2 border-b-indigo-400' : ''}`}>{customer.name}</td>
+                              <td className={`p-2 text-sm border-b border-gray-100 ${isLastItemOfOrder ? 'border-b-2 border-b-indigo-400' : ''}`}>{formatDate(order.deliveryDate)}</td>
+                              <td className={`p-2 text-sm border-b border-gray-100 ${isLastItemOfOrder ? 'border-b-2 border-b-indigo-400' : ''}`}>{item}</td>
+                              <td className={`p-2 text-sm border-b border-gray-100 ${isLastItemOfOrder ? 'border-b-2 border-b-indigo-400' : ''}`}>{order.orderNumber}</td>
+                              <td className={`p-2 text-sm border-b border-gray-100 ${isLastItemOfOrder ? 'border-b-2 border-b-indigo-400' : ''}`}>{quantityPerItem}</td>
+                              <td className={`p-2 text-sm border-b border-gray-100 ${isLastItemOfOrder ? 'border-b-2 border-b-indigo-400' : ''}`}>{customer.address1 || ""}</td>
+                              <td className={`p-2 text-sm border-b border-gray-100 ${isLastItemOfOrder ? 'border-b-2 border-b-indigo-400' : ''}`}>{customer.address2 || ""}</td>
+                              <td className={`p-2 text-sm border-b border-gray-100 ${isLastItemOfOrder ? 'border-b-2 border-b-indigo-400' : ''}`}>{customer.phone || ""}</td>
+                            </tr>
+                          );
+                        })
+                      );
                     })}
                   </tbody>
                 </table>
