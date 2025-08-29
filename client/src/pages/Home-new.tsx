@@ -220,12 +220,12 @@ export default function HomeNew() {
             alt="Sudhamrit Logo"
             className="h-12 w-auto mx-auto mb-4"
           />
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+{/*           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Welcome, {(user as any)?.username || 'User'}
           </h1>
           <p className="text-xl text-gray-600 mb-4">
             Sudhamrit Inventory Management System
-          </p>
+          </p> */}
           <div className="flex flex-wrap gap-2 justify-center">
             {getUserActiveRoles(user as any).map((role: any) => (
               <span 
@@ -449,3 +449,4 @@ export default function HomeNew() {
     </div>
   );
 }
+
