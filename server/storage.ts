@@ -24,6 +24,7 @@ export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByIdentifier(identifier: string): Promise<User | undefined>; // Can search by username, email, or mobile number
   createUser(user: InsertUser): Promise<User>;
   updateUserRole(userId: number, role: UserRole): Promise<User>;
   updateUserRoles(userId: number, roles: UserRole[]): Promise<User>;
@@ -79,6 +80,8 @@ export class DatabaseStorage implements IStorage {
           email: "admin@inventory.com",
           firstName: "Super",
           lastName: "Admin",
+          countryCode: null,
+          mobileNumber: null,
           role: "super_admin",
           roles: ["super_admin"],
           isActive: 1,
@@ -105,6 +108,36 @@ export class DatabaseStorage implements IStorage {
           email: "admin@inventory.com",
           firstName: "Super",
           lastName: "Admin",
+          countryCode: null,
+          mobileNumber: null,
+          role: "super_admin",
+          roles: ["super_admin"],
+          isActive: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      }
+      return undefined;
+    }
+  }
+
+  async getUserByIdentifier(identifier: string): Promise<User | undefined> {
+    try {
+      return await userQueries.getByIdentifier(identifier);
+    } catch (error) {
+      console.error("Database error fetching user by identifier:", error);
+      // Return super admin user as fallback during database connection issues
+      if (identifier === "Sudhamrit") {
+        return {
+          id: 1,
+          username: "Sudhamrit",
+          password:
+            "$2b$10$K5E.zGQxQUj6VlVKvqCkUOF5M5X1H7yLdZ8GHNVpY0HZJKCyHTcBm", // Pre-hashed Sudhamrit@1234
+          email: "admin@inventory.com",
+          firstName: "Super",
+          lastName: "Admin",
+          countryCode: null,
+          mobileNumber: null,
           role: "super_admin",
           roles: ["super_admin"],
           isActive: 1,
