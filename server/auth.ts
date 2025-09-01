@@ -112,9 +112,10 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
   }
 };
 
-export async function loginUser(username: string, password: string) {
+export async function loginUser(identifier: string, password: string) {
   try {
-    const user = await storage.getUserByUsername(username);
+    // Try to find user by username, email, or mobile number
+    const user = await storage.getUserByIdentifier(identifier);
     if (!user || !user.isActive) {
       return null;
     }
