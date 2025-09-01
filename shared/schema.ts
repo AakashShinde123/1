@@ -35,6 +35,8 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).unique(),
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
+  countryCode: varchar("country_code", { length: 10 }), // e.g., +91, +1, etc.
+  mobileNumber: varchar("mobile_number", { length: 20 }), // Mobile number without country code
   role: varchar("role", { length: 30 }), // Legacy single role field - nullable for pending users
   roles: json("roles").$type<UserRole[]>().notNull().default([]), // New multiple roles field
   isActive: integer("is_active").notNull().default(1),
