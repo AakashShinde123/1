@@ -12,6 +12,7 @@ import {
   desc,
   asc,
   and,
+  or,
   gte,
   lte,
   like,
@@ -59,6 +60,22 @@ export const userQueries = {
       .select()
       .from(users)
       .where(eq(users.username, username))
+      .limit(1);
+    return result[0];
+  },
+
+  // Get user by identifier (username, email, or mobile number)
+  async getByIdentifier(identifier: string): Promise<User | undefined> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(
+        or(
+          eq(users.username, identifier),
+          eq(users.email, identifier),
+          eq(users.mobileNumber, identifier)
+        )
+      )
       .limit(1);
     return result[0];
   },
