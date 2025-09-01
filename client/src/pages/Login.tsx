@@ -38,22 +38,45 @@ export default function Login() {
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormData & { captchaToken: string }) => {
       setIsLoading(true);
+      console.log("Making login request with data:", { ...data, password: '[REDACTED]' });
       const response = await apiRequest("POST", "/api/login", data);
-      return response;
+      const result = await response.json();
+      console.log("Login response:", result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setIsLoading(false);
+      console.log("Login successful:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Success",
         description: "Login successful",
       });
-      window.location.href = "/";
+      // Small delay to ensure the query cache is updated
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 100);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       setIsLoading(false);
+      console.error("Login error:", error);
+      
+      // Parse error message from the thrown error
+      let title = "Login Failed";
+      let description = "Invalid username or password";
+      
+      const errorMessage = error.message || "";
+      console.log("Error message:", errorMessage);
+      
+      if (errorMessage.includes("401:")) {
+        description = "Invalid username or password";
+      } else {
+        description = "Login failed. Please try again.";
+      }
+      
       toast({
-        title: "Error",
-        description: "Invalid username or password",
+        title,
+        description,
         variant: "destructive",
       });
     },
@@ -79,70 +102,15 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-5 relative overflow-hidden">
-      <style>
-        {`
-          @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-5px); }
-          }
-          @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-          }
-          .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-          }
-          .glass-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
-          }
-          .logo-icon {
-            animation: float 3s ease-in-out infinite;
-          }
-          .form-input:focus {
-            transform: translateY(-1px);
-            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.15), 0 0 0 3px rgba(102, 126, 234, 0.1);
-          }
-          .login-btn {
-            position: relative;
-            overflow: hidden;
-          }
-          .login-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-          }
-          .login-btn:hover::before {
-            left: 100%;
-          }
-          .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
-          }
-        `}
-      </style>
-
+    <div className="page-container flex items-center justify-center">
       <div className="w-full max-w-md relative">
-        <div className="glass-card relative rounded-2xl shadow-2xl p-10 overflow-hidden">
+        <div className="modern-card p-10 relative">
           {/* Logo and Header Section */}
           <div className="text-center mb-10">
-            <div className="logo-icon w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">
+            <div className="w-20 h-20 gradient-blue rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">
               <Package className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2 tracking-tight">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">
               Sudhamrit
             </h1>
             <p className="text-gray-600 text-base">Inventory Management System</p>
@@ -157,13 +125,13 @@ export default function Login() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="block mb-2 text-gray-800 font-semibold text-sm">
-                      Username or Email
+                      Username, Email, or Mobile Number
                     </FormLabel>
                     <FormControl>
                       <Input
                         type="text"
-                        placeholder="Enter your username or email"
-                        className="form-input w-full px-5 py-4 border-2 border-gray-200 rounded-xl text-base bg-white transition-all duration-300 focus:border-indigo-500 focus:ring-0 focus:outline-none"
+                        placeholder="Enter username, email, or mobile number"
+                        className="form-field"
                         {...field}
                       />
                     </FormControl>
@@ -186,7 +154,7 @@ export default function Login() {
                         <Input
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter your password"
-                          className="form-input w-full px-5 py-4 pr-12 border-2 border-gray-200 rounded-xl text-base bg-white transition-all duration-300 focus:border-indigo-500 focus:ring-0 focus:outline-none"
+                          className="form-field pr-12"
                           {...field}
                         />
                         <button
@@ -261,7 +229,7 @@ export default function Login() {
               {/* Submit Button */}
               <Button 
                 type="submit"
-                className="login-btn w-full px-4 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-none rounded-xl text-base font-semibold cursor-pointer transition-all duration-300 relative overflow-hidden"
+                className="btn-primary w-full"
                 disabled={isLoading || (!isLocalDevelopment && !captchaVerified)}
               >
                 {isLoading ? (
@@ -290,11 +258,11 @@ export default function Login() {
               Don't have an account?{" "}
               <Link href="/register">
                 <button className="text-indigo-500 hover:text-indigo-600 font-medium hover:underline transition-colors">
-                  Create account
+                  Create Account
                 </button>
               </Link>
             </p>
-           {/* ? */}
+         
           </div>
         </div>
       </div>
