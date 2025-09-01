@@ -9,11 +9,14 @@ import {
   loginSchema,
   type UserRole,
   hasUserAnyRole,
+  users,
 } from "@shared/schema";
 import { dashboardQueries } from "./queries";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import axios from "axios";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 // CAPTCHA verification helper function
 async function verifyCaptcha(token: string): Promise<boolean> {
@@ -171,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public registration endpoint
   app.post("/api/register", async (req, res) => {
     try {
-      const { username, password, email, firstName, lastName, captchaToken } = req.body;
+      const { username, password, email, firstName, lastName, countryCode, mobileNumber, captchaToken } = req.body;
 
       // Verify CAPTCHA token
       if (!captchaToken) {
@@ -217,6 +220,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email,
         firstName,
         lastName,
+        countryCode,
+        mobileNumber,
         role: "stock_in_manager", // Temporary default for schema - will be ignored if roles array is empty
         roles: [], // Empty roles - awaiting admin assignment
       });
@@ -397,25 +402,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     },
   );
-  // Add this with your other product routes
-app.get('/api/products/last-unit', isAuthenticated, async (req, res) => {
-  try {
-    const products = await storage.getProducts();
-    // Get the most recently added product
-    const lastProduct = products.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    })[0];
-    
-    res.json({
-      lastUnit: lastProduct?.unit || "Pieces" // Default fallback
-    });
-  } catch (error) {
-    console.error("Error fetching last unit:", error);
-    res.status(500).json({ message: "Failed to fetch last unit" });
-  }
-});
 
   // Stock transaction routes - add both endpoint patterns for compatibility
   app.post(
@@ -1016,17 +1002,45 @@ app.get('/api/products/last-unit', isAuthenticated, async (req, res) => {
         const { weeklyStockPlanQueries } = await import("./queries");
         const userId = req.user.id;
 
+        console.log("Creating weekly stock plan with userId:", userId);
+        console.log("User object:", req.user);
+        console.log("Request body:", JSON.stringify(req.body, null, 2));
+
+        // Verify user exists before proceeding
+        try {
+          const userExists = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+          console.log("User exists check result:", userExists);
+          
+          if (userExists.length === 0) {
+            return res.status(400).json({
+              message: "User not found",
+              userId: userId
+            });
+          }
+        } catch (userCheckError) {
+          console.error("Error checking user existence:", userCheckError);
+          return res.status(500).json({
+            message: "Database error while validating user",
+            error: userCheckError instanceof Error ? userCheckError.message : "Unknown error"
+          });
+        }
+
         // Accept both single object and array
         const plans = Array.isArray(req.body) ? req.body : [req.body];
 
         // Validate and add userId and name to each plan
-        const parsedPlans = plans.map((plan: any) =>
-          insertWeeklyStockPlanSchema.parse({ ...plan, userId, name: plan.name })
-        );
+        const parsedPlans = plans.map((plan: any) => {
+          const planWithUser = { ...plan, userId, name: plan.name };
+          console.log("Plan before validation:", planWithUser);
+          return insertWeeklyStockPlanSchema.parse(planWithUser);
+        });
+
+        console.log("Parsed plans:", parsedPlans);
 
         // Insert all plans
         const createdPlans = [];
         for (const plan of parsedPlans) {
+          console.log("Creating plan:", plan);
           const created = await weeklyStockPlanQueries.create(plan);
           createdPlans.push(created);
         }
@@ -1248,4 +1262,3 @@ app.get(
   const httpServer = createServer(app);
   return httpServer;
 }
-
