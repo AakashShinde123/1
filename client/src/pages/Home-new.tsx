@@ -18,6 +18,7 @@ import {
   Calendar,
   CalendarCheck,
   FileText,
+  Printer,
   ShoppingCart,
   MessageSquare,
   ExternalLink,
@@ -220,7 +221,7 @@ export default function HomeNew() {
             alt="Sudhamrit Logo"
             className="h-12 w-auto mx-auto mb-4"
           />
-{/*           <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          {/* <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Welcome, {(user as any)?.username || 'User'}
           </h1>
           <p className="text-xl text-gray-600 mb-4">
@@ -409,6 +410,19 @@ export default function HomeNew() {
                 </div>
               </div>
             </Link>
+          )} 
+            {(hasRole("super_admin") || hasRole("label_printing")) && (
+            <Link href="/Label">
+              <div className="modern-card p-6 cursor-pointer group">
+                <div className="text-center">
+                  <div className="gradient-rose p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center">
+                    <Printer className="text-white h-8 w-8" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Generate Label</h3>
+                  <p className="text-gray-600">Labels</p>
+                </div>
+              </div>
+            </Link>
           )}
 
           {/* Sudhastar - Always available */}
@@ -449,4 +463,3 @@ export default function HomeNew() {
     </div>
   );
 }
-
