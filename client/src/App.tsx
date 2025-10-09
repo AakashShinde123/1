@@ -24,6 +24,7 @@ import Layout from "@/components/Layout";
 import SplashScreen from "@/components/SplashScreen";
 import OrderReport from "@/pages/OrderReport";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import Label from "@/pages/Label";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -87,6 +88,7 @@ function Router() {
             <Route path="/order-report" component={OrderReport} />
             <Route path="/daily-report" component={DailyReport} />
             <Route path="/privacy-policy" component={PrivacyPolicy} />
+            <Route path="/Label" component={Label} />
             <Route component={NotFound} />
           </Switch>
         </Layout>
@@ -107,5 +109,6 @@ function App() {
 }
 
 export default App;
+
 
 
