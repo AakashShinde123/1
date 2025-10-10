@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+import jsPDF from 'jspdf';
 
 interface LabelData {
   itemName: string;
@@ -143,7 +143,7 @@ const LabelPrintingSystem: React.FC = () => {
       
       // Use html2canvas with proper configuration for the label
       const canvas = await html2canvas(label, {
-        scale: 3, // Higher scale for better quality
+        scale: 3,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
@@ -212,10 +212,6 @@ const LabelPrintingSystem: React.FC = () => {
 
   return (
     <div className="container">
-      {/* Back button */}
-      <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '10px' }}>
-        <button className="back-btn" onClick={() => window.history.back()}>← Back</button>
-      </div>
       <h1>Label Printing System</h1>
 
       {/* Upload Section */}
@@ -361,9 +357,8 @@ const LabelPrintingSystem: React.FC = () => {
           <div className="labels-container">
             {labels.map((label, index) => (
               <div key={index} className="label-preview">
-                {/* Exact design from your image */}
                 <div className="label-content">
-                  {/* Header Section - Left and Right aligned */}
+                  {/* Header Section */}
                   <div className="header-section">
                     <div className="left-section">
                       <div className="company-name">SUDHAMRIT</div>
@@ -375,12 +370,11 @@ const LabelPrintingSystem: React.FC = () => {
                     </div>
                   </div>
                   
-                  {/* Product Name - Centered */}
+                  {/* Product Name */}
                   <div className="product-name">{label.itemName}</div>
                   
                   {/* Details Section */}
                   <div className="details-section">
-                    {/* Manufacturing Date */}
                     {label.mfgDate && (
                       <div className="detail-row">
                         <span className="detail-label">MFG DATE:</span>
@@ -388,7 +382,6 @@ const LabelPrintingSystem: React.FC = () => {
                       </div>
                     )}
                     
-                    {/* Expiry Date */}
                     {label.expDate && (
                       <div className="detail-row">
                         <span className="detail-label">BEST BEFORE:</span>
@@ -396,11 +389,10 @@ const LabelPrintingSystem: React.FC = () => {
                       </div>
                     )}
                     
-                    {/* Price */}
                     {label.price && (
                       <div className="detail-row">
                         <span className="detail-label">PRICE:</span>
-                        <span className="detail-values">₹{label.price}</span>
+                        <span className="detail-value">₹{label.price}</span>
                       </div>
                     )}
                   </div>
@@ -411,17 +403,7 @@ const LabelPrintingSystem: React.FC = () => {
         </div>
       )}
 
-      <style jsx>{`
-        .back-btn {
-          background: transparent;
-          border: 1px solid #ccc;
-          color: #2c3e50;
-          padding: 6px 12px;
-          border-radius: 6px;
-          cursor: pointer;
-          font-weight: 600;
-        }
-        .back-btn:hover { background: #f0f0f0; }
+      <style>{`
         .container {
           max-width: 1200px;
           margin: 0 auto;
@@ -662,7 +644,6 @@ const LabelPrintingSystem: React.FC = () => {
           overflow: hidden;
         }
         
-        /* Label content matching your image design */
         .label-content {
           width: 100%;
           height: 100%;
@@ -742,12 +723,8 @@ const LabelPrintingSystem: React.FC = () => {
         .detail-value {
           text-align: right;
         }
-        .detail-values {
-          text-align: right;
-          font-weight: bold;
-        }
         
-        /* Print Styles */
+        /* Print Styles - Optimized for 80mm × 50mm labels */
         @media print {
           body * {
             visibility: hidden;
@@ -863,7 +840,7 @@ const LabelPrintingSystem: React.FC = () => {
             padding: 8px 6px;
           }
         }
-      `}</style >
+      `}</style>
     </div>
   );
 };
