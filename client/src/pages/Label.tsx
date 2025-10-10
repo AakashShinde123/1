@@ -113,7 +113,7 @@ const LabelPrintingSystem: React.FC = () => {
             /* NEW: Style for the price/uom under the product name */
             .product-price-uom {
                 text-align: center;
-                font-size: 11pt;
+                font-size: 22pt;
                 font-weight: bold;
                 margin-bottom: 4mm;
                 color: #333;
@@ -280,7 +280,7 @@ const LabelPrintingSystem: React.FC = () => {
         /* NEW: Style for the price/uom under the product name */
         .product-price-uom {
             text-align: center;
-            font-size: 11pt;
+            font-size: 22pt;
             font-weight: bold;
             margin-bottom: 4mm;
             color: #333;
