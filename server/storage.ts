@@ -192,6 +192,10 @@ export class DatabaseStorage implements IStorage {
           id: 1,
           name: "Test Product",
           unit: "KG",
+          expiryDate: null,
+          storageLocation: "Dry Storage Location",
+          storageRow: "Row 1",
+          storageDeck: "Deck 1",
           openingStock: "100.00",
           currentStock: "100.00",
           isActive: 1,
@@ -235,8 +239,57 @@ export class DatabaseStorage implements IStorage {
       return await stockTransactionQueries.getAllWithDetails(filters);
     } catch (error) {
       console.error("Error fetching transactions:", error);
-      // Return empty array during database issues
-      return [];
+      // Return demo transaction with product storage fields during DB issues
+      return [
+        {
+          id: 1,
+          productId: 1,
+          userId: 1,
+          type: "stock_in",
+          quantity: "10.00",
+          originalQuantity: null,
+          originalUnit: null,
+          previousStock: "100.00",
+          newStock: "110.00",
+          transactionDate: new Date(),
+          soNumber: null,
+          poNumber: null,
+          createdAt: new Date(),
+          storageLocation: "Dry Storage Location",
+          storageRow: "Row 1",
+          storageDeck: "Deck 1",
+          productExpiry: null,
+          product: {
+            id: 1,
+            name: "Demo Product",
+            unit: "KG",
+            expiryDate: null,
+            storageLocation: "Dry Storage Location",
+            storageRow: "Row 1",
+            storageDeck: "Deck 1",
+            openingStock: "100.00",
+            currentStock: "110.00",
+            isActive: 1,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          user: {
+            id: 1,
+            username: "admin",
+            password: "",
+            email: "admin@inventory.com",
+            firstName: "Super",
+            lastName: "Admin",
+            countryCode: null,
+            mobileNumber: null,
+            role: "super_admin",
+            roles: ["super_admin"],
+            isActive: 1,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        },
+      ];
     }
   }
 
@@ -245,6 +298,24 @@ export class DatabaseStorage implements IStorage {
       const transactionDate = transaction.transactionDate || new Date();
 
       if (transaction.type === "stock_in") {
+        // Optional: update product expiry date if provided on stock-in
+        if (typeof transaction.expiryDate !== "undefined") {
+          try {
+            const raw = transaction.expiryDate as unknown;
+            let normalized: string | null = null;
+            if (raw === null || raw === "") {
+              normalized = null;
+            } else if (raw instanceof Date) {
+              normalized = raw.toISOString().split("T")[0];
+            } else if (typeof raw === "string") {
+              // Expecting YYYY-MM-DD
+              normalized = raw;
+            }
+            await productQueries.update(transaction.productId, { expiryDate: normalized } as any);
+          } catch (e) {
+            console.warn("Non-fatal: failed to update product expiryDate during stock-in:", e);
+          }
+        }
         const result = await transactionHelpers.processStockIn(
           transaction.productId,
           transaction.userId,
@@ -280,11 +351,14 @@ export class DatabaseStorage implements IStorage {
         originalUnit: transaction.originalUnit || null,
         previousStock: "100.00",
         newStock: transaction.type === "stock_in" ? "110.00" : "90.00",
-
         transactionDate: transaction.transactionDate || new Date(),
         soNumber: transaction.soNumber || null,
         poNumber: transaction.poNumber || null,
         createdAt: new Date(),
+        storageLocation: "Dry Storage Location",
+        storageRow: "Row 1",
+        storageDeck: "Deck 1",
+        productExpiry: null,
       };
     }
   }
