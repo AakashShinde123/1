@@ -25,7 +25,7 @@ import SplashScreen from "@/components/SplashScreen";
 import OrderReport from "@/pages/OrderReport";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import Label from "@/pages/Label";
-
+import StorageManagement from "@/pages/StorageManagement";
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
   console.log("Router Debug:", { isAuthenticated, isLoading, user });
@@ -89,6 +89,7 @@ function Router() {
             <Route path="/daily-report" component={DailyReport} />
             <Route path="/privacy-policy" component={PrivacyPolicy} />
             <Route path="/Label" component={Label} />
+            <Route path="/storage-management" component={StorageManagement} />
             <Route component={NotFound} />
           </Switch>
         </Layout>
@@ -103,12 +104,9 @@ function App() {
       <TooltipProvider>
         <Router />
         <Toaster />
-      </TooltipProvider>
+      </TooltipProvider> 
     </QueryClientProvider>
   );
 }
 
 export default App;
-
-
-
