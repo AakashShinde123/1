@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
@@ -32,6 +32,44 @@ export default function ProductSearch({
     enabled: searchQuery.length > 0,
   });
 
+  // Fetch locations and section dimensions to detect 'section-only' locations
+  const { data: locations } = useQuery({
+    queryKey: ["/api/storage-locations"],
+    queryFn: async () => {
+      const res = await fetch("/api/storage-locations", { credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+      return await res.json();
+    },
+  });
+  const { data: sectionDims } = useQuery({
+    queryKey: ["/api/storage-dimensions?type=section"],
+    queryFn: async () => {
+      const res = await fetch("/api/storage-dimensions?type=section", { credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+      return await res.json();
+    },
+  });
+  const sectionLocationNames = useMemo(() => {
+    try {
+      const locs = Array.isArray(locations) ? (locations as any[]) : [];
+      const dims = Array.isArray(sectionDims) ? (sectionDims as any[]) : [];
+      const idToName = new Map<number, string>();
+      for (const l of locs) {
+        if (typeof l?.id === "number" && typeof l?.name === "string") {
+          idToName.set(l.id, l.name);
+        }
+      }
+      const names = new Set<string>();
+      for (const d of dims) {
+        const n = idToName.get(d?.locationId as number);
+        if (n) names.add(n);
+      }
+      return names;
+    } catch {
+      return new Set<string>();
+    }
+  }, [locations, sectionDims]);
+
   useEffect(() => {
     setIsDropdownOpen(searchQuery.length > 0 && !selectedProduct);
   }, [searchQuery, selectedProduct]);
@@ -61,6 +99,8 @@ export default function ProductSearch({
     }, 200);
   };
 
+  const results = products || [];
+
   return (
     <div className="relative">
       <div className="relative">
@@ -82,9 +122,9 @@ export default function ProductSearch({
             <div className="p-3 text-center text-gray-500">
               Searching...
             </div>
-          ) : products?.length > 0 ? (
+          ) : results.length > 0 ? (
             <div className="py-2">
-              {products.map((product: Product) => (
+              {results.map((product: Product) => (
                 <div
                   key={product.id}
                   className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0 min-h-[44px] flex flex-col justify-center"
@@ -94,6 +134,29 @@ export default function ProductSearch({
                   <div className="text-xs sm:text-sm text-gray-500 mt-1">
                     {product.unit} - Current Stock: {product.currentStock}
                   </div>
+                  {(() => {
+                    const storageLocation = (product as any)?.storageLocation || "-";
+                    const storageRow = (product as any)?.storageRow;
+                    const storageDeck = (product as any)?.storageDeck;
+                    const isSectionMode = storageLocation && sectionLocationNames.has(storageLocation);
+                    return (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {storageLocation}
+                        {(storageRow || storageDeck) && (
+                          <div className="text-xs text-gray-400 mt-1">
+                            {isSectionMode
+                              ? (storageRow ? `Section: ${storageRow}` : "")
+                              : (
+                                <>
+                                  {storageRow ? `Row: ${storageRow}` : ""}
+                                  {storageDeck ? (storageRow ? ` • Deck: ${storageDeck}` : `Deck: ${storageDeck}`) : ""}
+                                </>
+                              )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
