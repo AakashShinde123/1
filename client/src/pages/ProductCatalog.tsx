@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,26 @@ import { Package, Search, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import type { Product } from "@shared/schema";
+// Helper to format nullable/unknown expiry date values to YYYY-MM-DD for inputs or to a human string for table
+function toInputDate(value: unknown): string {
+  if (!value) return "";
+  try {
+    // Handle Date or string
+    const d = value instanceof Date ? value : new Date(String(value));
+    if (isNaN(d.getTime())) return "";
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  } catch {
+    return "";
+  }
+}
+
+function formatExpiry(value: unknown): string {
+  const s = toInputDate(value);
+  return s || "-";
+}
 
 interface ProductCatalogProps {
   className?: string;
@@ -26,7 +46,17 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
   const [unitFilter, setUnitFilter] = useState<string>("all");
   const [stockFilter, setStockFilter] = useState<string>("all");
   const [editProduct, setEditProduct] = useState<Product | null>(null);
-  const [editForm, setEditForm] = useState<{ name: string; unit: string; currentStock: string; openingStock: string }>({ name: "", unit: "", currentStock: "", openingStock: "" });
+  const [editForm, setEditForm] = useState<{ name: string; unit: string; currentStock: string; openingStock: string; storageLocation?: string; storageRow?: string; storageDeck?: string; expiryDate?: string }>({
+    name: "",
+    unit: "",
+    currentStock: "",
+    openingStock: "",
+    storageLocation: "",
+    storageRow: "",
+    storageDeck: "",
+    expiryDate: "",
+  });
+
   const queryClient = useQueryClient();
 
   const {
@@ -37,9 +67,34 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
     queryKey: ["/api/products"],
   });
 
+  // Fetch storage locations and section dimensions to determine which locations are 'section-mode'
+  const { data: locations } = useQuery({ queryKey: ["/api/storage-locations"] });
+  const { data: sectionDims } = useQuery({ queryKey: ["/api/storage-dimensions?type=section"] });
+
+  const sectionLocationNames = useMemo(() => {
+    try {
+      const locs = Array.isArray(locations) ? (locations as any[]) : [];
+      const dims = Array.isArray(sectionDims) ? (sectionDims as any[]) : [];
+      const idToName = new Map<number, string>();
+      for (const l of locs) {
+        if (typeof l?.id === "number" && typeof l?.name === "string") {
+          idToName.set(l.id, l.name);
+        }
+      }
+      const names = new Set<string>();
+      for (const d of dims) {
+        const n = idToName.get(d?.locationId as number);
+        if (n) names.add(n);
+      }
+      return names;
+    } catch {
+      return new Set<string>();
+    }
+  }, [locations, sectionDims]);
+
   // Mutation for updating product
   const updateProductMutation = useMutation({
-    mutationFn: async (updated: { name: string; unit: string; openingStock: string; currentStock: string }) => {
+    mutationFn: async (updated: { name: string; unit: string; openingStock: string; currentStock: string; storageLocation?: string; storageRow?: string; storageDeck?: string; expiryDate?: string | null }) => {
       const res = await fetch(`/api/products/${editProduct?.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -254,6 +309,8 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                 <tr className="text-gray-700 text-xs uppercase tracking-wide">
                   <th className="p-3 md:p-4 border-b border-gray-200">Name</th>
                   <th className="p-3 md:p-4 border-b border-gray-200">Unit</th>
+                  <th className="p-3 md:p-4 border-b border-gray-200">Location</th>
+                  <th className="p-3 md:p-4 border-b border-gray-200">Expiry</th>
                   <th className="p-3 md:p-4 border-b border-gray-200">Current Stock</th>
                   <th className="p-3 md:p-4 border-b border-gray-200">Opening Stock</th>
                   <th className="p-3 md:p-4 border-b border-gray-200">Status</th>
@@ -269,6 +326,31 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                       <td className="p-3 md:p-4 border-b border-gray-100">
                         <Badge variant="outline" className="text-xs">{product.unit}</Badge>
                       </td>
+                      <td className="p-3 md:p-4 border-b border-gray-100 text-sm text-gray-600">
+                        {((product as any).storageLocation || "-")}
+                        {(() => {
+                          const loc = (product as any).storageLocation as string | undefined;
+                          const row = (product as any).storageRow as string | undefined;
+                          const deck = (product as any).storageDeck as string | undefined;
+                          if (!row && !deck) return null;
+                          const isSectionMode = loc && sectionLocationNames.has(loc);
+                          if (isSectionMode) {
+                            // For locations with defined Sections, show Section only and hide deck
+                            return (
+                              <div className="text-xs text-gray-400 mt-1">
+                                {row ? `Section: ${row}` : ""}
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="text-xs text-gray-400 mt-1">
+                              {row ? `Row: ${row}` : ""}
+                              {deck ? (row ? ` • Deck: ${deck}` : `Deck: ${deck}`) : ""}
+                            </div>
+                          );
+                        })()}
+                      </td>
+                      <td className="p-3 md:p-4 border-b border-gray-100 text-sm text-gray-600">{formatExpiry((product as any).expiryDate)}</td>
                       <td className="p-3 md:p-4 border-b border-gray-100">
                         {formatStock(product.currentStock)} {product.unit}
                       </td>
@@ -291,6 +373,10 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                               unit: product.unit,
                               currentStock: product.currentStock,
                               openingStock: product.openingStock,
+                              storageLocation: (product as any).storageLocation || "",
+                              storageRow: (product as any).storageRow || "",
+                              storageDeck: (product as any).storageDeck || "",
+                              expiryDate: toInputDate((product as any).expiryDate),
                             });
                           }}
                         >
@@ -338,30 +424,65 @@ export default function ProductCatalog({ className }: ProductCatalogProps) {
                 value={editForm.openingStock}
                 onChange={e => setEditForm(f => ({ ...f, openingStock: e.target.value }))}
               />
+              <Label htmlFor="edit-storageLocation">Storage Location</Label>
+              <Input
+                id="edit-storageLocation"
+                value={editForm.storageLocation}
+                onChange={e => setEditForm(f => ({ ...f, storageLocation: e.target.value }))}
+              />
+              <Label htmlFor="edit-storageRow">Storage Row</Label>
+              <Input
+                id="edit-storageRow"
+                value={editForm.storageRow}
+                onChange={e => setEditForm(f => ({ ...f, storageRow: e.target.value }))}
+              />
+              <Label htmlFor="edit-storageDeck">Storage Deck</Label>
+              <Input
+                id="edit-storageDeck"
+                value={editForm.storageDeck}
+                onChange={e => setEditForm(f => ({ ...f, storageDeck: e.target.value }))}
+              />
+              <Label htmlFor="edit-expiryDate">Expiry Date</Label>
+              <Input
+                id="edit-expiryDate"
+                type="date"
+                value={editForm.expiryDate || ""}
+                onChange={e => setEditForm(f => ({ ...f, expiryDate: e.target.value }))}
+              />
             </div>
             <DialogFooter>
               <Button
                 onClick={() => {
                   if (editProduct) {
-                    updateProductMutation.mutate({
+                    const payload: { name: string; unit: string; openingStock: string; currentStock: string; storageLocation?: string; storageRow?: string; storageDeck?: string; expiryDate?: string | null } = {
                       name: editForm.name,
                       unit: editForm.unit,
                       openingStock: editForm.openingStock,
-                      currentStock: editForm.currentStock, // <-- Add this line
-                    });
-                  }
-                }}
-                disabled={updateProductMutation.isPending}
-              >
-                Save
-              </Button>
-              <Button variant="ghost" onClick={() => setEditProduct(null)}>
-                Cancel
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </div>
-  );
+                      currentStock: editForm.currentStock,
+                      storageLocation: editForm.storageLocation,
+                      storageRow: editForm.storageRow,
+                      storageDeck: editForm.storageDeck,
+                    };
+                    // Normalize expiry: send null if empty so backend (nullable) accepts it; otherwise send as YYYY-MM-DD
+                    if (editForm.expiryDate && editForm.expiryDate.trim() !== "") {
+                      payload.expiryDate = editForm.expiryDate;
+                    } else {
+                      payload.expiryDate = null;
+                    }
+                    updateProductMutation.mutate(payload);
+                   }
+                 }}
+                 disabled={updateProductMutation.isPending}
+               >
+                 Save
+               </Button>
+               <Button variant="ghost" onClick={() => setEditProduct(null)}>
+                 Cancel
+               </Button>
+             </DialogFooter>
+           </DialogContent>
+         </Dialog>
+       </div>
+     </div>
+   );
 }
