@@ -17,6 +17,32 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Enum and table for location-specific dimensions (rows, decks, sections)
+export const dimensionType = pgEnum("dimension_type", ["row", "deck", "section"]);
+
+// New table to manage storage locations dynamically
+export const storageLocations = pgTable("storage_locations", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const storageDimensions = pgTable(
+  "storage_dimensions",
+  {
+    id: serial("id").primaryKey(),
+    locationId: integer("location_id").notNull().references(() => storageLocations.id, { onDelete: "cascade" }),
+    type: dimensionType("type").notNull(),
+    name: varchar("name", { length: 100 }).notNull(),
+    order: integer("order").notNull().default(0),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_storage_dimensions_location").on(table.locationId),
+    index("idx_storage_dimensions_location_type").on(table.locationId, table.type),
+  ]
+);
+
 export const sessions = pgTable(
   "sessions",
   {
@@ -55,33 +81,48 @@ export const products = pgTable("products", {
   currentStock: decimal("current_stock", { precision: 10, scale: 2 })
     .notNull()
     .default("0"),
+
+  // Optional expiry date for perishable products
+  expiryDate: date("expiry_date"),
+
+  // Storage/location fields to match Inventory.tsx form
+  storageLocation: varchar("storage_location", { length: 100 }).notNull().default("Dry Storage Location"),
+  storageRow:     varchar("storage_row",     { length: 50  }).notNull().default("Row 1"),
+  storageDeck:    varchar("storage_deck",    { length: 50  }).notNull().default("Deck 1"),
+
   isActive: integer("is_active").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => [index("idx_products_name").on(table.name), index("idx_products_active").on(table.isActive)]);
+}, (table) => [
+  index("idx_products_name").on(table.name),
+  index("idx_products_active").on(table.isActive),
+  index("idx_products_storage_location").on(table.storageLocation),
+]);
 
 // Stock transactions table
 export const stockTransactions = pgTable("stock_transactions", {
   id: serial("id").primaryKey(),
-  productId: integer("product_id")
-    .notNull()
-    .references(() => products.id),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   type: varchar("type", { length: 10 }).notNull(),
   quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
   originalQuantity: decimal("original_quantity", { precision: 10, scale: 2 }),
   originalUnit: varchar("original_unit", { length: 50 }),
-  previousStock: decimal("previous_stock", {
-    precision: 10,
-    scale: 2,
-  }).notNull(),
+  previousStock: decimal("previous_stock", { precision: 10, scale: 2 }).notNull(),
   newStock: decimal("new_stock", { precision: 10, scale: 2 }).notNull(),
 
   transactionDate: timestamp("transaction_date").notNull(),
   soNumber: varchar("so_number", { length: 100 }),
   poNumber: varchar("po_number", { length: 100 }),
+
+  // snapshot storage fields (nullable)
+  storageLocation: varchar("storage_location", { length: 100 }),
+  storageRow:      varchar("storage_row",     { length: 50  }),
+  storageDeck:     varchar("storage_deck",    { length: 50  }),
+
+  // snapshot of product expiry at time of transaction (nullable)
+  productExpiry: date("product_expiry"),
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_stock_transactions_product_id").on(table.productId),
@@ -243,6 +284,17 @@ export const insertProductSchema = createInsertSchema(products).omit({
   updatedAt: true,
 });
 
+// Storage location schemas
+export const insertStorageLocationSchema = createInsertSchema(storageLocations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStorageDimensionSchema = createInsertSchema(storageDimensions).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertStockTransactionSchema = createInsertSchema(
   stockTransactions,
 ).omit({
@@ -251,6 +303,7 @@ export const insertStockTransactionSchema = createInsertSchema(
   newStock: true,
   createdAt: true,
   transactionDate: true,
+  productExpiry: true,
 });
 
 export const stockInSchema = insertStockTransactionSchema.extend({
@@ -312,6 +365,10 @@ export type LowStockAlert = typeof lowStockAlerts.$inferSelect;
 export type InsertLowStockAlert = z.infer<typeof insertLowStockAlertSchema>;
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type StorageLocation = typeof storageLocations.$inferSelect;
+export type InsertStorageLocation = z.infer<typeof insertStorageLocationSchema>;
+export type StorageDimension = typeof storageDimensions.$inferSelect;
+export type InsertStorageDimension = z.infer<typeof insertStorageDimensionSchema>;
 
 // Extended types with relations
 export type ProductWithTransactions = Product & {
