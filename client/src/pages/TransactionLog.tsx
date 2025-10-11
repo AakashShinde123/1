@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -45,6 +45,51 @@ const formatUnitDisplay = (transaction: StockTransactionWithDetails) => {
   // Otherwise show product unit
   return transaction.product.unit;
 };
+
+// Utility to format expiry date from string/Date/unknown to YYYY-MM-DD
+function formatExpiryDate(value: unknown): string {
+  if (!value) return "";
+  if (typeof value === "string") {
+    // If it already looks like YYYY-MM-DD, return as-is; otherwise try to parse
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? value : d.toISOString().split("T")[0];
+  }
+  if (value instanceof Date) return value.toISOString().split("T")[0];
+  try {
+    const d = new Date(value as any);
+    return isNaN(d.getTime()) ? "" : d.toISOString().split("T")[0];
+  } catch {
+    return "";
+  }
+}
+
+// add helper to render storage info
+function renderLocation(product: any, sectionLocationNames?: Set<string>) {
+  if (!product) return null;
+  const storageLocation = product.storageLocation || "-";
+  const storageRow = product.storageRow;
+  const storageDeck = product.storageDeck;
+  const isSectionMode = storageLocation && sectionLocationNames?.has(storageLocation);
+
+  return (
+    <div className="text-sm text-gray-500">
+      {storageLocation}
+      {(storageRow || storageDeck) && (
+        <div className="text-xs text-gray-400 mt-1">
+          {isSectionMode
+            ? (storageRow ? `Section: ${storageRow}` : "")
+            : (
+              <>
+                {storageRow ? `Row: ${storageRow}` : ""}
+                {storageDeck ? (storageRow ? ` • Deck: ${storageDeck}` : `Deck: ${storageDeck}`) : ""}
+              </>
+            )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function TransactionLog() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -116,6 +161,31 @@ export default function TransactionLog() {
     },
     enabled: isAuthenticated,
   });
+
+  // Fetch storage locations and section dimensions to determine which locations are 'section-mode'
+  const { data: locations } = useQuery({ queryKey: ["/api/storage-locations"], enabled: isAuthenticated });
+  const { data: sectionDims } = useQuery({ queryKey: ["/api/storage-dimensions?type=section"], enabled: isAuthenticated });
+
+  const sectionLocationNames = useMemo(() => {
+    try {
+      const locs = Array.isArray(locations) ? (locations as any[]) : [];
+      const dims = Array.isArray(sectionDims) ? (sectionDims as any[]) : [];
+      const idToName = new Map<number, string>();
+      for (const l of locs) {
+        if (typeof l?.id === "number" && typeof l?.name === "string") {
+          idToName.set(l.id, l.name);
+        }
+      }
+      const names = new Set<string>();
+      for (const d of dims) {
+        const n = idToName.get(d?.locationId as number);
+        if (n) names.add(n);
+      }
+      return names;
+    } catch {
+      return new Set<string>();
+    }
+  }, [locations, sectionDims]);
 
   if (error && isUnauthorizedError(error as Error)) {
     toast({
@@ -348,7 +418,19 @@ export default function TransactionLog() {
                             transaction.transactionDate?.toString() || "",
                           )}
                         </td>
-                        <td className="p-4">{transaction.product?.name}</td>
+                        <td className="p-4">
+                          <div>
+                            <div className="font-medium">{transaction.product?.name}</div>
+                            {renderLocation(transaction.product, sectionLocationNames)}
+                            {(transaction as any).product?.expiryDate && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                Expiry: <span className={transaction.type === "stock_in" ? "font-medium text-amber-700" : "font-medium"}>
+                                  {formatExpiryDate((transaction as any).product.expiryDate)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
                         <td className="p-4">
                           <Badge
                             variant={
