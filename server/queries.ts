@@ -276,7 +276,8 @@ export const stockTransactionQueries = {
   ): Promise<StockTransaction> {
     const result = await db
       .insert(stockTransactions)
-      .values(transactionData)
+      // Accept API-level shape which omits computed fields
+      .values(transactionData as any)
       .returning();
     return result[0];
   },
@@ -317,10 +318,14 @@ export const stockTransactionQueries = {
         quantity: stockTransactions.quantity,
         previousStock: stockTransactions.previousStock,
         newStock: stockTransactions.newStock,
+        storageLocation: stockTransactions.storageLocation,
+        storageRow: stockTransactions.storageRow,
+        storageDeck: stockTransactions.storageDeck,
 
         transactionDate: stockTransactions.transactionDate,
         soNumber: stockTransactions.soNumber,
         poNumber: stockTransactions.poNumber,
+  productExpiry: stockTransactions.productExpiry,
         createdAt: stockTransactions.createdAt,
         originalQuantity: stockTransactions.originalQuantity,
         originalUnit: stockTransactions.originalUnit,
@@ -328,6 +333,10 @@ export const stockTransactionQueries = {
           id: products.id,
           name: products.name,
           unit: products.unit,
+          expiryDate: products.expiryDate,
+          storageLocation: products.storageLocation, // <- important
+          storageRow: products.storageRow,
+          storageDeck: products.storageDeck,
           openingStock: products.openingStock,
           currentStock: products.currentStock,
           isActive: products.isActive,
@@ -336,11 +345,15 @@ export const stockTransactionQueries = {
         },
         user: {
           id: users.id,
+          password: users.password,
           username: users.username,
           email: users.email,
           firstName: users.firstName,
           lastName: users.lastName,
           role: users.role,
+          roles: users.roles,
+          countryCode: users.countryCode,
+          mobileNumber: users.mobileNumber,
           isActive: users.isActive,
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
@@ -715,12 +728,25 @@ export const transactionHelpers = {
           transactionDate,
           poNumber,
           soNumber: null,
+          // snapshot storage fields from currentProduct
+          storageLocation: currentProduct[0].storageLocation,
+          storageRow: currentProduct[0].storageRow,
+          storageDeck: currentProduct[0].storageDeck,
+          // snapshot the product expiry at time of transaction
+          productExpiry: (currentProduct[0] as any).expiryDate ?? null,
         })
         .returning();
 
+      // select full product row to ensure storage fields are included
+      const fullProduct = await tx
+        .select()
+        .from(products)
+        .where(eq(products.id, productId))
+        .limit(1);
+
       return {
         transaction: transaction[0],
-        product: updatedProduct[0],
+        product: fullProduct[0],
       };
     });
   },
@@ -781,12 +807,25 @@ export const transactionHelpers = {
           transactionDate,
           soNumber,
           poNumber: null,
+          // snapshot storage fields from currentProduct
+          storageLocation: currentProduct[0].storageLocation,
+          storageRow: currentProduct[0].storageRow,
+          storageDeck: currentProduct[0].storageDeck,
+          // snapshot the product expiry at time of transaction
+          productExpiry: (currentProduct[0] as any).expiryDate ?? null,
         })
         .returning();
 
+      // select full product row to ensure storage fields are included
+      const fullProduct = await tx
+        .select()
+        .from(products)
+        .where(eq(products.id, productId))
+        .limit(1);
+
       return {
         transaction: transaction[0],
-        product: updatedProduct[0],
+        product: fullProduct[0],
       };
     });
   },
@@ -816,23 +855,31 @@ export const weeklyStockPlanQueries = {
           id: products.id,
           name: products.name,
           unit: products.unit,
+          expiryDate: products.expiryDate,
+          storageLocation: products.storageLocation, // <- important
+          storageRow: products.storageRow,
+          storageDeck: products.storageDeck,
           openingStock: products.openingStock,
           currentStock: products.currentStock,
           isActive: products.isActive,
           createdAt: products.createdAt,
           updatedAt: products.updatedAt,
         },
-        user: {
-          id: users.id,
-          username: users.username,
-          email: users.email,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          role: users.role,
-          isActive: users.isActive,
-          createdAt: users.createdAt,
-          updatedAt: users.updatedAt,
-        },
+            user: {
+              id: users.id,
+              password: users.password,
+              username: users.username,
+              email: users.email,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              role: users.role,
+              roles: users.roles,
+              countryCode: users.countryCode,
+              mobileNumber: users.mobileNumber,
+              isActive: users.isActive,
+              createdAt: users.createdAt,
+              updatedAt: users.updatedAt,
+            },
       })
       .from(weeklyStockPlans)
       .innerJoin(products, eq(weeklyStockPlans.productId, products.id))
@@ -865,23 +912,31 @@ export const weeklyStockPlanQueries = {
           id: products.id,
           name: products.name,
           unit: products.unit,
+          expiryDate: products.expiryDate,
+          storageLocation: products.storageLocation, // <- important
+          storageRow: products.storageRow,
+          storageDeck: products.storageDeck,
           openingStock: products.openingStock,
           currentStock: products.currentStock,
           isActive: products.isActive,
           createdAt: products.createdAt,
           updatedAt: products.updatedAt,
         },
-        user: {
-          id: users.id,
-          username: users.username,
-          email: users.email,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          role: users.role,
-          isActive: users.isActive,
-          createdAt: users.createdAt,
-          updatedAt: users.updatedAt,
-        },
+            user: {
+              id: users.id,
+              password: users.password,
+              username: users.username,
+              email: users.email,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              role: users.role,
+              roles: users.roles,
+              countryCode: users.countryCode,
+              mobileNumber: users.mobileNumber,
+              isActive: users.isActive,
+              createdAt: users.createdAt,
+              updatedAt: users.updatedAt,
+            },
       })
       .from(weeklyStockPlans)
       .innerJoin(products, eq(weeklyStockPlans.productId, products.id))
@@ -925,23 +980,31 @@ export const weeklyStockPlanQueries = {
           id: products.id,
           name: products.name,
           unit: products.unit,
+          expiryDate: products.expiryDate,
+          storageLocation: products.storageLocation, // <- important
+          storageRow: products.storageRow,
+          storageDeck: products.storageDeck,
           openingStock: products.openingStock,
           currentStock: products.currentStock,
           isActive: products.isActive,
           createdAt: products.createdAt,
           updatedAt: products.updatedAt,
         },
-        user: {
-          id: users.id,
-          username: users.username,
-          email: users.email,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          role: users.role,
-          isActive: users.isActive,
-          createdAt: users.createdAt,
-          updatedAt: users.updatedAt,
-        },
+            user: {
+              id: users.id,
+              password: users.password,
+              username: users.username,
+              email: users.email,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              role: users.role,
+              roles: users.roles,
+              countryCode: users.countryCode,
+              mobileNumber: users.mobileNumber,
+              isActive: users.isActive,
+              createdAt: users.createdAt,
+              updatedAt: users.updatedAt,
+            },
       })
       .from(weeklyStockPlans)
       .innerJoin(products, eq(weeklyStockPlans.productId, products.id))
@@ -1093,43 +1156,47 @@ export const lowStockAlertQueries = {
       .orderBy(desc(lowStockAlerts.alertDate));
 
     // Transform results to match expected format
-    return results.map((row) => ({
-      id: row.low_stock_alerts.id,
-      productId: row.low_stock_alerts.productId,
-      weeklyPlanId: row.low_stock_alerts.weeklyPlanId,
-      currentStock: row.low_stock_alerts.currentStock,
-      plannedQuantity: row.low_stock_alerts.plannedQuantity,
-      alertLevel: row.low_stock_alerts.alertLevel,
-      isResolved: row.low_stock_alerts.isResolved,
-      alertDate: row.low_stock_alerts.alertDate,
-      resolvedAt: row.low_stock_alerts.resolvedAt,
-      createdAt: row.low_stock_alerts.createdAt,
-      product: {
-        id: row.products.id,
-        name: row.products.name,
-        unit: row.products.unit,
-        openingStock: row.products.openingStock,
-        currentStock: row.products.currentStock,
-        isActive: row.products.isActive,
-        createdAt: row.products.createdAt,
-        updatedAt: row.products.updatedAt,
-      },
-      weeklyPlan: {
-        id: row.weekly_stock_plans.id,
-        productId: row.weekly_stock_plans.productId,
-        userId: row.weekly_stock_plans.userId,
-        plannedQuantity: row.weekly_stock_plans.plannedQuantity,
-        unit: row.weekly_stock_plans.unit,
-        weekStartDate: row.weekly_stock_plans.weekStartDate,
-        weekEndDate: row.weekly_stock_plans.weekEndDate,
-        isActive: row.weekly_stock_plans.isActive,
-        name: row.weekly_stock_plans.name,
-        presentStock: row.weekly_stock_plans.presentStock,
-        previousWeekStock: row.weekly_stock_plans.previousWeekStock,
-        createdAt: row.weekly_stock_plans.createdAt,
-        updatedAt: row.weekly_stock_plans.updatedAt,
-      },
-    }));
+return results.map((row) => ({
+  id: row.low_stock_alerts.id,
+  productId: row.low_stock_alerts.productId,
+  weeklyPlanId: row.low_stock_alerts.weeklyPlanId,
+  currentStock: row.low_stock_alerts.currentStock,
+  plannedQuantity: row.low_stock_alerts.plannedQuantity,
+  alertLevel: row.low_stock_alerts.alertLevel,
+  isResolved: row.low_stock_alerts.isResolved,
+  alertDate: row.low_stock_alerts.alertDate,
+  resolvedAt: row.low_stock_alerts.resolvedAt,
+  createdAt: row.low_stock_alerts.createdAt,
+  product: {
+    id: row.products.id,
+    name: row.products.name,
+    unit: row.products.unit,
+    expiryDate: row.products.expiryDate,
+    storageLocation: row.products.storageLocation,
+    storageRow: row.products.storageRow,
+    storageDeck: row.products.storageDeck,
+    openingStock: row.products.openingStock,
+    currentStock: row.products.currentStock,
+    isActive: row.products.isActive,
+    createdAt: row.products.createdAt,
+    updatedAt: row.products.updatedAt,
+  },
+  weeklyPlan: {
+    id: row.weekly_stock_plans.id,
+    productId: row.weekly_stock_plans.productId,
+    userId: row.weekly_stock_plans.userId,
+    plannedQuantity: row.weekly_stock_plans.plannedQuantity,
+    unit: row.weekly_stock_plans.unit,
+    weekStartDate: row.weekly_stock_plans.weekStartDate,
+    weekEndDate: row.weekly_stock_plans.weekEndDate,
+    isActive: row.weekly_stock_plans.isActive,
+    name: row.weekly_stock_plans.name,
+    presentStock: row.weekly_stock_plans.presentStock,
+    previousWeekStock: row.weekly_stock_plans.previousWeekStock,
+    createdAt: row.weekly_stock_plans.createdAt,
+    updatedAt: row.weekly_stock_plans.updatedAt,
+  },
+}));
   },
 
   // Create low stock alert
