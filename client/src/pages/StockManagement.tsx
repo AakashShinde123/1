@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -137,6 +137,7 @@ interface ProductItem {
   currentStock: string;
   newStock: string;
   selectedUnit?: string;
+  expiryDate?: string;
 }
 
 type TransactionPreview = TransactionData;
@@ -144,6 +145,7 @@ type TransactionPreview = TransactionData;
 export default function StockManagement() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [transactionPreview, setTransactionPreview] =
     useState<TransactionPreview | null>(null);
   const [stockWarnings, setStockWarnings] = useState<string[]>([]);
@@ -157,10 +159,46 @@ export default function StockManagement() {
       quantity: string;
       quantityOut?: string;
       selectedUnit: string;
+      expiryDate?: string;
     }>
   >([]);
   const [currentEditIndex, setCurrentEditIndex] = useState(0);
   const [showEditQueue, setShowEditQueue] = useState(false);
+  // Detect 'section-only' locations: any location that has section dimensions
+  const { data: storageLocations } = useQuery({
+    queryKey: ["/api/storage-locations"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/storage-locations");
+      return await res.json();
+    },
+  });
+  const { data: sectionDims } = useQuery({
+    queryKey: ["/api/storage-dimensions?type=section"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/storage-dimensions?type=section");
+      return await res.json();
+    },
+  });
+  const sectionLocationNames: Set<string> = (() => {
+    try {
+      const locs = Array.isArray(storageLocations) ? (storageLocations as any[]) : [];
+      const dims = Array.isArray(sectionDims) ? (sectionDims as any[]) : [];
+      const idToName = new Map<number, string>();
+      for (const l of locs) {
+        if (typeof l?.id === "number" && typeof l?.name === "string") {
+          idToName.set(l.id, l.name);
+        }
+      }
+      const names = new Set<string>();
+      for (const d of dims) {
+        const n = idToName.get(d?.locationId as number);
+        if (n) names.add(n);
+      }
+      return names;
+    } catch {
+      return new Set<string>();
+    }
+  })();
 
   // State for showing dashboard vs functionality
   const [showDashboard, setShowDashboard] = useState(true);
@@ -184,6 +222,7 @@ export default function StockManagement() {
     product: Product;
     quantity: string;
     selectedUnit: string;
+    expiryDate?: string;
   } | null>(null);
   const [currentProductOut, setCurrentProductOut] = useState<{
     product: Product;
@@ -193,7 +232,7 @@ export default function StockManagement() {
 
   // Completed products ready for transaction
   const [completedProductsIn, setCompletedProductsIn] = useState<
-    Array<{ product: Product; quantity: string; selectedUnit: string }>
+    Array<{ product: Product; quantity: string; selectedUnit: string; expiryDate?: string }>
   >([]);
   const [completedProductsOut, setCompletedProductsOut] = useState<
     Array<{ product: Product; quantityOut: string; selectedUnit: string }>
@@ -343,6 +382,7 @@ export default function StockManagement() {
       product,
       quantity: "",
       selectedUnit: product.unit,
+      expiryDate: "",
     });
   };
 
@@ -409,6 +449,7 @@ export default function StockManagement() {
         product: currentEdit.product,
         quantity: currentEdit.quantity,
         selectedUnit: currentEdit.selectedUnit,
+        expiryDate: currentEdit.expiryDate,
       };
       setCompletedProductsIn((prev) => [...prev, updatedProduct]);
     } else {
@@ -564,10 +605,24 @@ export default function StockManagement() {
         originalQuantity?: string;
         originalUnit?: string;
         poNumber?: string;
+        expiryDate?: string;
       }>,
     ) => {
       const results = [];
       for (const transaction of transactions) {
+        // If expiryDate is provided for this product, update it before posting the stock-in
+        if (transaction.expiryDate && transaction.expiryDate.trim() !== "") {
+          try {
+            await apiRequest(
+              "PUT",
+              `/api/products/${transaction.productId}`,
+              { expiryDate: transaction.expiryDate }
+            );
+          } catch (e) {
+            // Do not block stock-in on expiry update failure
+            console.warn("Failed to update product expiry date:", e);
+          }
+        }
         const response = await apiRequest(
           "POST",
           "/api/transactions/stock-in",
@@ -578,6 +633,8 @@ export default function StockManagement() {
       return results;
     },
     onSuccess: () => {
+      // Ensure Product Catalog reflects updated expiry dates and stocks
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
         title: "Success",
         description: "Stock in transactions recorded successfully",
@@ -616,6 +673,8 @@ export default function StockManagement() {
       return results;
     },
     onSuccess: () => {
+      // Keep Product Catalog in sync with new stock levels
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
         title: "Success",
         description: "Stock out transactions recorded successfully",
@@ -671,6 +730,7 @@ export default function StockManagement() {
         currentStock: item.product.currentStock,
         newStock: newStock.toString(),
         selectedUnit: item.selectedUnit,
+        expiryDate: (item as any).expiryDate,
       };
     });
 
@@ -678,6 +738,10 @@ export default function StockManagement() {
       products: productItems.map((item, index) => ({
         product: item.product.name,
         unit: item.product.unit,
+        // include storage info so ConfirmationDialog can show it
+        storageLocation: (item.product as any).storageLocation,
+        storageRow: (item.product as any).storageRow,
+        storageDeck: (item.product as any).storageDeck,
         currentStock: item.currentStock,
         quantity: item.quantity,
         newStock: item.newStock,
@@ -685,6 +749,8 @@ export default function StockManagement() {
           allProducts[index].quantity,
           allProducts[index].selectedUnit,
         ),
+        // Pass expiry date so the dialog can display it (Stock In only)
+        expiryDate: item.expiryDate,
       })),
       date: new Date().toLocaleDateString(),
       poNumber: poNumberInput.value,
@@ -737,6 +803,10 @@ export default function StockManagement() {
       products: productItems.map((item, index) => ({
         product: item.product.name,
         unit: item.product.unit,
+        // include storage info so ConfirmationDialog can show it
+        storageLocation: (item.product as any).storageLocation,
+        storageRow: (item.product as any).storageRow,
+        storageDeck: (item.product as any).storageDeck,
         currentStock: item.currentStock,
         quantity: item.quantity,
         newStock: item.newStock,
@@ -865,6 +935,7 @@ export default function StockManagement() {
         originalQuantity: item.quantity,
         originalUnit: item.selectedUnit,
         poNumber: poNumberInput.value,
+        expiryDate: (item as any).expiryDate && (item as any).expiryDate.trim() !== "" ? (item as any).expiryDate : undefined,
       }));
 
       stockInMutation.mutate(transactions);
@@ -1222,6 +1293,7 @@ export default function StockManagement() {
                     <h5 className="font-semibold text-purple-900 mb-3">
                       Editing: {editingQueue[currentEditIndex].product.name}
                     </h5>
+                    {renderLocation(editingQueue[currentEditIndex].product)}
                     <p className="text-purple-700 mb-3">
                       Current Stock:{" "}
                       {editingQueue[currentEditIndex].product.currentStock}{" "}
@@ -1291,6 +1363,23 @@ export default function StockManagement() {
                         </Select>
                       </div>
                     </div>
+                    {editingQueue[currentEditIndex].quantity !== undefined && (
+                      <div className="mt-3">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Expiry Date (optional)
+                        </label>
+                        <input
+                          type="date"
+                          value={editingQueue[currentEditIndex].expiryDate || ""}
+                          onChange={(e) => {
+                            const newQueue = [...editingQueue];
+                            newQueue[currentEditIndex].expiryDate = e.target.value;
+                            setEditingQueue(newQueue);
+                          }}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Navigation and action buttons */}
@@ -1412,6 +1501,7 @@ export default function StockManagement() {
                           Current Stock: {currentProductIn.product.currentStock}{" "}
                           {currentProductIn.product.unit}
                         </p>
+                        {renderLocation(currentProductIn.product)}
                       </div>
                       <Button
                         type="button"
@@ -1469,6 +1559,21 @@ export default function StockManagement() {
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Expiry Date (optional)
+                      </label>
+                      <input
+                        type="date"
+                        value={currentProductIn.expiryDate || ""}
+                        onChange={(e) =>
+                          setCurrentProductIn((prev) =>
+                            prev ? { ...prev, expiryDate: e.target.value } : prev,
+                          )
+                        }
+                        className="flex h-12 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:text-lg ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      />
                     </div>
                   </div>
                 )}
@@ -1571,6 +1676,7 @@ export default function StockManagement() {
                           {currentProductOut.product.currentStock}{" "}
                           {currentProductOut.product.unit}
                         </p>
+                        {renderLocation(currentProductOut.product)}
                       </div>
                       <Button
                         type="button"
@@ -1676,8 +1782,35 @@ export default function StockManagement() {
               </div>
             </form>
           </Form>
+          
         </CardContent>
       </Card>
+    );
+  }
+
+  function renderLocation(product: Product) {
+    const storageLocation = (product as any).storageLocation || "-";
+    const storageRow = (product as any).storageRow;
+    const storageDeck = (product as any).storageDeck;
+
+    const isSectionMode = storageLocation && sectionLocationNames.has(storageLocation);
+
+    return (
+      <div className="text-sm text-gray-600">
+        {storageLocation}
+        {(storageRow || storageDeck) && (
+          <div className="text-xs text-gray-400 mt-1">
+            {isSectionMode
+              ? (storageRow ? `Section: ${storageRow}` : "")
+              : (
+                <>
+                  {storageRow ? `Row: ${storageRow}` : ""}
+                  {storageDeck ? (storageRow ? ` • Deck: ${storageDeck}` : `Deck: ${storageDeck}`) : ""}
+                </>
+              )}
+          </div>
+        )}
+      </div>
     );
   }
 }
