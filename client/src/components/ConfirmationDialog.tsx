@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Check, Edit, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 export interface ProductTransactionData {
   product: string;
@@ -12,6 +13,12 @@ export interface ProductTransactionData {
   quantity: string;
   newStock: string;
   displayQuantity?: string;
+  // optional expiry date only used for Stock In preview
+  expiryDate?: string;
+  // storage/location fields (optional)
+  storageLocation?: string;
+  storageRow?: string | number;
+  storageDeck?: string | number;
 }
 
 export interface TransactionData {
@@ -87,6 +94,31 @@ export default function ConfirmationDialog({
     }
   };
 
+  // Fetch storage locations and section dimensions to determine which locations are 'section-mode'
+  const { data: locations } = useQuery({ queryKey: ["/api/storage-locations"] });
+  const { data: sectionDims } = useQuery({ queryKey: ["/api/storage-dimensions?type=section"] });
+
+  const sectionLocationNames = useMemo(() => {
+    try {
+      const locs = Array.isArray(locations) ? (locations as any[]) : [];
+      const dims = Array.isArray(sectionDims) ? (sectionDims as any[]) : [];
+      const idToName = new Map<number, string>();
+      for (const l of locs) {
+        if (typeof l?.id === "number" && typeof l?.name === "string") {
+          idToName.set(l.id, l.name);
+        }
+      }
+      const names = new Set<string>();
+      for (const d of dims) {
+        const n = idToName.get(d?.locationId as number);
+        if (n) names.add(n);
+      }
+      return names;
+    } catch {
+      return new Set<string>();
+    }
+  }, [locations, sectionDims]);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-0 w-[calc(100%-2rem)] sm:w-full" aria-describedby="transaction-details">
@@ -140,7 +172,33 @@ export default function ConfirmationDialog({
                     />
                   )}
                   <div className="flex-1">
-                    <div className="font-semibold text-gray-900 mb-3">{product.product}</div>
+                    <div className="font-semibold text-gray-900 mb-1">{product.product}</div>
+                    {(product.storageLocation || product.storageRow || product.storageDeck) && (
+                      <div className="text-sm text-gray-600 mb-3">
+                        {product.storageLocation || "-"}
+                        {(product.storageRow || product.storageDeck) && (
+                          <div className="text-xs text-gray-400 mt-1">
+                            {(() => {
+                              const loc = product.storageLocation;
+                              const isSectionMode = !!loc && sectionLocationNames.has(loc);
+                              if (isSectionMode) {
+                                return product.storageRow ? `Section: ${product.storageRow}` : "";
+                              }
+                              const row = product.storageRow ? `Row: ${product.storageRow}` : "";
+                              const deck = product.storageDeck
+                                ? (product.storageRow ? ` • Deck: ${product.storageDeck}` : `Deck: ${product.storageDeck}`)
+                                : "";
+                              return (
+                                <>
+                                  {row}
+                                  {deck}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                       <div className="bg-white p-2 rounded border">
                         <span className="text-gray-600 text-xs block">Current:</span>
@@ -164,6 +222,11 @@ export default function ConfirmationDialog({
                         <div className="font-bold text-green-600">{formatDecimal(product.newStock)} {product.unit}</div>
                       </div>
                     </div>
+                    {transactionData.type === 'Stock In' && product.expiryDate && (
+                      <div className="mt-2 text-xs text-gray-600">
+                        Expiry Date: <span className="font-medium text-gray-900">{product.expiryDate}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
