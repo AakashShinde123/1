@@ -1,7 +1,7 @@
 import { db } from "./db";
-import { users, products, stockTransactions, sessions } from "@shared/schema";
+import { users, products, stockTransactions, sessions, storageLocations, storageDimensions } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
-import { eq } from "drizzle-orm";
 
 export async function runMigrations() {
   try {
@@ -67,6 +67,69 @@ export async function runMigrations() {
       sess JSONB NOT NULL,
       expire TIMESTAMP NOT NULL
     )`);
+
+    // Create storage_locations table
+    await db.execute(`CREATE TABLE IF NOT EXISTS storage_locations (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100) NOT NULL UNIQUE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // Seed default storage locations
+    const defaults = [
+      'Dry Storage Location',
+      'Cold Storage',
+      'Freezer Storage',
+      'Overflow Storage',
+      'Package Storage Room'
+    ];
+    for (const loc of defaults) {
+      await db.execute(`INSERT INTO storage_locations (name) VALUES ('${loc.replace(/'/g, "''")}') ON CONFLICT (name) DO NOTHING`);
+    }
+
+    // Create storage_dimensions table
+    // Some Postgres versions don't support CREATE TYPE IF NOT EXISTS for enums; use a DO block
+    await db.execute(`DO $$ BEGIN
+      CREATE TYPE dimension_type AS ENUM ('row','deck','section');
+    EXCEPTION WHEN duplicate_object THEN NULL; END $$;`);
+    await db.execute(`CREATE TABLE IF NOT EXISTS storage_dimensions (
+      id SERIAL PRIMARY KEY,
+      location_id INTEGER NOT NULL REFERENCES storage_locations(id) ON DELETE CASCADE,
+      type dimension_type NOT NULL,
+      name VARCHAR(100) NOT NULL,
+      "order" INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // Ensure uniqueness to avoid duplicates when seeding
+    await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS uniq_storage_dimensions_loc_type_name ON storage_dimensions (location_id, type, name)`);
+
+    // Seed defaults for known locations
+    // Package Storage Room sections B1-B4
+    const pkgRow = await db
+      .select({ id: storageLocations.id })
+      .from(storageLocations)
+      .where(eq(storageLocations.name, 'Package Storage Room'))
+      .limit(1);
+    const pkgId = pkgRow[0]?.id as number | undefined;
+    if (pkgId) {
+      const sections = ['B1','B2','B3','B4'];
+      for (let i=0;i<sections.length;i++) {
+        const name = sections[i].replace(/'/g, "''");
+        await db.execute(`INSERT INTO storage_dimensions (location_id,type,name,"order") VALUES (${pkgId}, 'section', '${name}', ${i}) ON CONFLICT (location_id,type,name) DO NOTHING`);
+      }
+    }
+
+    // Generic default rows and decks for other locations (Row 1..4, Deck 1..4)
+    const allLocs = await db.select({ id: storageLocations.id, name: storageLocations.name }).from(storageLocations);
+    const otherRows = allLocs.filter((r: any) => r.name !== 'Package Storage Room');
+    for (const r of otherRows as any[]) {
+      const id = r.id as number;
+      for (let i=1;i<=4;i++) {
+        await db.execute(`INSERT INTO storage_dimensions (location_id,type,name,"order") VALUES (${id}, 'row', 'Row ${i}', ${i}) ON CONFLICT (location_id,type,name) DO NOTHING`);
+        await db.execute(`INSERT INTO storage_dimensions (location_id,type,name,"order") VALUES (${id}, 'deck', 'Deck ${i}', ${i}) ON CONFLICT (location_id,type,name) DO NOTHING`);
+      }
+    }
 
     // Create index for sessions
     await db.execute(`CREATE INDEX IF NOT EXISTS IDX_session_expire ON sessions (expire)`);
