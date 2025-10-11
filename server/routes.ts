@@ -10,13 +10,17 @@ import {
   type UserRole,
   hasUserAnyRole,
   users,
+  storageLocations,
+  insertStorageLocationSchema,
+  storageDimensions,
+  insertStorageDimensionSchema,
 } from "@shared/schema";
 import { dashboardQueries } from "./queries";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import axios from "axios";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, asc, and, sql } from "drizzle-orm";
 
 // CAPTCHA verification helper function
 async function verifyCaptcha(token: string): Promise<boolean> {
@@ -296,6 +300,175 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // Storage locations CRUD (list, create). Only super_admin and master_inventory_handler
+  app.get(
+    "/api/storage-locations",
+    isAuthenticated,
+    requireRole(["super_admin", "master_inventory_handler", "stock_in_manager"]),
+    async (_req, res) => {
+      try {
+        const rows = await db.select().from(storageLocations).orderBy(asc(storageLocations.name));
+        res.json(rows);
+      } catch (error) {
+        console.error("Error fetching storage locations:", error);
+        res.status(500).json({ message: "Failed to fetch storage locations" });
+      }
+    },
+  );
+
+  app.post(
+    "/api/storage-locations",
+    isAuthenticated,
+    requireRole(["super_admin", "master_inventory_handler"]),
+    async (req, res) => {
+      try {
+        const data = insertStorageLocationSchema.parse(req.body);
+        const result = await db.insert(storageLocations).values(data).returning();
+        res.status(201).json(result[0]);
+      } catch (error) {
+        console.error("Error creating storage location:", error);
+        if (error instanceof z.ZodError) {
+          res.status(400).json({ message: "Invalid data", errors: error.errors });
+        } else {
+          res.status(500).json({ message: "Failed to create storage location" });
+        }
+      }
+    },
+  );
+
+  // Storage dimensions (rows/decks/sections) CRUD
+  app.get(
+    "/api/storage-dimensions",
+    isAuthenticated,
+    requireRole(["super_admin", "master_inventory_handler", "stock_in_manager"]),
+    async (req, res) => {
+      try {
+        const locationId = req.query.locationId ? parseInt(req.query.locationId as string) : undefined;
+        const type = req.query.type as "row" | "deck" | "section" | undefined;
+        let rows;
+        if (locationId && type) {
+          rows = await db
+            .select()
+            .from(storageDimensions)
+            .where(and(eq(storageDimensions.locationId, locationId), eq(storageDimensions.type, type as any)))
+            .orderBy(asc(storageDimensions.order), asc(storageDimensions.name as any));
+        } else if (locationId) {
+          rows = await db
+            .select()
+            .from(storageDimensions)
+            .where(eq(storageDimensions.locationId, locationId))
+            .orderBy(asc(storageDimensions.order), asc(storageDimensions.name as any));
+        } else if (type) {
+          rows = await db
+            .select()
+            .from(storageDimensions)
+            .where(eq(storageDimensions.type, type as any))
+            .orderBy(asc(storageDimensions.order), asc(storageDimensions.name as any));
+        } else {
+          rows = await db
+            .select()
+            .from(storageDimensions)
+            .orderBy(asc(storageDimensions.order), asc(storageDimensions.name as any));
+        }
+        res.json(rows);
+      } catch (error) {
+        console.error("Error fetching storage dimensions:", error);
+        res.status(500).json({ message: "Failed to fetch storage dimensions" });
+      }
+    },
+  );
+
+  app.post(
+    "/api/storage-dimensions",
+    isAuthenticated,
+    requireRole(["super_admin", "master_inventory_handler"]),
+    async (req, res) => {
+      try {
+        const parsed = insertStorageDimensionSchema.parse(req.body);
+        const name = (parsed.name || "").trim();
+
+        // Compute next order for this (locationId, type)
+        const maxOrderRows = await db
+          .select({ max: sql<number>`COALESCE(MAX(${storageDimensions.order}), -1)` })
+          .from(storageDimensions)
+          .where(and(eq(storageDimensions.locationId, parsed.locationId), eq(storageDimensions.type, parsed.type as any)));
+        const nextOrder = ((maxOrderRows?.[0]?.max ?? -1) as number) + 1;
+
+        try {
+          const result = await db
+            .insert(storageDimensions)
+            .values({
+              locationId: parsed.locationId,
+              type: parsed.type as any,
+              name,
+              ["order"]: nextOrder,
+            } as any)
+            .returning();
+          return res.status(201).json(result[0]);
+        } catch (err: any) {
+          // Handle duplicate gracefully by returning existing row
+          if (err?.code === "23505") {
+            const existing = await db
+              .select()
+              .from(storageDimensions)
+              .where(
+                and(
+                  eq(storageDimensions.locationId, parsed.locationId),
+                  eq(storageDimensions.type, parsed.type as any),
+                  eq(storageDimensions.name, name),
+                ),
+              )
+              .limit(1);
+            if (existing && existing[0]) {
+              return res.status(200).json(existing[0]);
+            }
+          }
+          throw err;
+        }
+      } catch (error) {
+        console.error("Error creating storage dimension:", error);
+        if (error instanceof z.ZodError) {
+          res.status(400).json({ message: "Invalid data", errors: error.errors });
+        } else {
+          res.status(500).json({ message: "Failed to create storage dimension" });
+        }
+      }
+    },
+  );
+
+  // Delete a storage location (cascades to dimensions)
+  app.delete(
+    "/api/storage-locations/:id",
+    isAuthenticated,
+    requireRole(["super_admin", "master_inventory_handler"]),
+    async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        await db.delete(storageLocations).where(eq(storageLocations.id, id));
+        res.status(204).send();
+      } catch (error) {
+        console.error("Error deleting storage location:", error);
+        res.status(500).json({ message: "Failed to delete storage location" });
+      }
+    },
+  );
+
+  app.delete(
+    "/api/storage-dimensions/:id",
+    isAuthenticated,
+    requireRole(["super_admin", "master_inventory_handler"]),
+    async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        await db.delete(storageDimensions).where(eq(storageDimensions.id, id));
+        res.status(204).send();
+      } catch (error) {
+        console.error("Error deleting storage dimension:", error);
+        res.status(500).json({ message: "Failed to delete storage dimension" });
+      }
+    },
+  );
+
   // Analytics route for reports
   app.get(
     "/api/dashboard/analytics",
@@ -320,6 +493,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req, res) => {
       try {
         const products = await storage.getProducts();
+        // debug: ensure storage fields are present
+        if (products && products.length > 0) {
+          console.log("Product storage fields sample:", {
+            id: products[0].id,
+            storageLocation: (products[0] as any).storageLocation,
+            storageRow: (products[0] as any).storageRow,
+            storageDeck: (products[0] as any).storageDeck,
+          });
+        }
         res.json(products);
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -415,7 +597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: any, res) => {
       try {
         const userId = req.user.id;
-        const { products, remarks, poNumber } = req.body;
+  const { products, remarks, poNumber } = req.body;
 
         if (!products || !Array.isArray(products) || products.length === 0) {
           return res
@@ -433,6 +615,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             remarks,
             poNumber,
             transactionDate: new Date(),
+            // optional per-item expiry date in batch body
+            expiryDate: productData.expiryDate ?? undefined,
           };
 
           const transaction =
@@ -465,7 +649,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: any, res) => {
       try {
         const userId = req.user.id;
-        const { originalQuantity, originalUnit, ...transactionBody } = req.body;
+        const { originalQuantity, originalUnit, expiryDate, ...transactionBody } = req.body;
         const transactionData = insertStockTransactionSchema.parse({
           ...transactionBody,
           userId,
@@ -478,6 +662,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           originalQuantity,
           originalUnit,
           transactionDate: new Date(),
+          // pass optional expiry date through to storage layer
+          expiryDate: typeof expiryDate === "string" || expiryDate instanceof Date ? expiryDate : undefined,
         };
 
         const transaction =
