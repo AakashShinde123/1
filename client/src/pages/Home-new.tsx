@@ -424,7 +424,20 @@ export default function HomeNew() {
               </div>
             </Link>
           )}
-
+ {/* Storage Management - only for Super Admin */}
+            {hasRole("super_admin") && (
+              <Link href="/storage-management">
+                <div className="modern-card p-6 cursor-pointer group">
+                  <div className="text-center">
+                    <div className="gradient-purple p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center">
+                      <FileText className="text-white h-8 w-8" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Storage Management</h3>
+                    <p className="text-gray-600">Manage storage locations</p>
+                  </div>
+                </div>
+              </Link>
+            )}
           {/* Sudhastar - Always available */}
           <a
             href="https://sudhastar.netlify.app/"
