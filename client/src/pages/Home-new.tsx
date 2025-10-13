@@ -18,10 +18,10 @@ import {
   Calendar,
   CalendarCheck,
   FileText,
-  Printer,
   ShoppingCart,
   MessageSquare,
   ExternalLink,
+  Printer,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -221,7 +221,7 @@ export default function HomeNew() {
             alt="Sudhamrit Logo"
             className="h-12 w-auto mx-auto mb-4"
           />
-          {/* <h1 className="text-4xl font-bold text-gray-900 mb-2">
+{/*           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Welcome, {(user as any)?.username || 'User'}
           </h1>
           <p className="text-xl text-gray-600 mb-4">
@@ -301,6 +301,21 @@ export default function HomeNew() {
               </div>
             </Link>
           )}
+
+            {/* Storage Management - for Super Admin or Storage Management role */}
+            {(hasRole("super_admin") || hasRole("storage_management")) && (
+              <Link href="/storage-management">
+                <div className="modern-card p-6 cursor-pointer group">
+                  <div className="text-center">
+                    <div className="gradient-purple p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center">
+                      <FileText className="text-white h-8 w-8" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Storage Management</h3>
+                    <p className="text-gray-600">Manage storage locations</p>
+                  </div>
+                </div>
+              </Link>
+            )}
 
           {/* Transaction Log access - only for Super Admin role */}
           {hasRole("super_admin") && (
@@ -410,8 +425,9 @@ export default function HomeNew() {
                 </div>
               </div>
             </Link>
-          )} 
-            {(hasRole("super_admin") || hasRole("label_printing")) && (
+          )}
+
+          {(hasRole("super_admin") || hasRole("label_printing")) && (
             <Link href="/Label">
               <div className="modern-card p-6 cursor-pointer group">
                 <div className="text-center">
@@ -424,20 +440,8 @@ export default function HomeNew() {
               </div>
             </Link>
           )}
- {/* Storage Management - only for Super Admin */}
-            {hasRole("super_admin") && (
-              <Link href="/storage-management">
-                <div className="modern-card p-6 cursor-pointer group">
-                  <div className="text-center">
-                    <div className="gradient-purple p-4 rounded-full mb-4 mx-auto w-16 h-16 flex items-center justify-center">
-                      <FileText className="text-white h-8 w-8" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Storage Management</h3>
-                    <p className="text-gray-600">Manage storage locations</p>
-                  </div>
-                </div>
-              </Link>
-            )}
+
+
           {/* Sudhastar - Always available */}
           <a
             href="https://sudhastar.netlify.app/"
@@ -476,3 +480,4 @@ export default function HomeNew() {
     </div>
   );
 }
+
