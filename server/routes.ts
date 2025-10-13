@@ -304,7 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(
     "/api/storage-locations",
     isAuthenticated,
-    requireRole(["super_admin", "master_inventory_handler", "stock_in_manager"]),
+    requireRole(["super_admin", "master_inventory_handler", "stock_in_manager", "storage_management"]),
     async (_req, res) => {
       try {
         const rows = await db.select().from(storageLocations).orderBy(asc(storageLocations.name));
@@ -319,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post(
     "/api/storage-locations",
     isAuthenticated,
-    requireRole(["super_admin", "master_inventory_handler"]),
+    requireRole(["super_admin", "master_inventory_handler", "storage_management"]),
     async (req, res) => {
       try {
         const data = insertStorageLocationSchema.parse(req.body);
@@ -340,7 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(
     "/api/storage-dimensions",
     isAuthenticated,
-    requireRole(["super_admin", "master_inventory_handler", "stock_in_manager"]),
+    requireRole(["super_admin", "master_inventory_handler", "stock_in_manager", "storage_management"]),
     async (req, res) => {
       try {
         const locationId = req.query.locationId ? parseInt(req.query.locationId as string) : undefined;
@@ -381,7 +381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post(
     "/api/storage-dimensions",
     isAuthenticated,
-    requireRole(["super_admin", "master_inventory_handler"]),
+    requireRole(["super_admin", "master_inventory_handler", "storage_management"]),
     async (req, res) => {
       try {
         const parsed = insertStorageDimensionSchema.parse(req.body);
@@ -440,7 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete(
     "/api/storage-locations/:id",
     isAuthenticated,
-    requireRole(["super_admin", "master_inventory_handler"]),
+    requireRole(["super_admin", "master_inventory_handler", "storage_management"]),
     async (req, res) => {
       try {
         const id = parseInt(req.params.id);
@@ -456,7 +456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete(
     "/api/storage-dimensions/:id",
     isAuthenticated,
-    requireRole(["super_admin", "master_inventory_handler"]),
+    requireRole(["super_admin", "master_inventory_handler", "storage_management"]),
     async (req, res) => {
       try {
         const id = parseInt(req.params.id);
@@ -904,6 +904,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             "orders",
             "send_message",
             "all_reports",
+            "label_printing",
+            "storage_management",
           ].includes(role)
         ) {
           return res.status(400).json({ message: "Invalid role" });
@@ -948,6 +950,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "orders",
           "send_message",
           "all_reports",
+          "label_printing",
+          "storage_management",
         ];
 
         for (const role of roles) {
@@ -1064,6 +1068,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "orders",
           "send_message",
           "all_reports",
+          "label_printing",
+          "storage_management",
         ];
 
         for (const userRole of userRoles) {
