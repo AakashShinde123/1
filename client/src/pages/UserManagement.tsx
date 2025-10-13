@@ -59,7 +59,9 @@ export type UserRole =
   | "weekly_stock_planner"
   | "orders"
   | "send_message"
-  | "all_reports";
+  | "all_reports"
+  | "label_printing"
+  | "storage_management";
 import { Link } from "wouter";
 
 const updateRoleSchema = z.object({
@@ -73,6 +75,8 @@ const updateRoleSchema = z.object({
     "orders",
     "send_message",
     "all_reports",
+    "label_printing",
+    "storage_management",
   ]).optional(),
   roles: z.array(z.enum([
     "super_admin",
@@ -84,6 +88,8 @@ const updateRoleSchema = z.object({
     "orders",
     "send_message",
     "all_reports",
+    "label_printing",
+    "storage_management",
   ])).min(1, "At least one role must be selected"),
 });
 
@@ -119,6 +125,8 @@ const createUserSchema = z
       "orders",
       "send_message",
       "all_reports",
+      "label_printing",
+      "storage_management",
     ]).optional(),
     roles: z.array(z.enum([
       "super_admin",
@@ -130,6 +138,8 @@ const createUserSchema = z
       "orders",
       "send_message",
       "all_reports",
+      "label_printing",
+      "storage_management",
     ])).min(1, "At least one role must be selected"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -673,6 +683,8 @@ export default function UserManagement() {
                               { value: "orders", label: "📦 Orders" },
                               { value: "send_message", label: "✉️ Send Message" },
                               { value: "all_reports", label: "📑 All Reports" },
+                              { value: "label_printing", label: "🏷️ Label Printing" },
+                              { value: "storage_management", label: "📁 Storage Management" },
                             ].map((role) => (
                               <div key={role.value} className="flex items-center space-x-2">
                                 <Checkbox
@@ -973,6 +985,8 @@ export default function UserManagement() {
                         { value: "orders", label: "📦 Orders" },
                         { value: "send_message", label: "✉️ Send Message" },
                         { value: "all_reports", label: "📑 All Reports" },
+                        { value: "label_printing", label: "🏷️ Label Printing" },
+                        { value: "storage_management", label: "📁 Storage Management" },
                       ].map((role) => (
                         <div key={role.value} className="flex items-center space-x-2">
                           <Checkbox
@@ -1109,6 +1123,10 @@ function getRoleDisplayName(role: string): string {
       return "✉️ Send Message";
     case "all_reports":
       return "📑 All Reports";
+    case "label_printing":
+      return "🏷️ Label Printing";
+    case "storage_management":
+      return "📁 Storage Management";
     default:
       return role;
   }
@@ -1128,6 +1146,10 @@ function getRoleBadgeColor(role: string): string {
       return "bg-blue-100 text-blue-800 border-blue-200";
     case "weekly_stock_planner":
       return "bg-pink-100 text-pink-800 border-pink-200"; // <-- Add here
+    case "label_printing":
+      return "bg-rose-100 text-rose-800 border-rose-200";
+    case "storage_management":
+      return "bg-indigo-100 text-indigo-800 border-indigo-200";
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
   }
