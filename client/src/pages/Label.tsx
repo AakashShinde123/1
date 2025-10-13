@@ -150,6 +150,9 @@ const LabelPrintingSystem: React.FC = () => {
   
   return (
     <div className="container">
+      <div className="top-actions">
+        <a href="/" className="btn-back" aria-label="Back to Dashboard">← Back to Dashboard</a>
+      </div>
       <h1>Label Printing System</h1>
       <div className="controls">
         <h3>Upload Excel or Enter Manually</h3>
@@ -243,6 +246,9 @@ const LabelPrintingSystem: React.FC = () => {
       <style>{`
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; }
         .container { max-width: 1200px; margin: 20px auto; padding: 25px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .top-actions { display: flex; justify-content: flex-start; margin-bottom: 10px; }
+        .btn-back { display: inline-flex; align-items: center; gap: 8px; background-color: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: 600; }
+        .btn-back:hover { background-color: #e2e8f0; }
         h1 { text-align: center; color: #333; }
         .controls, .table-section, .main-actions { margin-bottom: 25px; padding: 20px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; }
         h3 { margin-top: 0; margin-bottom: 15px; color: #343a40; border-bottom: 1px solid #e9ecef; padding-bottom: 10px; }
