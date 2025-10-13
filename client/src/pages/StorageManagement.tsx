@@ -69,7 +69,8 @@ export default function StorageManagement() {
 
   const userRoles = (user as any)?.roles || [(user as any)?.role].filter(Boolean);
   const hasRole = (role: string) => userRoles?.includes(role);
-  const hasAccess = user && (hasRole("super_admin") || hasRole("master_inventory_handler"));
+  const hasAccess =
+    user && (hasRole("super_admin") || hasRole("master_inventory_handler") || hasRole("storage_management"));
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && !hasAccess) {
