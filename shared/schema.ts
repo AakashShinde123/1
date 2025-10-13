@@ -257,6 +257,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
     "orders",
     "send_message",
     "all_reports",
+    "label_printing",
+    "storage_management",
   ]).default('stock_in_manager'),
   roles: z.array(z.enum([
     "super_admin",
@@ -268,6 +270,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
     "orders",
     "send_message",
     "all_reports",
+    "label_printing",
+    "storage_management",
   ])).default([]),
 });
 
@@ -399,7 +403,9 @@ export type UserRole =
   | "weekly_stock_planner"
   | "orders"
   | "send_message"
-  | "all_reports";
+  | "all_reports"
+  | "label_printing"
+  | "storage_management";
 
 
 // Helper type for multiple roles support
