@@ -21,6 +21,15 @@ const LabelPrintingSystem: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const labelContainerRef = useRef<HTMLDivElement>(null);
 
+  // Helper to validate date order (expiry should not be before manufacturing)
+  const isExpiryBeforeMfg = (mfg: string, exp: string): boolean => {
+    if (!mfg || !exp) return false;
+    const m = new Date(mfg);
+    const e = new Date(exp);
+    if (isNaN(m.getTime()) || isNaN(e.getTime())) return false;
+    return e.getTime() < m.getTime();
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -75,6 +84,12 @@ const LabelPrintingSystem: React.FC = () => {
   };
 
   const generateLabels = () => {
+    // Block generating labels if any row has invalid date order
+    const invalidRows = tableData.filter((row) => isExpiryBeforeMfg(row.mfgDate, row.expDate));
+    if (invalidRows.length > 0) {
+      alert(`Error: Expiry date cannot be earlier than MFG date in ${invalidRows.length} row(s). Please fix before continuing.`);
+      return;
+    }
     const generated: TableRow[] = [];
     tableData.forEach(row => {
       if (row.itemName.trim() !== '') {
@@ -92,6 +107,12 @@ const LabelPrintingSystem: React.FC = () => {
   };
 
   const handlePrint = () => {
+    // Safety net: prevent printing if any row has invalid date order
+    const invalidRows = tableData.filter((row) => isExpiryBeforeMfg(row.mfgDate, row.expDate));
+    if (invalidRows.length > 0) {
+      alert('Error: Expiry date cannot be earlier than MFG date. Please correct the dates before printing.');
+      return;
+    }
     if (!labelContainerRef.current) { return; }
     const labelsHtml = labelContainerRef.current.innerHTML;
     const printStyles = `
@@ -137,6 +158,17 @@ const LabelPrintingSystem: React.FC = () => {
     }
   };
   
+  // Reset all inputs and previews
+  const handleReset = () => {
+    const confirmReset = window.confirm('This will clear all rows and previews. Continue?');
+    if (!confirmReset) return;
+    setTableData([{ id: 1, itemName: '', price: '', quantity: '', uom: 'grams', mfgDate: '', expDate: '', noOfPrints: 1 }]);
+    setLabelsToPrint([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
   const formatDateForDisplay = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -147,6 +179,7 @@ const LabelPrintingSystem: React.FC = () => {
   };
 
   const totalLabels = tableData.reduce((sum, item) => sum + (item.noOfPrints || 0), 0);
+  const hasInvalidDates = tableData.some((row) => isExpiryBeforeMfg(row.mfgDate, row.expDate));
   
   return (
     <div className="container">
@@ -162,6 +195,11 @@ const LabelPrintingSystem: React.FC = () => {
       </div>
       
       <div className="table-section">
+        {hasInvalidDates && (
+          <div className="warning-banner" role="alert">
+            One or more rows have invalid dates: Expiry date is earlier than MFG date. Please correct them to proceed.
+          </div>
+        )}
         <table className="data-table">
             <thead>
                 <tr>
@@ -190,8 +228,32 @@ const LabelPrintingSystem: React.FC = () => {
                             </select>
                         </div>
                     </td>
-                    <td><input type="date" value={row.mfgDate} onChange={e => handleTableChange(row.id, 'mfgDate', e.target.value)} /></td>
-                    <td><input type="date" value={row.expDate} onChange={e => handleTableChange(row.id, 'expDate', e.target.value)} /></td>
+                    {(() => {
+                      const invalid = isExpiryBeforeMfg(row.mfgDate, row.expDate);
+                      return (
+                        <>
+                          <td>
+                            <input
+                              type="date"
+                              value={row.mfgDate}
+                              onChange={e => handleTableChange(row.id, 'mfgDate', e.target.value)}
+                              style={invalid ? { borderColor: '#dc3545' } : undefined}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="date"
+                              value={row.expDate}
+                              onChange={e => handleTableChange(row.id, 'expDate', e.target.value)}
+                              style={invalid ? { borderColor: '#dc3545' } : undefined}
+                            />
+                            {invalid && (
+                              <div className="error-text">Expiry date must be after MFG date.</div>
+                            )}
+                          </td>
+                        </>
+                      );
+                    })()}
                     <td><input type="number" min="1" value={row.noOfPrints} onChange={e => handleTableChange(row.id, 'noOfPrints', parseInt(e.target.value) || 1)} style={{width: '70px'}}/></td>
                     <td><button className="btn-remove" onClick={() => removeTableRow(row.id)} disabled={tableData.length === 1}>Remove</button></td>
                 </tr>
@@ -205,8 +267,9 @@ const LabelPrintingSystem: React.FC = () => {
       </div>
 
       <div className="main-actions">
-        <button className="btn-generate" onClick={generateLabels}>🔄 Generate Labels</button>
-        <button className="btn-print" onClick={handlePrint}>🖨️ Print Labels</button>
+        <button className="btn-generate" onClick={generateLabels} disabled={hasInvalidDates} title={hasInvalidDates ? 'Fix invalid dates to continue' : undefined}>🔄 Generate Labels</button>
+        <button className="btn-print" onClick={handlePrint} disabled={hasInvalidDates} title={hasInvalidDates ? 'Fix invalid dates to continue' : undefined}>🖨️ Print Labels</button>
+        <button className="btn-reset" onClick={handleReset}>↩️ Reset</button>
       </div>
       
       {labelsToPrint.length > 0 && (
@@ -252,12 +315,47 @@ const LabelPrintingSystem: React.FC = () => {
         h1 { text-align: center; color: #333; }
         .controls, .table-section, .main-actions { margin-bottom: 25px; padding: 20px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; }
         h3 { margin-top: 0; margin-bottom: 15px; color: #343a40; border-bottom: 1px solid #e9ecef; padding-bottom: 10px; }
-        button { border: none; border-radius: 5px; padding: 10px 15px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s ease-in-out; }
-        .btn-upload { background-color: #28a745; color: white; }
-        .btn-add { background-color: #007bff; color: white; }
-        .btn-remove { background-color: #dc3545; color: white; }
-        .btn-generate { background-color: #17a2b8; color: white; padding: 12px 25px; }
-        .btn-print { background-color: #6c757d; color: white; padding: 12px 25px; }
+        /* Refined button styles */
+        button {
+          border: 1px solid transparent;
+          border-radius: 10px;
+          padding: 12px 18px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .05s ease, color .15s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          box-shadow: 0 1px 2px rgba(16,24,40,.08), 0 1px 1px rgba(16,24,40,.08);
+        }
+        button:hover:not(:disabled) { filter: brightness(1.02); }
+        button:active:not(:disabled) { transform: translateY(1px); }
+        button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,.35); }
+        button:disabled { opacity: .6; cursor: not-allowed; box-shadow: none; }
+
+        /* Layout for main actions */
+        .main-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .main-actions button { min-width: 160px; justify-content: center; }
+
+        /* Variants */
+        .btn-upload { background-color: #22c55e; color: #ffffff; border-color: #16a34a; }
+        .btn-upload:hover:not(:disabled) { background-color: #16a34a; }
+
+        .btn-add { background-color: #3b82f6; color: #ffffff; border-color: #2563eb; }
+        .btn-add:hover:not(:disabled) { background-color: #2563eb; }
+
+        .btn-remove { background-color: #ef4444; color: #ffffff; border-color: #dc2626; }
+        .btn-remove:hover:not(:disabled) { background-color: #dc2626; }
+
+        .btn-generate { background-color: #06b6d4; color: #ffffff; border-color: #0891b2; }
+        .btn-generate:hover:not(:disabled) { background-color: #0891b2; }
+
+        .btn-print { background-color: #64748b; color: #ffffff; border-color: #475569; }
+        .btn-print:hover:not(:disabled) { background-color: #475569; }
+
+        .btn-reset { background-color: #f59e0b; color: #111827; border-color: #d97706; }
+        .btn-reset:hover:not(:disabled) { background-color: #d97706; color: #0f172a; }
         .file-info { font-size: 13px; color: #6c757d; margin-top: 10px; }
         .table-section { overflow-x: auto; }
         .data-table { width: 100%; border-collapse: collapse; }
@@ -295,6 +393,8 @@ const LabelPrintingSystem: React.FC = () => {
         .detail-row { display: flex; justify-content: space-between; padding: 1mm 0; align-items: center; }
         .detail-label { font-weight: bold; }
         .detail-value { text-align: right; }
+        .error-text { color: #dc3545; font-size: 12px; margin-top: 4px; }
+        .warning-banner { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; }
         @media print { body > .container { display: none; } }
       `}</style>
     </div>
