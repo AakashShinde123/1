@@ -30,6 +30,53 @@ const LabelPrintingSystem: React.FC = () => {
     return e.getTime() < m.getTime();
   };
 
+  // Helpers for numeric validation and sanitization
+  const sanitizeDecimalInput = (value: string): string => {
+    if (value === undefined || value === null) return '';
+    let v = String(value);
+    // keep digits and dots
+    v = v.replace(/[^\d.]/g, '');
+    // collapse multiple dots to a single dot (keep first)
+    const parts = v.split('.');
+    if (parts.length > 2) {
+      v = parts[0] + '.' + parts.slice(1).join('');
+    }
+    // if starts with dot, prefix 0
+    if (v.startsWith('.')) v = '0' + v;
+    return v;
+  };
+
+  const isValidDecimal = (value: string): boolean => {
+    if (!value) return false;
+    // allows: 12, 12., 12.3, 0.5
+    return /^\d+(\.\d*)?$/.test(value);
+  };
+
+  const computeRowErrors = (row: TableRow) => {
+    const errors = {
+      itemName: '' as string,
+      price: '' as string,
+      quantity: '' as string,
+      mfgDate: '' as string,
+      expDate: '' as string,
+      noOfPrints: '' as string,
+    };
+    if (!row.itemName.trim()) errors.itemName = 'Required';
+    if (!row.price) errors.price = 'Required';
+    else if (!isValidDecimal(row.price)) errors.price = 'Numbers only';
+
+    if (!row.quantity) errors.quantity = 'Required';
+    else if (!isValidDecimal(row.quantity)) errors.quantity = 'Numbers only';
+
+    if (!row.mfgDate) errors.mfgDate = 'Required';
+    if (!row.expDate) errors.expDate = 'Required';
+    else if (isExpiryBeforeMfg(row.mfgDate, row.expDate)) errors.expDate = 'Must be after MFG date';
+
+    if (!row.noOfPrints || row.noOfPrints < 1) errors.noOfPrints = 'Min 1';
+
+    return errors;
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -44,8 +91,8 @@ const LabelPrintingSystem: React.FC = () => {
         const formattedData: TableRow[] = jsonData.map((row, index) => ({
           id: index + 1,
           itemName: String(row['Item Name'] || ''),
-          price: String(row['Price'] || ''),
-          quantity: String(row['Quantity'] || ''),
+          price: sanitizeDecimalInput(String(row['Price'] || '')),
+          quantity: sanitizeDecimalInput(String(row['Quantity'] || '')),
           uom: (row['UoM'] || 'grams').toLowerCase(),
           mfgDate: formatDateFromExcel(row['Mfg Date']),
           expDate: formatDateFromExcel(row['Exp Date']),
@@ -69,7 +116,17 @@ const LabelPrintingSystem: React.FC = () => {
   };
 
   const handleTableChange = (id: number, field: keyof TableRow, value: string | number) => {
-    setTableData(prev => prev.map(row => row.id === id ? { ...row, [field]: value } : row));
+    setTableData(prev => prev.map(row => {
+      if (row.id !== id) return row;
+      let newValue: any = value;
+      if (field === 'price' || field === 'quantity') {
+        newValue = sanitizeDecimalInput(String(value ?? ''));
+      } else if (field === 'noOfPrints') {
+        const n = parseInt(String(value));
+        newValue = isNaN(n) || n < 1 ? 1 : n;
+      }
+      return { ...row, [field]: newValue } as TableRow;
+    }));
   };
   
   const addTableRow = () => {
@@ -84,33 +141,38 @@ const LabelPrintingSystem: React.FC = () => {
   };
 
   const generateLabels = () => {
-    // Block generating labels if any row has invalid date order
-    const invalidRows = tableData.filter((row) => isExpiryBeforeMfg(row.mfgDate, row.expDate));
+    // Validate all rows: required fields and date order
+    const invalidRows = tableData.filter((row) => {
+      const errs = computeRowErrors(row);
+      return Object.values(errs).some(Boolean);
+    });
     if (invalidRows.length > 0) {
-      alert(`Error: Expiry date cannot be earlier than MFG date in ${invalidRows.length} row(s). Please fix before continuing.`);
+      alert(`Please complete all required fields with valid values. ${invalidRows.length} row(s) have issues.`);
       return;
     }
     const generated: TableRow[] = [];
     tableData.forEach(row => {
-      if (row.itemName.trim() !== '') {
+      // all rows are valid at this point
         for (let i = 0; i < row.noOfPrints; i++) {
           generated.push(row);
         }
-      }
     });
     setLabelsToPrint(generated);
     if (generated.length > 0) {
        alert(`Generated ${generated.length} total labels! You can now print.`);
     } else {
-       alert("Please enter an Item Name before generating labels.");
+       alert("Please fill all required fields before generating labels.");
     }
   };
 
   const handlePrint = () => {
-    // Safety net: prevent printing if any row has invalid date order
-    const invalidRows = tableData.filter((row) => isExpiryBeforeMfg(row.mfgDate, row.expDate));
+    // Prevent printing if any row invalid
+    const invalidRows = tableData.filter((row) => {
+      const errs = computeRowErrors(row);
+      return Object.values(errs).some(Boolean);
+    });
     if (invalidRows.length > 0) {
-      alert('Error: Expiry date cannot be earlier than MFG date. Please correct the dates before printing.');
+      alert('Please complete all required fields and correct invalid values before printing.');
       return;
     }
     if (!labelContainerRef.current) { return; }
@@ -179,7 +241,7 @@ const LabelPrintingSystem: React.FC = () => {
   };
 
   const totalLabels = tableData.reduce((sum, item) => sum + (item.noOfPrints || 0), 0);
-  const hasInvalidDates = tableData.some((row) => isExpiryBeforeMfg(row.mfgDate, row.expDate));
+  const hasInvalidRows = tableData.some((row) => Object.values(computeRowErrors(row)).some(Boolean));
   
   return (
     <div className="container">
@@ -195,9 +257,9 @@ const LabelPrintingSystem: React.FC = () => {
       </div>
       
       <div className="table-section">
-        {hasInvalidDates && (
+        {hasInvalidRows && (
           <div className="warning-banner" role="alert">
-            One or more rows have invalid dates: Expiry date is earlier than MFG date. Please correct them to proceed.
+            Some rows are incomplete or have invalid values (all fields are mandatory; price and quantity must be numbers; expiry must be after MFG). Please correct them to proceed.
           </div>
         )}
         <table className="data-table">
@@ -213,13 +275,51 @@ const LabelPrintingSystem: React.FC = () => {
                 </tr>
             </thead>
             <tbody>
-            {tableData.map((row) => (
+            {tableData.map((row) => {
+              const errs = computeRowErrors(row);
+              const dateInvalid = !!errs.expDate && errs.expDate.includes('after MFG');
+              return (
                 <tr key={row.id}>
-                    <td><input type="text" value={row.itemName} onChange={e => handleTableChange(row.id, 'itemName', e.target.value)} /></td>
-                    <td><input type="text" value={row.price} onChange={e => handleTableChange(row.id, 'price', e.target.value)} /></td>
+                    <td>
+                      <input
+                        type="text"
+                        required
+                        aria-invalid={!!errs.itemName}
+                        value={row.itemName}
+                        onChange={e => handleTableChange(row.id, 'itemName', e.target.value)}
+                        style={errs.itemName ? { borderColor: '#dc3545' } : undefined}
+                      />
+                      {errs.itemName && <div className="error-text">{errs.itemName}</div>}
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        pattern="^\\d+(\\.\\d*)?$"
+                        required
+                        aria-invalid={!!errs.price}
+                        value={row.price}
+                        onChange={e => handleTableChange(row.id, 'price', e.target.value)}
+                        style={errs.price ? { borderColor: '#dc3545' } : undefined}
+                      />
+                      {errs.price && <div className="error-text">{errs.price}</div>}
+                    </td>
                     <td>
                         <div className="quantity-uom-cell">
-                            <input type="text" value={row.quantity} onChange={e => handleTableChange(row.id, 'quantity', e.target.value)} className="quantity-input"/>
+                            <div style={{flexGrow:1}}>
+                              <input
+                                type="text"
+                                className="quantity-input"
+                                inputMode="decimal"
+                                pattern="^\\d+(\\.\\d*)?$"
+                                required
+                                aria-invalid={!!errs.quantity}
+                                value={row.quantity}
+                                onChange={e => handleTableChange(row.id, 'quantity', e.target.value)}
+                                style={errs.quantity ? { borderColor: '#dc3545' } : undefined}
+                              />
+                              {errs.quantity && <div className="error-text">{errs.quantity}</div>}
+                            </div>
                             <select value={row.uom} onChange={e => handleTableChange(row.id, 'uom', e.target.value as TableRow['uom'])} className="uom-select">
                                 <option value="grams">grams</option>
                                 <option value="kg">kg</option>
@@ -229,35 +329,51 @@ const LabelPrintingSystem: React.FC = () => {
                         </div>
                     </td>
                     {(() => {
-                      const invalid = isExpiryBeforeMfg(row.mfgDate, row.expDate);
                       return (
                         <>
                           <td>
                             <input
                               type="date"
+                              required
+                              aria-invalid={!!errs.mfgDate}
                               value={row.mfgDate}
                               onChange={e => handleTableChange(row.id, 'mfgDate', e.target.value)}
-                              style={invalid ? { borderColor: '#dc3545' } : undefined}
+                              style={errs.mfgDate ? { borderColor: '#dc3545' } : undefined}
                             />
+                            {errs.mfgDate && <div className="error-text">{errs.mfgDate}</div>}
                           </td>
                           <td>
                             <input
                               type="date"
+                              required
+                              aria-invalid={!!errs.expDate}
                               value={row.expDate}
                               onChange={e => handleTableChange(row.id, 'expDate', e.target.value)}
-                              style={invalid ? { borderColor: '#dc3545' } : undefined}
+                              style={errs.expDate ? { borderColor: '#dc3545' } : undefined}
                             />
-                            {invalid && (
-                              <div className="error-text">Expiry date must be after MFG date.</div>
+                            {errs.expDate && (
+                              <div className="error-text">{dateInvalid ? 'Expiry date must be after MFG date.' : errs.expDate}</div>
                             )}
                           </td>
                         </>
                       );
                     })()}
-                    <td><input type="number" min="1" value={row.noOfPrints} onChange={e => handleTableChange(row.id, 'noOfPrints', parseInt(e.target.value) || 1)} style={{width: '70px'}}/></td>
+                    <td>
+                      <input
+                        type="number"
+                        min="1"
+                        required
+                        aria-invalid={!!errs.noOfPrints}
+                        value={row.noOfPrints}
+                        onChange={e => handleTableChange(row.id, 'noOfPrints', parseInt(e.target.value) || 1)}
+                        style={{width: '70px', ...(errs.noOfPrints ? { borderColor: '#dc3545' } : {})}}
+                      />
+                      {errs.noOfPrints && <div className="error-text">{errs.noOfPrints}</div>}
+                    </td>
                     <td><button className="btn-remove" onClick={() => removeTableRow(row.id)} disabled={tableData.length === 1}>Remove</button></td>
                 </tr>
-            ))}
+              );
+            })}
             </tbody>
         </table>
         <div className="table-actions">
@@ -267,8 +383,8 @@ const LabelPrintingSystem: React.FC = () => {
       </div>
 
       <div className="main-actions">
-        <button className="btn-generate" onClick={generateLabels} disabled={hasInvalidDates} title={hasInvalidDates ? 'Fix invalid dates to continue' : undefined}>🔄 Generate Labels</button>
-        <button className="btn-print" onClick={handlePrint} disabled={hasInvalidDates} title={hasInvalidDates ? 'Fix invalid dates to continue' : undefined}>🖨️ Print Labels</button>
+        <button className="btn-generate" onClick={generateLabels} disabled={hasInvalidRows} title={hasInvalidRows ? 'Fix invalid fields to continue' : undefined}>🔄 Generate Labels</button>
+        <button className="btn-print" onClick={handlePrint} disabled={hasInvalidRows} title={hasInvalidRows ? 'Fix invalid fields to continue' : undefined}>🖨️ Print Labels</button>
         <button className="btn-reset" onClick={handleReset}>↩️ Reset</button>
       </div>
       
