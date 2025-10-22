@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 
-// The data structure for each item in the table
 interface TableRow {
   id: number;
   itemName: string;
@@ -21,60 +20,12 @@ const LabelPrintingSystem: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const labelContainerRef = useRef<HTMLDivElement>(null);
 
-  // Helper to validate date order (expiry should not be before manufacturing)
   const isExpiryBeforeMfg = (mfg: string, exp: string): boolean => {
     if (!mfg || !exp) return false;
     const m = new Date(mfg);
     const e = new Date(exp);
     if (isNaN(m.getTime()) || isNaN(e.getTime())) return false;
     return e.getTime() < m.getTime();
-  };
-
-  // Helpers for numeric validation and sanitization
-  const sanitizeDecimalInput = (value: string): string => {
-    if (value === undefined || value === null) return '';
-    let v = String(value);
-    // keep digits and dots
-    v = v.replace(/[^\d.]/g, '');
-    // collapse multiple dots to a single dot (keep first)
-    const parts = v.split('.');
-    if (parts.length > 2) {
-      v = parts[0] + '.' + parts.slice(1).join('');
-    }
-    // if starts with dot, prefix 0
-    if (v.startsWith('.')) v = '0' + v;
-    return v;
-  };
-
-  const isValidDecimal = (value: string): boolean => {
-    if (!value) return false;
-    // allows: 12, 12., 12.3, 0.5
-    return /^\d+(\.\d*)?$/.test(value);
-  };
-
-  const computeRowErrors = (row: TableRow) => {
-    const errors = {
-      itemName: '' as string,
-      price: '' as string,
-      quantity: '' as string,
-      mfgDate: '' as string,
-      expDate: '' as string,
-      noOfPrints: '' as string,
-    };
-    if (!row.itemName.trim()) errors.itemName = 'Required';
-    if (!row.price) errors.price = 'Required';
-    else if (!isValidDecimal(row.price)) errors.price = 'Numbers only';
-
-    if (!row.quantity) errors.quantity = 'Required';
-    else if (!isValidDecimal(row.quantity)) errors.quantity = 'Numbers only';
-
-    if (!row.mfgDate) errors.mfgDate = 'Required';
-    if (!row.expDate) errors.expDate = 'Required';
-    else if (isExpiryBeforeMfg(row.mfgDate, row.expDate)) errors.expDate = 'Must be after MFG date';
-
-    if (!row.noOfPrints || row.noOfPrints < 1) errors.noOfPrints = 'Min 1';
-
-    return errors;
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,8 +42,8 @@ const LabelPrintingSystem: React.FC = () => {
         const formattedData: TableRow[] = jsonData.map((row, index) => ({
           id: index + 1,
           itemName: String(row['Item Name'] || ''),
-          price: sanitizeDecimalInput(String(row['Price'] || '')),
-          quantity: sanitizeDecimalInput(String(row['Quantity'] || '')),
+          price: String(row['Price'] || ''),
+          quantity: String(row['Quantity'] || ''),
           uom: (row['UoM'] || 'grams').toLowerCase(),
           mfgDate: formatDateFromExcel(row['Mfg Date']),
           expDate: formatDateFromExcel(row['Exp Date']),
@@ -116,17 +67,7 @@ const LabelPrintingSystem: React.FC = () => {
   };
 
   const handleTableChange = (id: number, field: keyof TableRow, value: string | number) => {
-    setTableData(prev => prev.map(row => {
-      if (row.id !== id) return row;
-      let newValue: any = value;
-      if (field === 'price' || field === 'quantity') {
-        newValue = sanitizeDecimalInput(String(value ?? ''));
-      } else if (field === 'noOfPrints') {
-        const n = parseInt(String(value));
-        newValue = isNaN(n) || n < 1 ? 1 : n;
-      }
-      return { ...row, [field]: newValue } as TableRow;
-    }));
+    setTableData(prev => prev.map(row => row.id === id ? { ...row, [field]: value } : row));
   };
   
   const addTableRow = () => {
@@ -141,38 +82,41 @@ const LabelPrintingSystem: React.FC = () => {
   };
 
   const generateLabels = () => {
-    // Validate all rows: required fields and date order
-    const invalidRows = tableData.filter((row) => {
-      const errs = computeRowErrors(row);
-      return Object.values(errs).some(Boolean);
-    });
+    const invalidRows = tableData.filter((row) => isExpiryBeforeMfg(row.mfgDate, row.expDate));
     if (invalidRows.length > 0) {
-      alert(`Please complete all required fields with valid values. ${invalidRows.length} row(s) have issues.`);
+      alert(`Error: Expiry date cannot be earlier than MFG date in ${invalidRows.length} row(s). Please fix before continuing.`);
       return;
     }
     const generated: TableRow[] = [];
     tableData.forEach(row => {
-      // all rows are valid at this point
+      if (row.itemName.trim() !== '') {
         for (let i = 0; i < row.noOfPrints; i++) {
           generated.push(row);
         }
+      }
     });
     setLabelsToPrint(generated);
     if (generated.length > 0) {
        alert(`Generated ${generated.length} total labels! You can now print.`);
     } else {
-       alert("Please fill all required fields before generating labels.");
+       alert("Please enter an Item Name before generating labels.");
     }
   };
 
+  const getFontSize = (text: string, baseSize: number = 22) => {
+    const length = text.length;
+    if (length <= 15) return baseSize;
+    if (length <= 25) return baseSize - 4;
+    if (length <= 35) return baseSize - 6;
+    if (length <= 45) return baseSize - 8;
+    if (length <= 60) return baseSize - 10;
+    return baseSize - 12;
+  };
+
   const handlePrint = () => {
-    // Prevent printing if any row invalid
-    const invalidRows = tableData.filter((row) => {
-      const errs = computeRowErrors(row);
-      return Object.values(errs).some(Boolean);
-    });
+    const invalidRows = tableData.filter((row) => isExpiryBeforeMfg(row.mfgDate, row.expDate));
     if (invalidRows.length > 0) {
-      alert('Please complete all required fields and correct invalid values before printing.');
+      alert('Error: Expiry date cannot be earlier than MFG date. Please correct the dates before printing.');
       return;
     }
     if (!labelContainerRef.current) { return; }
@@ -187,22 +131,57 @@ const LabelPrintingSystem: React.FC = () => {
                 display: flex; flex-direction: column;
                 page-break-after: always; page-break-inside: avoid !important;
             }
-            .label-header { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 2mm; }
+            .label-header { 
+                display: flex; 
+                justify-content: space-between; 
+                border-bottom: 1px solid #333; 
+                padding-bottom: 1.5mm;
+                flex-shrink: 0;
+            }
             .brand-name { font-size: 14pt; font-weight: bold; }
             .brand-division { font-size: 7pt; }
             .reg-info { font-size: 7pt; text-align: right; }
-            .label-body { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; }
-            .product-name { font-size: 22pt; font-weight: bold; text-align: center; margin: 4mm 0; text-transform: uppercase; margin-bottom: 1mm; }
-            /* NEW: Style for the price/uom under the product name */
+            .label-body { 
+                flex-grow: 1; 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: space-between;
+                overflow: hidden;
+            }
+            .product-section {
+                flex-shrink: 1;
+                min-height: 0;
+                overflow: hidden;
+            }
+            .product-name { 
+                font-weight: bold; 
+                text-align: center; 
+                margin: 1mm 0; 
+                text-transform: uppercase; 
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                hyphens: auto;
+                line-height: 1;
+                max-height: 20mm;
+                overflow: hidden;
+            }
             .product-price-uom {
                 text-align: center;
-                font-size: 22pt;
                 font-weight: bold;
-                margin-bottom: 4mm;
+                margin: 1mm 0 2mm 0;
                 color: #333;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                line-height: 1;
+                max-height: 12mm;
+                overflow: hidden;
             }
-            .details-grid { font-size: 10pt; }
-            .detail-row { display: flex; justify-content: space-between; padding: 1mm 0; align-items: center; }
+            .details-grid { 
+                font-size: 10pt; 
+                flex-shrink: 0;
+                margin-top: auto;
+            }
+            .detail-row { display: flex; justify-content: space-between; padding: 0.5mm 0; align-items: center; }
             .detail-label { font-weight: bold; }
             .detail-value { text-align: right; }
         </style>
@@ -220,7 +199,6 @@ const LabelPrintingSystem: React.FC = () => {
     }
   };
   
-  // Reset all inputs and previews
   const handleReset = () => {
     const confirmReset = window.confirm('This will clear all rows and previews. Continue?');
     if (!confirmReset) return;
@@ -241,7 +219,7 @@ const LabelPrintingSystem: React.FC = () => {
   };
 
   const totalLabels = tableData.reduce((sum, item) => sum + (item.noOfPrints || 0), 0);
-  const hasInvalidRows = tableData.some((row) => Object.values(computeRowErrors(row)).some(Boolean));
+  const hasInvalidDates = tableData.some((row) => isExpiryBeforeMfg(row.mfgDate, row.expDate));
   
   return (
     <div className="container">
@@ -257,9 +235,9 @@ const LabelPrintingSystem: React.FC = () => {
       </div>
       
       <div className="table-section">
-        {hasInvalidRows && (
+        {hasInvalidDates && (
           <div className="warning-banner" role="alert">
-            Some rows are incomplete or have invalid values (all fields are mandatory; price and quantity must be numbers; expiry must be after MFG). Please correct them to proceed.
+            One or more rows have invalid dates: Expiry date is earlier than MFG date. Please correct them to proceed.
           </div>
         )}
         <table className="data-table">
@@ -275,51 +253,13 @@ const LabelPrintingSystem: React.FC = () => {
                 </tr>
             </thead>
             <tbody>
-            {tableData.map((row) => {
-              const errs = computeRowErrors(row);
-              const dateInvalid = !!errs.expDate && errs.expDate.includes('after MFG');
-              return (
+            {tableData.map((row) => (
                 <tr key={row.id}>
-                    <td>
-                      <input
-                        type="text"
-                        required
-                        aria-invalid={!!errs.itemName}
-                        value={row.itemName}
-                        onChange={e => handleTableChange(row.id, 'itemName', e.target.value)}
-                        style={errs.itemName ? { borderColor: '#dc3545' } : undefined}
-                      />
-                      {errs.itemName && <div className="error-text">{errs.itemName}</div>}
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        pattern="^\\d+(\\.\\d*)?$"
-                        required
-                        aria-invalid={!!errs.price}
-                        value={row.price}
-                        onChange={e => handleTableChange(row.id, 'price', e.target.value)}
-                        style={errs.price ? { borderColor: '#dc3545' } : undefined}
-                      />
-                      {errs.price && <div className="error-text">{errs.price}</div>}
-                    </td>
+                    <td><input type="text" value={row.itemName} onChange={e => handleTableChange(row.id, 'itemName', e.target.value)} /></td>
+                    <td><input type="text" value={row.price} onChange={e => handleTableChange(row.id, 'price', e.target.value)} /></td>
                     <td>
                         <div className="quantity-uom-cell">
-                            <div style={{flexGrow:1}}>
-                              <input
-                                type="text"
-                                className="quantity-input"
-                                inputMode="decimal"
-                                pattern="^\\d+(\\.\\d*)?$"
-                                required
-                                aria-invalid={!!errs.quantity}
-                                value={row.quantity}
-                                onChange={e => handleTableChange(row.id, 'quantity', e.target.value)}
-                                style={errs.quantity ? { borderColor: '#dc3545' } : undefined}
-                              />
-                              {errs.quantity && <div className="error-text">{errs.quantity}</div>}
-                            </div>
+                            <input type="text" value={row.quantity} onChange={e => handleTableChange(row.id, 'quantity', e.target.value)} className="quantity-input"/>
                             <select value={row.uom} onChange={e => handleTableChange(row.id, 'uom', e.target.value as TableRow['uom'])} className="uom-select">
                                 <option value="grams">grams</option>
                                 <option value="kg">kg</option>
@@ -329,51 +269,35 @@ const LabelPrintingSystem: React.FC = () => {
                         </div>
                     </td>
                     {(() => {
+                      const invalid = isExpiryBeforeMfg(row.mfgDate, row.expDate);
                       return (
                         <>
                           <td>
                             <input
                               type="date"
-                              required
-                              aria-invalid={!!errs.mfgDate}
                               value={row.mfgDate}
                               onChange={e => handleTableChange(row.id, 'mfgDate', e.target.value)}
-                              style={errs.mfgDate ? { borderColor: '#dc3545' } : undefined}
+                              style={invalid ? { borderColor: '#dc3545' } : undefined}
                             />
-                            {errs.mfgDate && <div className="error-text">{errs.mfgDate}</div>}
                           </td>
                           <td>
                             <input
                               type="date"
-                              required
-                              aria-invalid={!!errs.expDate}
                               value={row.expDate}
                               onChange={e => handleTableChange(row.id, 'expDate', e.target.value)}
-                              style={errs.expDate ? { borderColor: '#dc3545' } : undefined}
+                              style={invalid ? { borderColor: '#dc3545' } : undefined}
                             />
-                            {errs.expDate && (
-                              <div className="error-text">{dateInvalid ? 'Expiry date must be after MFG date.' : errs.expDate}</div>
+                            {invalid && (
+                              <div className="error-text">Expiry date must be after MFG date.</div>
                             )}
                           </td>
                         </>
                       );
                     })()}
-                    <td>
-                      <input
-                        type="number"
-                        min="1"
-                        required
-                        aria-invalid={!!errs.noOfPrints}
-                        value={row.noOfPrints}
-                        onChange={e => handleTableChange(row.id, 'noOfPrints', parseInt(e.target.value) || 1)}
-                        style={{width: '70px', ...(errs.noOfPrints ? { borderColor: '#dc3545' } : {})}}
-                      />
-                      {errs.noOfPrints && <div className="error-text">{errs.noOfPrints}</div>}
-                    </td>
+                    <td><input type="number" min="1" value={row.noOfPrints} onChange={e => handleTableChange(row.id, 'noOfPrints', parseInt(e.target.value) || 1)} style={{width: '70px'}}/></td>
                     <td><button className="btn-remove" onClick={() => removeTableRow(row.id)} disabled={tableData.length === 1}>Remove</button></td>
                 </tr>
-              );
-            })}
+            ))}
             </tbody>
         </table>
         <div className="table-actions">
@@ -383,8 +307,8 @@ const LabelPrintingSystem: React.FC = () => {
       </div>
 
       <div className="main-actions">
-        <button className="btn-generate" onClick={generateLabels} disabled={hasInvalidRows} title={hasInvalidRows ? 'Fix invalid fields to continue' : undefined}>🔄 Generate Labels</button>
-        <button className="btn-print" onClick={handlePrint} disabled={hasInvalidRows} title={hasInvalidRows ? 'Fix invalid fields to continue' : undefined}>🖨️ Print Labels</button>
+        <button className="btn-generate" onClick={generateLabels} disabled={hasInvalidDates} title={hasInvalidDates ? 'Fix invalid dates to continue' : undefined}>🔄 Generate Labels</button>
+        <button className="btn-print" onClick={handlePrint} disabled={hasInvalidDates} title={hasInvalidDates ? 'Fix invalid dates to continue' : undefined}>🖨️ Print Labels</button>
         <button className="btn-reset" onClick={handleReset}>↩️ Reset</button>
       </div>
       
@@ -400,20 +324,21 @@ const LabelPrintingSystem: React.FC = () => {
                   priceDisplay = [pricePart, quantityPart].filter(Boolean).join(' / ');
               }
               
+              const productNameSize = getFontSize(label.itemName, 22);
+              const priceUomSize = getFontSize(priceDisplay, 22);
+              
               return (
                 <div className="label" key={index}>
                   <div className="label-header">
                     <div className="brand-info"><div className="brand-name">SUDHAMRIT</div><div className="brand-division">(A DIVISION OF SUDHASTAR)</div></div>
                     <div className="reg-info"><div>FSSAI: 21523014001786</div><div>GST: 27AAAAS0976Q1ZU</div></div>
                   </div>
-                  {/* UPDATED: This is the new layout */}
                   <div className="label-body">
-                    <div className="product-name">{label.itemName}</div>
-                    {priceDisplay && <div className="product-price-uom">{priceDisplay}</div>}
+                    <div className="product-name" style={{ fontSize: `${productNameSize}pt` }}>{label.itemName}</div>
+                    {priceDisplay && <div className="product-price-uom" style={{ fontSize: `${priceUomSize}pt` }}>{priceDisplay}</div>}
                     <div className="details-grid">
                       <div className="detail-row"><span className="detail-label">MFG DATE:</span><span className="detail-value">{formatDateForDisplay(label.mfgDate)}</span></div>
                       <div className="detail-row"><span className="detail-label">BEST BEFORE:</span><span className="detail-value">{formatDateForDisplay(label.expDate)}</span></div>
-                      {/* The old price row is now removed from here */}
                     </div>
                   </div>
                 </div>
@@ -431,7 +356,6 @@ const LabelPrintingSystem: React.FC = () => {
         h1 { text-align: center; color: #333; }
         .controls, .table-section, .main-actions { margin-bottom: 25px; padding: 20px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; }
         h3 { margin-top: 0; margin-bottom: 15px; color: #343a40; border-bottom: 1px solid #e9ecef; padding-bottom: 10px; }
-        /* Refined button styles */
         button {
           border: 1px solid transparent;
           border-radius: 10px;
@@ -450,11 +374,9 @@ const LabelPrintingSystem: React.FC = () => {
         button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,.35); }
         button:disabled { opacity: .6; cursor: not-allowed; box-shadow: none; }
 
-        /* Layout for main actions */
         .main-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
         .main-actions button { min-width: 160px; justify-content: center; }
 
-        /* Variants */
         .btn-upload { background-color: #22c55e; color: #ffffff; border-color: #16a34a; }
         .btn-upload:hover:not(:disabled) { background-color: #16a34a; }
 
@@ -491,22 +413,57 @@ const LabelPrintingSystem: React.FC = () => {
             overflow: hidden; background: white; display: flex; flex-direction: column;
             font-family: Arial, Helvetica, sans-serif; color: black;
         }
-        .label-header { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 2mm; }
+        .label-header { 
+            display: flex; 
+            justify-content: space-between; 
+            border-bottom: 1px solid #333; 
+            padding-bottom: 1.5mm;
+            flex-shrink: 0;
+        }
         .brand-name { font-size: 14pt; font-weight: bold; }
         .brand-division { font-size: 7pt; }
         .reg-info { font-size: 7pt; text-align: right; }
-        .label-body { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; }
-        .product-name { font-size: 22pt; font-weight: bold; text-align: center; margin: 4mm 0; text-transform: uppercase; margin-bottom: 1mm; }
-        /* NEW: Style for the price/uom under the product name */
+        .label-body { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between;
+            overflow: hidden;
+        }
+        .product-section {
+            flex-shrink: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .product-name { 
+            font-weight: bold; 
+            text-align: center; 
+            margin: 1mm 0; 
+            text-transform: uppercase; 
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            line-height: 1;
+            max-height: 20mm;
+            overflow: hidden;
+        }
         .product-price-uom {
             text-align: center;
-            font-size: 22pt;
             font-weight: bold;
-            margin-bottom: 4mm;
+            margin: 1mm 0 2mm 0;
             color: #333;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1;
+            max-height: 12mm;
+            overflow: hidden;
         }
-        .details-grid { font-size: 10pt; }
-        .detail-row { display: flex; justify-content: space-between; padding: 1mm 0; align-items: center; }
+        .details-grid { 
+            font-size: 10pt;
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+        .detail-row { display: flex; justify-content: space-between; padding: 0.5mm 0; align-items: center; }
         .detail-label { font-weight: bold; }
         .detail-value { text-align: right; }
         .error-text { color: #dc3545; font-size: 12px; margin-top: 4px; }
